@@ -1,0 +1,208 @@
+using InventarioMultiSucursal.Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace InventarioMultiSucursal.Api.Data;
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<Sucursal> Sucursales => Set<Sucursal>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
+    public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
+    public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<Inventario> Inventarios => Set<Inventario>();
+    public DbSet<Proveedor> Proveedores => Set<Proveedor>();
+    public DbSet<OrdenCompra> OrdenesCompra => Set<OrdenCompra>();
+    public DbSet<OrdenCompraLinea> OrdenesCompraLineas => Set<OrdenCompraLinea>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Sucursal>(entity =>
+        {
+            entity.ToTable("sucursales");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Id).HasColumnName("id");
+            entity.Property(s => s.Nombre).HasColumnName("nombre");
+            entity.Property(s => s.Direccion).HasColumnName("direccion");
+            entity.Property(s => s.Ciudad).HasColumnName("ciudad");
+            entity.Property(s => s.Telefono).HasColumnName("telefono");
+            entity.Property(s => s.Activa).HasColumnName("activa");
+            entity.Property(s => s.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.ToTable("usuarios");
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Id).HasColumnName("id");
+            entity.Property(u => u.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(u => u.Nombre).HasColumnName("nombre");
+            entity.Property(u => u.Email).HasColumnName("email");
+            entity.Property(u => u.PasswordHash).HasColumnName("password_hash");
+            entity.Property(u => u.Activo).HasColumnName("activo");
+            entity.Property(u => u.CreatedAt).HasColumnName("created_at");
+
+            entity.Property(u => u.Rol)
+                .HasColumnName("rol")
+                .HasConversion(
+                    rol => RolToDb(rol),
+                    valor => RolFromDb(valor));
+
+            entity.HasOne(u => u.Sucursal)
+                .WithMany(s => s.Usuarios)
+                .HasForeignKey(u => u.SucursalId);
+        });
+
+        modelBuilder.Entity<UnidadMedida>(entity =>
+        {
+            entity.ToTable("unidades_medida");
+            entity.HasKey(um => um.Id);
+            entity.Property(um => um.Id).HasColumnName("id");
+            entity.Property(um => um.Nombre).HasColumnName("nombre");
+            entity.Property(um => um.Abreviatura).HasColumnName("abreviatura");
+        });
+
+        modelBuilder.Entity<Producto>(entity =>
+        {
+            entity.ToTable("productos");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Id).HasColumnName("id");
+            entity.Property(p => p.UnidadMedidaId).HasColumnName("unidad_medida_id");
+            entity.Property(p => p.Sku).HasColumnName("sku");
+            entity.Property(p => p.Nombre).HasColumnName("nombre");
+            entity.Property(p => p.Descripcion).HasColumnName("descripcion");
+            entity.Property(p => p.Categoria).HasColumnName("categoria");
+            entity.Property(p => p.Activo).HasColumnName("activo");
+            entity.Property(p => p.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(p => p.UnidadMedida)
+                .WithMany(um => um.Productos)
+                .HasForeignKey(p => p.UnidadMedidaId);
+        });
+
+        modelBuilder.Entity<Inventario>(entity =>
+        {
+            entity.ToTable("inventario");
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Id).HasColumnName("id");
+            entity.Property(i => i.ProductoId).HasColumnName("producto_id");
+            entity.Property(i => i.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(i => i.Cantidad).HasColumnName("cantidad");
+            entity.Property(i => i.StockMinimo).HasColumnName("stock_minimo");
+            entity.Property(i => i.CostoPromedio).HasColumnName("costo_promedio");
+            entity.Property(i => i.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(i => new { i.ProductoId, i.SucursalId }).IsUnique();
+
+            entity.HasOne(i => i.Producto)
+                .WithMany(p => p.InventarioPorSucursal)
+                .HasForeignKey(i => i.ProductoId);
+
+            entity.HasOne(i => i.Sucursal)
+                .WithMany()
+                .HasForeignKey(i => i.SucursalId);
+        });
+
+        modelBuilder.Entity<Proveedor>(entity =>
+        {
+            entity.ToTable("proveedores");
+            entity.HasKey(pr => pr.Id);
+            entity.Property(pr => pr.Id).HasColumnName("id");
+            entity.Property(pr => pr.Nombre).HasColumnName("nombre");
+            entity.Property(pr => pr.Contacto).HasColumnName("contacto");
+            entity.Property(pr => pr.Telefono).HasColumnName("telefono");
+            entity.Property(pr => pr.Email).HasColumnName("email");
+            entity.Property(pr => pr.Direccion).HasColumnName("direccion");
+            entity.Property(pr => pr.Activo).HasColumnName("activo");
+            entity.Property(pr => pr.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<OrdenCompra>(entity =>
+        {
+            entity.ToTable("ordenes_compra");
+            entity.HasKey(oc => oc.Id);
+            entity.Property(oc => oc.Id).HasColumnName("id");
+            entity.Property(oc => oc.ProveedorId).HasColumnName("proveedor_id");
+            entity.Property(oc => oc.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(oc => oc.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(oc => oc.PlazoPagoDias).HasColumnName("plazo_pago_dias");
+            entity.Property(oc => oc.Fecha).HasColumnName("fecha");
+            entity.Property(oc => oc.FechaRecepcion).HasColumnName("fecha_recepcion");
+
+            entity.Property(oc => oc.Estado)
+                .HasColumnName("estado")
+                .HasConversion(
+                    estado => EstadoOrdenCompraToDb(estado),
+                    valor => EstadoOrdenCompraFromDb(valor));
+
+            entity.HasOne(oc => oc.Proveedor)
+                .WithMany(pr => pr.OrdenesCompra)
+                .HasForeignKey(oc => oc.ProveedorId);
+
+            entity.HasOne(oc => oc.Sucursal)
+                .WithMany()
+                .HasForeignKey(oc => oc.SucursalId);
+
+            entity.HasOne(oc => oc.Usuario)
+                .WithMany()
+                .HasForeignKey(oc => oc.UsuarioId);
+        });
+
+        modelBuilder.Entity<OrdenCompraLinea>(entity =>
+        {
+            entity.ToTable("ordenes_compra_lineas");
+            entity.HasKey(l => l.Id);
+            entity.Property(l => l.Id).HasColumnName("id");
+            entity.Property(l => l.OrdenCompraId).HasColumnName("orden_compra_id");
+            entity.Property(l => l.ProductoId).HasColumnName("producto_id");
+            entity.Property(l => l.Cantidad).HasColumnName("cantidad");
+            entity.Property(l => l.PrecioUnitario).HasColumnName("precio_unitario");
+            entity.Property(l => l.Descuento).HasColumnName("descuento");
+
+            entity.HasOne(l => l.OrdenCompra)
+                .WithMany(oc => oc.Lineas)
+                .HasForeignKey(l => l.OrdenCompraId);
+
+            entity.HasOne(l => l.Producto)
+                .WithMany()
+                .HasForeignKey(l => l.ProductoId);
+        });
+    }
+
+    private static string EstadoOrdenCompraToDb(EstadoOrdenCompra estado) => estado switch
+    {
+        EstadoOrdenCompra.Pendiente => "pendiente",
+        EstadoOrdenCompra.Confirmada => "confirmada",
+        EstadoOrdenCompra.Recibida => "recibida",
+        EstadoOrdenCompra.Cancelada => "cancelada",
+        _ => throw new ArgumentOutOfRangeException(nameof(estado), estado, "Estado no reconocido")
+    };
+
+    private static EstadoOrdenCompra EstadoOrdenCompraFromDb(string valor) => valor switch
+    {
+        "pendiente" => EstadoOrdenCompra.Pendiente,
+        "confirmada" => EstadoOrdenCompra.Confirmada,
+        "recibida" => EstadoOrdenCompra.Recibida,
+        "cancelada" => EstadoOrdenCompra.Cancelada,
+        _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de estado desconocido en la base de datos")
+    };
+
+    private static string RolToDb(RolUsuario rol) => rol switch
+    {
+        RolUsuario.AdministradorGeneral => "administrador_general",
+        RolUsuario.GerenteSucursal => "gerente_sucursal",
+        RolUsuario.OperadorInventario => "operador_inventario",
+        _ => throw new ArgumentOutOfRangeException(nameof(rol), rol, "Rol no reconocido")
+    };
+
+    private static RolUsuario RolFromDb(string valor) => valor switch
+    {
+        "administrador_general" => RolUsuario.AdministradorGeneral,
+        "gerente_sucursal" => RolUsuario.GerenteSucursal,
+        "operador_inventario" => RolUsuario.OperadorInventario,
+        _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de rol desconocido en la base de datos")
+    };
+}
