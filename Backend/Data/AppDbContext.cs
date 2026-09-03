@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<OrdenCompraLinea> OrdenesCompraLineas => Set<OrdenCompraLinea>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<VentaLinea> VentasLineas => Set<VentaLinea>();
+    public DbSet<Transferencia> Transferencias => Set<Transferencia>();
+    public DbSet<TransferenciaLinea> TransferenciasLineas => Set<TransferenciaLinea>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -207,6 +209,62 @@ public class AppDbContext : DbContext
                 .HasForeignKey(l => l.ProductoId);
         });
 
+        modelBuilder.Entity<Transferencia>(entity =>
+        {
+            entity.ToTable("transferencias");
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Id).HasColumnName("id");
+            entity.Property(t => t.SucursalOrigenId).HasColumnName("sucursal_origen_id");
+            entity.Property(t => t.SucursalDestinoId).HasColumnName("sucursal_destino_id");
+            entity.Property(t => t.UsuarioSolicitanteId).HasColumnName("usuario_solicitante_id");
+            entity.Property(t => t.Transportista).HasColumnName("transportista");
+            entity.Property(t => t.Ruta).HasColumnName("ruta");
+            entity.Property(t => t.FechaSolicitud).HasColumnName("fecha_solicitud");
+            entity.Property(t => t.FechaEnvio).HasColumnName("fecha_envio");
+            entity.Property(t => t.FechaEstimadaLlegada).HasColumnName("fecha_estimada_llegada");
+            entity.Property(t => t.FechaRecepcion).HasColumnName("fecha_recepcion");
+
+            entity.Property(t => t.Estado)
+                .HasColumnName("estado")
+                .HasConversion(
+                    estado => EstadoTransferenciaToDb(estado),
+                    valor => EstadoTransferenciaFromDb(valor));
+
+            entity.HasOne(t => t.SucursalOrigen)
+                .WithMany()
+                .HasForeignKey(t => t.SucursalOrigenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.SucursalDestino)
+                .WithMany()
+                .HasForeignKey(t => t.SucursalDestinoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.UsuarioSolicitante)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioSolicitanteId);
+        });
+
+        modelBuilder.Entity<TransferenciaLinea>(entity =>
+        {
+            entity.ToTable("transferencias_lineas");
+            entity.HasKey(l => l.Id);
+            entity.Property(l => l.Id).HasColumnName("id");
+            entity.Property(l => l.TransferenciaId).HasColumnName("transferencia_id");
+            entity.Property(l => l.ProductoId).HasColumnName("producto_id");
+            entity.Property(l => l.CantidadSolicitada).HasColumnName("cantidad_solicitada");
+            entity.Property(l => l.CantidadEnviada).HasColumnName("cantidad_enviada");
+            entity.Property(l => l.CantidadRecibida).HasColumnName("cantidad_recibida");
+
+            entity.HasOne(l => l.Transferencia)
+                .WithMany(t => t.Lineas)
+                .HasForeignKey(l => l.TransferenciaId);
+
+            entity.HasOne(l => l.Producto)
+                .WithMany()
+                .HasForeignKey(l => l.ProductoId);
+        });
+
         modelBuilder.Entity<Proveedor>(entity =>
         {
             entity.ToTable("proveedores");
@@ -289,6 +347,28 @@ public class AppDbContext : DbContext
         "recibida" => EstadoOrdenCompra.Recibida,
         "cancelada" => EstadoOrdenCompra.Cancelada,
         _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de estado desconocido en la base de datos")
+    };
+
+    private static string EstadoTransferenciaToDb(EstadoTransferencia estado) => estado switch
+    {
+        EstadoTransferencia.Solicitada => "solicitada",
+        EstadoTransferencia.EnPreparacion => "en_preparacion",
+        EstadoTransferencia.EnTransito => "en_transito",
+        EstadoTransferencia.RecibidaCompleta => "recibida_completa",
+        EstadoTransferencia.RecibidaParcial => "recibida_parcial",
+        EstadoTransferencia.Cancelada => "cancelada",
+        _ => throw new ArgumentOutOfRangeException(nameof(estado), estado, "Estado no reconocido")
+    };
+
+    private static EstadoTransferencia EstadoTransferenciaFromDb(string valor) => valor switch
+    {
+        "solicitada" => EstadoTransferencia.Solicitada,
+        "en_preparacion" => EstadoTransferencia.EnPreparacion,
+        "en_transito" => EstadoTransferencia.EnTransito,
+        "recibida_completa" => EstadoTransferencia.RecibidaCompleta,
+        "recibida_parcial" => EstadoTransferencia.RecibidaParcial,
+        "cancelada" => EstadoTransferencia.Cancelada,
+        _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de estado de transferencia desconocido en la base de datos")
     };
 
     private static string RolToDb(RolUsuario rol) => rol switch
