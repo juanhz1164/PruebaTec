@@ -1,7 +1,6 @@
-using InventarioMultiSucursal.Api.Data;
-using InventarioMultiSucursal.Api.Models;
+using InventarioMultiSucursal.Api.DTOs;
+using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
@@ -9,80 +8,76 @@ namespace InventarioMultiSucursal.Api.Controllers;
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IProductoService _service;
 
-    public ProductosController(AppDbContext context)
+    public ProductosController(IProductoService service)
     {
-        _context = context;
+        _service = service;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Producto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<ProductoDto>>> GetAll()
     {
-        return await _context.Productos
-            .Include(p => p.UnidadMedida)
-            .ToListAsync();
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Producto>> GetById(int id)
+    public async Task<ActionResult<ProductoDto>> GetById(int id)
     {
-        var producto = await _context.Productos
-            .Include(p => p.UnidadMedida)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (producto is null)
-        {
-            return NotFound();
-        }
-
-        return producto;
+        var producto = await _service.GetByIdAsync(id);
+        return producto is null ? NotFound() : Ok(producto);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Producto>> Create(Producto producto)
+    public async Task<ActionResult<ProductoDto>> Create(CrearProductoDto dto)
     {
-        producto.CreatedAt = DateTime.UtcNow;
-
-        _context.Productos.Add(producto);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = producto.Id }, producto);
+        var creado = await _service.CrearAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Producto producto)
+    public async Task<IActionResult> Update(int id, ActualizarProductoDto dto)
     {
-        if (id != producto.Id)
-        {
-            return BadRequest("El id de la ruta no coincide con el id del cuerpo de la petición.");
-        }
-
-        var existe = await _context.Productos.AnyAsync(p => p.Id == id);
-        if (!existe)
-        {
-            return NotFound();
-        }
-
-        _context.Entry(producto).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        var actualizado = await _service.ActualizarAsync(id, dto);
+        return actualizado ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var producto = await _context.Productos.FindAsync(id);
+        var eliminado = await _service.EliminarAsync(id);
+        return eliminado ? NoContent() : NotFound();
+    }
 
-        if (producto is null)
+    // POST api/Productos/5/unidades-alternativas
+    // T35: registra una unidad de medida alternativa para el producto
+    // (ej. el producto se maneja en "unidad" pero también se compra por "caja").
+    [HttpPost("{id}/unidades-alternativas")]
+    public async Task<ActionResult<UnidadAlternativaDto>> AgregarUnidadAlternativa(int id, CrearUnidadAlternativaDto dto)
+    {
+        var resultado = await _service.AgregarUnidadAlternativaAsync(id, dto);
+
+        if (!resultado.Exitoso)
         {
-            return NotFound();
+            return BadRequest(resultado.Error);
         }
 
-        _context.Productos.Remove(producto);
-        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetById), new { id }, resultado.Unidad);
+    }
 
-        return NoContent();
+    // DELETE api/Productos/5/unidades-alternativas/3
+    [HttpDelete("{id}/unidades-alternativas/{unidadAlternativaId}")]
+    public async Task<IActionResult> EliminarUnidadAlternativa(int id, int unidadAlternativaId)
+    {
+        var eliminada = await _service.EliminarUnidadAlternativaAsync(id, unidadAlternativaId);
+        return eliminada ? NoContent() : NotFound();
+    }
+
+    // GET api/Productos/alertas-stock?sucursalId=1
+    // T34: productos cuyo inventario llegó al stock mínimo o por debajo.
+    [HttpGet("alertas-stock")]
+    public async Task<ActionResult<IEnumerable<AlertaStockDto>>> GetAlertasStock([FromQuery] int? sucursalId)
+    {
+        return Ok(await _service.GetAlertasStockAsync(sucursalId));
     }
 }

@@ -58,6 +58,22 @@ CREATE TABLE productos (
         FOREIGN KEY (unidad_medida_id) REFERENCES unidades_medida(id)
 ) ENGINE=InnoDB;
 
+-- Unidades de medida alternativas por producto (además de la unidad base
+-- en productos.unidad_medida_id). factor_conversion indica cuántas
+-- unidades base equivalen a 1 unidad alternativa
+-- (ej: unidad base "un", alternativa "caja" con factor 12 => 1 caja = 12 un).
+CREATE TABLE producto_unidades_medida (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    producto_id INT NOT NULL,
+    unidad_medida_id INT NOT NULL,
+    factor_conversion DECIMAL(12,4) NOT NULL,
+    UNIQUE (producto_id, unidad_medida_id),
+    CONSTRAINT fk_producto_unidades_producto
+        FOREIGN KEY (producto_id) REFERENCES productos(id),
+    CONSTRAINT fk_producto_unidades_unidad_medida
+        FOREIGN KEY (unidad_medida_id) REFERENCES unidades_medida(id)
+) ENGINE=InnoDB;
+
 CREATE TABLE inventario (
     id INT AUTO_INCREMENT PRIMARY KEY,
     producto_id INT NOT NULL,

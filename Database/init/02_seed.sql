@@ -46,6 +46,14 @@ INSERT INTO productos (unidad_medida_id, sku, nombre, descripcion, categoria, ac
     (3, 'PROD-005', 'Leche entera', 'Leche entera UHT por litro', 'Cafetería', TRUE);
 
 -- ============================================================
+-- Unidades de medida alternativas por producto
+-- Ej: el Lapicero azul (base "un") también se maneja por "Caja" (1 caja = 12 un)
+-- ============================================================
+
+INSERT INTO producto_unidades_medida (producto_id, unidad_medida_id, factor_conversion) VALUES
+    (2, 4, 12);
+
+-- ============================================================
 -- Inventario inicial por sucursal
 -- producto_id: 1..5 en el mismo orden de arriba
 -- sucursal_id: 1=Centro, 2=Norte, 3=Medellín

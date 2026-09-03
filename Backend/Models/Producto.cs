@@ -13,4 +13,5 @@ public class Producto
 
     public UnidadMedida? UnidadMedida { get; set; }
     public ICollection<Inventario> InventarioPorSucursal { get; set; } = new List<Inventario>();
+    public ICollection<ProductoUnidadMedida> UnidadesAlternativas { get; set; } = new List<ProductoUnidadMedida>();
 }

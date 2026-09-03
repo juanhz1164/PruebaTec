@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<ProductoUnidadMedida> ProductoUnidadesMedida => Set<ProductoUnidadMedida>();
     public DbSet<Inventario> Inventarios => Set<Inventario>();
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
@@ -82,6 +83,26 @@ public class AppDbContext : DbContext
             entity.HasOne(p => p.UnidadMedida)
                 .WithMany(um => um.Productos)
                 .HasForeignKey(p => p.UnidadMedidaId);
+        });
+
+        modelBuilder.Entity<ProductoUnidadMedida>(entity =>
+        {
+            entity.ToTable("producto_unidades_medida");
+            entity.HasKey(pum => pum.Id);
+            entity.Property(pum => pum.Id).HasColumnName("id");
+            entity.Property(pum => pum.ProductoId).HasColumnName("producto_id");
+            entity.Property(pum => pum.UnidadMedidaId).HasColumnName("unidad_medida_id");
+            entity.Property(pum => pum.FactorConversion).HasColumnName("factor_conversion");
+
+            entity.HasIndex(pum => new { pum.ProductoId, pum.UnidadMedidaId }).IsUnique();
+
+            entity.HasOne(pum => pum.Producto)
+                .WithMany(p => p.UnidadesAlternativas)
+                .HasForeignKey(pum => pum.ProductoId);
+
+            entity.HasOne(pum => pum.UnidadMedida)
+                .WithMany()
+                .HasForeignKey(pum => pum.UnidadMedidaId);
         });
 
         modelBuilder.Entity<Inventario>(entity =>
