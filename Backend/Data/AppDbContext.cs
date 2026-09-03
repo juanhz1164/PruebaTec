@@ -19,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
     public DbSet<OrdenCompra> OrdenesCompra => Set<OrdenCompra>();
     public DbSet<OrdenCompraLinea> OrdenesCompraLineas => Set<OrdenCompraLinea>();
+    public DbSet<Venta> Ventas => Set<Venta>();
+    public DbSet<VentaLinea> VentasLineas => Set<VentaLinea>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -159,6 +161,50 @@ public class AppDbContext : DbContext
             entity.HasOne(m => m.Usuario)
                 .WithMany()
                 .HasForeignKey(m => m.UsuarioId);
+        });
+
+        modelBuilder.Entity<Venta>(entity =>
+        {
+            entity.ToTable("ventas");
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.Id).HasColumnName("id");
+            entity.Property(v => v.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(v => v.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(v => v.NumeroComprobante).HasColumnName("numero_comprobante");
+            entity.Property(v => v.Subtotal).HasColumnName("subtotal");
+            entity.Property(v => v.DescuentoTotal).HasColumnName("descuento_total");
+            entity.Property(v => v.Total).HasColumnName("total");
+            entity.Property(v => v.Fecha).HasColumnName("fecha");
+
+            entity.HasIndex(v => v.NumeroComprobante).IsUnique();
+
+            entity.HasOne(v => v.Sucursal)
+                .WithMany()
+                .HasForeignKey(v => v.SucursalId);
+
+            entity.HasOne(v => v.Usuario)
+                .WithMany()
+                .HasForeignKey(v => v.UsuarioId);
+        });
+
+        modelBuilder.Entity<VentaLinea>(entity =>
+        {
+            entity.ToTable("ventas_lineas");
+            entity.HasKey(l => l.Id);
+            entity.Property(l => l.Id).HasColumnName("id");
+            entity.Property(l => l.VentaId).HasColumnName("venta_id");
+            entity.Property(l => l.ProductoId).HasColumnName("producto_id");
+            entity.Property(l => l.Cantidad).HasColumnName("cantidad");
+            entity.Property(l => l.PrecioUnitario).HasColumnName("precio_unitario");
+            entity.Property(l => l.Descuento).HasColumnName("descuento");
+
+            entity.HasOne(l => l.Venta)
+                .WithMany(v => v.Lineas)
+                .HasForeignKey(l => l.VentaId);
+
+            entity.HasOne(l => l.Producto)
+                .WithMany()
+                .HasForeignKey(l => l.ProductoId);
         });
 
         modelBuilder.Entity<Proveedor>(entity =>
