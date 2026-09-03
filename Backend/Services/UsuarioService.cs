@@ -28,15 +28,12 @@ public class UsuarioService : IUsuarioService
 
     public async Task<UsuarioDto> CrearAsync(CrearUsuarioDto dto)
     {
-        // NOTA: por ahora se guarda "Password" tal cual como hash de prueba.
-        // Cuando se implemente el módulo de autenticación (T10), aquí debe
-        // calcularse el hash real (por ejemplo con BCrypt.Net-Next).
         var usuario = new Usuario
         {
             SucursalId = dto.SucursalId,
             Nombre = dto.Nombre,
             Email = dto.Email,
-            PasswordHash = dto.Password,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Rol = dto.Rol,
             Activo = true,
             CreatedAt = DateTime.UtcNow

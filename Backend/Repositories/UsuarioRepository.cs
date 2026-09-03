@@ -28,6 +28,13 @@ public class UsuarioRepository : IUsuarioRepository
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
+    public async Task<Usuario?> GetByEmailAsync(string email)
+    {
+        return await _context.Usuarios
+            .Include(u => u.Sucursal)
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
+
     public async Task AddAsync(Usuario usuario)
     {
         await _context.Usuarios.AddAsync(usuario);

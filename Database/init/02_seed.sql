@@ -21,17 +21,17 @@ INSERT INTO sucursales (nombre, direccion, ciudad, telefono, activa) VALUES
 
 -- ============================================================
 -- Usuarios (uno por rol; gerentes/operadores atados a una sucursal)
--- NOTA: password_hash abajo es un PLACEHOLDER, no un hash real.
--- Debe reemplazarse generando el hash real con la librería que uses
--- en el backend (p. ej. BCrypt.Net-Next) antes de usarlo para login.
+-- NOTA: password_hash es el hash BCrypt de la contraseña de prueba
+-- "Password123!" para TODOS estos usuarios (solo entorno de desarrollo/seed,
+-- nunca reutilizar esta contraseña ni este hash en un entorno real).
 -- ============================================================
 
 INSERT INTO usuarios (sucursal_id, nombre, email, password_hash, rol, activo) VALUES
-    (NULL, 'Admin General', 'admin@inventario.com', 'PENDIENTE_HASH_BCRYPT', 'administrador_general', TRUE),
-    (1, 'Gerente Centro', 'gerente.centro@inventario.com', 'PENDIENTE_HASH_BCRYPT', 'gerente_sucursal', TRUE),
-    (1, 'Operador Centro', 'operador.centro@inventario.com', 'PENDIENTE_HASH_BCRYPT', 'operador_inventario', TRUE),
-    (2, 'Gerente Norte', 'gerente.norte@inventario.com', 'PENDIENTE_HASH_BCRYPT', 'gerente_sucursal', TRUE),
-    (3, 'Gerente Medellín', 'gerente.medellin@inventario.com', 'PENDIENTE_HASH_BCRYPT', 'gerente_sucursal', TRUE);
+    (NULL, 'Admin General', 'admin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'administrador_general', TRUE),
+    (1, 'Gerente Centro', 'gerente.centro@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE),
+    (1, 'Operador Centro', 'operador.centro@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'operador_inventario', TRUE),
+    (2, 'Gerente Norte', 'gerente.norte@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE),
+    (3, 'Gerente Medellín', 'gerente.medellin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE);
 
 -- ============================================================
 -- Productos (catálogo base)

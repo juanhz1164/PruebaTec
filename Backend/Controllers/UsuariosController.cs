@@ -1,11 +1,16 @@
+using InventarioMultiSucursal.Api.Auth;
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
+// Gestión de usuarios: responsabilidad exclusiva del Administrador general (PDF §6.2).
+// Los demás roles solo pueden consultar (necesitan la lista para otros formularios).
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _service;
@@ -29,6 +34,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<UsuarioDto>> Create(CrearUsuarioDto dto)
     {
         var creado = await _service.CrearAsync(dto);
@@ -36,6 +42,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Update(int id, ActualizarUsuarioDto dto)
     {
         var actualizado = await _service.ActualizarAsync(id, dto);
@@ -43,6 +50,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
         var eliminado = await _service.EliminarAsync(id);

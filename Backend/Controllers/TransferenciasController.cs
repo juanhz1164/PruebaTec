@@ -1,11 +1,17 @@
+using InventarioMultiSucursal.Api.Auth;
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
+// Cualquier rol autenticado puede consultar, solicitar (T44) y confirmar recepción
+// (T46/T47). Preparar y confirmar envío (T45) queda reservado a Gerente/Admin,
+// porque el PDF asigna la "aprobación de transferencias" al Gerente de sucursal.
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TransferenciasController : ControllerBase
 {
     private readonly ITransferenciaService _service;
@@ -45,6 +51,7 @@ public class TransferenciasController : ControllerBase
     // PUT api/Transferencias/5/preparar
     // T45: marca la transferencia como en preparación.
     [HttpPut("{id}/preparar")]
+    [Authorize(Roles = Roles.AdminYGerente)]
     public async Task<IActionResult> Preparar(int id)
     {
         var resultado = await _service.IniciarPreparacionAsync(id);
@@ -55,6 +62,7 @@ public class TransferenciasController : ControllerBase
     // T45: confirma el envío (transportista, ruta, fecha estimada, cantidades enviadas)
     // y retira el stock correspondiente de la sucursal de origen.
     [HttpPut("{id}/enviar")]
+    [Authorize(Roles = Roles.AdminYGerente)]
     public async Task<IActionResult> RegistrarEnvio(int id, RegistrarEnvioDto dto)
     {
         var resultado = await _service.RegistrarEnvioAsync(id, dto);

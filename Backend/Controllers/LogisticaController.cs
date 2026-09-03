@@ -1,11 +1,14 @@
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
+// Cualquier rol autenticado puede operar este módulo.
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LogisticaController : ControllerBase
 {
     private readonly ILogisticaService _service;
