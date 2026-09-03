@@ -1,0 +1,94 @@
+import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../auth/AuthContext'
+import { getInventarioPorSucursal } from '../api/inventario'
+import { MovimientoForm } from '../components/MovimientoForm'
+import type { InventarioItem } from '../types/inventario'
+import { ApiError } from '../api/client'
+
+export function InventarioPage() {
+  const { usuario } = useAuth()
+  const [items, setItems] = useState<InventarioItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const cargarInventario = useCallback(() => {
+    if (!usuario?.sucursalId) {
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    return getInventarioPorSucursal(usuario.sucursalId)
+      .then((data) => setItems(data))
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : 'No se pudo cargar el inventario')
+      })
+      .finally(() => setIsLoading(false))
+  }, [usuario?.sucursalId])
+
+  useEffect(() => {
+    cargarInventario()
+  }, [cargarInventario])
+
+  if (!usuario?.sucursalId) {
+    return (
+      <div className="page">
+        <h1>Inventario</h1>
+        <p>Tu usuario no tiene una sucursal asignada.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page">
+      <h1>Inventario — {usuario.sucursalNombre}</h1>
+
+      <MovimientoForm onRegistrado={cargarInventario} />
+
+      {isLoading && <p>Cargando...</p>}
+      {error && <p className="error-text">{error}</p>}
+
+      {!isLoading && !error && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Unidad</th>
+                <th>Stock mínimo</th>
+                <th>Costo promedio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={6}>No hay productos en el inventario de esta sucursal.</td>
+                </tr>
+              )}
+              {items.map((item) => {
+                const stockBajo = item.cantidad <= item.stockMinimo
+                return (
+                  <tr key={item.id} className={stockBajo ? 'row-alert' : undefined}>
+                    <td>{item.productoSku}</td>
+                    <td>{item.productoNombre}</td>
+                    <td>
+                      {item.cantidad}
+                      {stockBajo && <span className="badge-alert">stock bajo</span>}
+                    </td>
+                    <td>{item.unidadMedidaAbreviatura}</td>
+                    <td>{item.stockMinimo}</td>
+                    <td>{item.costoPromedio.toFixed(2)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
