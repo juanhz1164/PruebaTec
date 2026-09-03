@@ -1,7 +1,6 @@
-using InventarioMultiSucursal.Api.Data;
-using InventarioMultiSucursal.Api.Models;
+using InventarioMultiSucursal.Api.DTOs;
+using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
@@ -9,76 +8,44 @@ namespace InventarioMultiSucursal.Api.Controllers;
 [Route("api/[controller]")]
 public class ProveedoresController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IProveedorService _service;
 
-    public ProveedoresController(AppDbContext context)
+    public ProveedoresController(IProveedorService service)
     {
-        _context = context;
+        _service = service;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Proveedor>>> GetAll()
+    public async Task<ActionResult<IEnumerable<ProveedorDto>>> GetAll()
     {
-        return await _context.Proveedores.ToListAsync();
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Proveedor>> GetById(int id)
+    public async Task<ActionResult<ProveedorDto>> GetById(int id)
     {
-        var proveedor = await _context.Proveedores.FindAsync(id);
-
-        if (proveedor is null)
-        {
-            return NotFound();
-        }
-
-        return proveedor;
+        var proveedor = await _service.GetByIdAsync(id);
+        return proveedor is null ? NotFound() : Ok(proveedor);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Proveedor>> Create(Proveedor proveedor)
+    public async Task<ActionResult<ProveedorDto>> Create(CrearProveedorDto dto)
     {
-        proveedor.CreatedAt = DateTime.UtcNow;
-
-        _context.Proveedores.Add(proveedor);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = proveedor.Id }, proveedor);
+        var creado = await _service.CrearAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Proveedor proveedor)
+    public async Task<IActionResult> Update(int id, ActualizarProveedorDto dto)
     {
-        if (id != proveedor.Id)
-        {
-            return BadRequest("El id de la ruta no coincide con el id del cuerpo de la petición.");
-        }
-
-        var existe = await _context.Proveedores.AnyAsync(p => p.Id == id);
-        if (!existe)
-        {
-            return NotFound();
-        }
-
-        _context.Entry(proveedor).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        var actualizado = await _service.ActualizarAsync(id, dto);
+        return actualizado ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var proveedor = await _context.Proveedores.FindAsync(id);
-
-        if (proveedor is null)
-        {
-            return NotFound();
-        }
-
-        _context.Proveedores.Remove(proveedor);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        var eliminado = await _service.EliminarAsync(id);
+        return eliminado ? NoContent() : NotFound();
     }
 }
