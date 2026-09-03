@@ -14,6 +14,8 @@ public class TransferenciaDto
     public EstadoTransferencia Estado { get; set; }
     public string? Transportista { get; set; }
     public string? Ruta { get; set; }
+    public PrioridadTransferencia? Prioridad { get; set; }
+    public decimal? CostoEnvio { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime? FechaEnvio { get; set; }
     public DateTime? FechaEstimadaLlegada { get; set; }
@@ -54,6 +56,8 @@ public class RegistrarEnvioDto
 {
     public string? Transportista { get; set; }
     public string? Ruta { get; set; }
+    public PrioridadTransferencia? Prioridad { get; set; }
+    public decimal? CostoEnvio { get; set; }
     public DateTime? FechaEstimadaLlegada { get; set; }
     public List<LineaEnvioDto> Lineas { get; set; } = new();
 }

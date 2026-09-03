@@ -219,6 +219,7 @@ public class AppDbContext : DbContext
             entity.Property(t => t.UsuarioSolicitanteId).HasColumnName("usuario_solicitante_id");
             entity.Property(t => t.Transportista).HasColumnName("transportista");
             entity.Property(t => t.Ruta).HasColumnName("ruta");
+            entity.Property(t => t.CostoEnvio).HasColumnName("costo_envio");
             entity.Property(t => t.FechaSolicitud).HasColumnName("fecha_solicitud");
             entity.Property(t => t.FechaEnvio).HasColumnName("fecha_envio");
             entity.Property(t => t.FechaEstimadaLlegada).HasColumnName("fecha_estimada_llegada");
@@ -229,6 +230,12 @@ public class AppDbContext : DbContext
                 .HasConversion(
                     estado => EstadoTransferenciaToDb(estado),
                     valor => EstadoTransferenciaFromDb(valor));
+
+            entity.Property(t => t.Prioridad)
+                .HasColumnName("prioridad")
+                .HasConversion(
+                    prioridad => prioridad == null ? null : PrioridadToDb(prioridad.Value),
+                    valor => valor == null ? null : PrioridadFromDb(valor));
 
             entity.HasOne(t => t.SucursalOrigen)
                 .WithMany()
@@ -369,6 +376,22 @@ public class AppDbContext : DbContext
         "recibida_parcial" => EstadoTransferencia.RecibidaParcial,
         "cancelada" => EstadoTransferencia.Cancelada,
         _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de estado de transferencia desconocido en la base de datos")
+    };
+
+    private static string PrioridadToDb(PrioridadTransferencia prioridad) => prioridad switch
+    {
+        PrioridadTransferencia.Baja => "baja",
+        PrioridadTransferencia.Media => "media",
+        PrioridadTransferencia.Alta => "alta",
+        _ => throw new ArgumentOutOfRangeException(nameof(prioridad), prioridad, "Prioridad no reconocida")
+    };
+
+    private static PrioridadTransferencia PrioridadFromDb(string valor) => valor switch
+    {
+        "baja" => PrioridadTransferencia.Baja,
+        "media" => PrioridadTransferencia.Media,
+        "alta" => PrioridadTransferencia.Alta,
+        _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de prioridad desconocido en la base de datos")
     };
 
     private static string RolToDb(RolUsuario rol) => rol switch

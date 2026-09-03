@@ -137,6 +137,8 @@ public class TransferenciaService : ITransferenciaService
 
         transferencia.Transportista = dto.Transportista;
         transferencia.Ruta = dto.Ruta;
+        transferencia.Prioridad = dto.Prioridad;
+        transferencia.CostoEnvio = dto.CostoEnvio;
         transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada;
         transferencia.FechaEnvio = DateTime.UtcNow;
         transferencia.Estado = EstadoTransferencia.EnTransito;
@@ -301,6 +303,8 @@ public class TransferenciaService : ITransferenciaService
         Estado = t.Estado,
         Transportista = t.Transportista,
         Ruta = t.Ruta,
+        Prioridad = t.Prioridad,
+        CostoEnvio = t.CostoEnvio,
         FechaSolicitud = t.FechaSolicitud,
         FechaEnvio = t.FechaEnvio,
         FechaEstimadaLlegada = t.FechaEstimadaLlegada,

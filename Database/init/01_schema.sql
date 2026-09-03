@@ -205,6 +205,8 @@ CREATE TABLE transferencias (
     ) NOT NULL DEFAULT 'solicitada',
     transportista VARCHAR(150),
     ruta VARCHAR(150),
+    prioridad ENUM('baja', 'media', 'alta') NULL,
+    costo_envio DECIMAL(12,2) NULL,
     fecha_solicitud DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_envio DATETIME NULL,
     fecha_estimada_llegada DATETIME NULL,

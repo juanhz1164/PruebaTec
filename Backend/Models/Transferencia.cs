@@ -9,6 +9,8 @@ public class Transferencia
     public EstadoTransferencia Estado { get; set; } = EstadoTransferencia.Solicitada;
     public string? Transportista { get; set; }
     public string? Ruta { get; set; }
+    public PrioridadTransferencia? Prioridad { get; set; }
+    public decimal? CostoEnvio { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime? FechaEnvio { get; set; }
     public DateTime? FechaEstimadaLlegada { get; set; }

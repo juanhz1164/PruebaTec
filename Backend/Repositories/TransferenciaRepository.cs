@@ -62,4 +62,33 @@ public class TransferenciaRepository : ITransferenciaRepository
     {
         await _context.MovimientosInventario.AddAsync(movimiento);
     }
+
+    private IQueryable<Transferencia> ConsultaBase() => _context.Transferencias
+        .Include(t => t.SucursalOrigen)
+        .Include(t => t.SucursalDestino)
+        .Include(t => t.UsuarioSolicitante)
+        .Include(t => t.Lineas)
+            .ThenInclude(l => l.Producto);
+
+    public async Task<List<Transferencia>> GetEnviadasAsync()
+    {
+        return await ConsultaBase()
+            .Where(t => t.FechaEnvio != null)
+            .ToListAsync();
+    }
+
+    public async Task<List<Transferencia>> GetEnCursoAsync()
+    {
+        return await ConsultaBase()
+            .Where(t => t.Estado == EstadoTransferencia.EnPreparacion || t.Estado == EstadoTransferencia.EnTransito)
+            .OrderByDescending(t => t.FechaSolicitud)
+            .ToListAsync();
+    }
+
+    public async Task<List<Transferencia>> GetCerradasAsync()
+    {
+        return await ConsultaBase()
+            .Where(t => t.Estado == EstadoTransferencia.RecibidaCompleta || t.Estado == EstadoTransferencia.RecibidaParcial)
+            .ToListAsync();
+    }
 }
