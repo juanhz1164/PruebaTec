@@ -1,7 +1,6 @@
-using InventarioMultiSucursal.Api.Data;
-using InventarioMultiSucursal.Api.Models;
+using InventarioMultiSucursal.Api.DTOs;
+using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
@@ -9,76 +8,71 @@ namespace InventarioMultiSucursal.Api.Controllers;
 [Route("api/[controller]")]
 public class InventarioController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IInventarioService _service;
 
-    public InventarioController(AppDbContext context)
+    public InventarioController(IInventarioService service)
     {
-        _context = context;
+        _service = service;
     }
 
     // GET api/Inventario?sucursalId=1
     // Catálogo de productos con su stock en una sucursal específica.
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Inventario>>> GetPorSucursal([FromQuery] int sucursalId)
+    public async Task<ActionResult<IEnumerable<InventarioDto>>> GetPorSucursal([FromQuery] int sucursalId)
     {
-        return await _context.Inventarios
-            .Where(i => i.SucursalId == sucursalId)
-            .Include(i => i.Producto)
-                .ThenInclude(p => p!.UnidadMedida)
-            .ToListAsync();
+        return Ok(await _service.GetPorSucursalAsync(sucursalId));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Inventario>> GetById(int id)
+    public async Task<ActionResult<InventarioDto>> GetById(int id)
     {
-        var item = await _context.Inventarios
-            .Include(i => i.Producto)
-                .ThenInclude(p => p!.UnidadMedida)
-            .FirstOrDefaultAsync(i => i.Id == id);
-
-        if (item is null)
-        {
-            return NotFound();
-        }
-
-        return item;
+        var item = await _service.GetByIdAsync(id);
+        return item is null ? NotFound() : Ok(item);
     }
 
     // POST api/Inventario
     // Crea el registro de stock inicial de un producto en una sucursal
     // (cuando ese producto todavía no existe en esa sucursal).
     [HttpPost]
-    public async Task<ActionResult<Inventario>> Create(Inventario item)
+    public async Task<ActionResult<InventarioDto>> Create(CrearInventarioDto dto)
     {
-        item.UpdatedAt = DateTime.UtcNow;
-
-        _context.Inventarios.Add(item);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
+        var creado = await _service.CrearAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Inventario item)
+    public async Task<IActionResult> Update(int id, ActualizarInventarioDto dto)
     {
-        if (id != item.Id)
+        var actualizado = await _service.ActualizarAsync(id, dto);
+        return actualizado ? NoContent() : NotFound();
+    }
+
+    // GET api/Inventario/movimientos?productoId=1&sucursalId=1
+    // Historial de movimientos (ingresos/retiros) con trazabilidad completa.
+    [HttpGet("movimientos")]
+    public async Task<ActionResult<IEnumerable<MovimientoInventarioDto>>> GetMovimientos(
+        [FromQuery] int? productoId,
+        [FromQuery] int? sucursalId)
+    {
+        return Ok(await _service.GetMovimientosAsync(productoId, sucursalId));
+    }
+
+    // POST api/Inventario/movimientos
+    // Registra un ingreso o retiro (compra, devolución, ajuste, venta, merma) y
+    // actualiza el stock correspondiente de forma atómica.
+    [HttpPost("movimientos")]
+    public async Task<ActionResult<MovimientoInventarioDto>> CrearMovimiento(CrearMovimientoInventarioDto dto)
+    {
+        var resultado = await _service.CrearMovimientoAsync(dto);
+
+        if (!resultado.Exitoso)
         {
-            return BadRequest("El id de la ruta no coincide con el id del cuerpo de la petición.");
+            return BadRequest(resultado.Error);
         }
 
-        var existente = await _context.Inventarios.FindAsync(id);
-        if (existente is null)
-        {
-            return NotFound();
-        }
-
-        existente.Cantidad = item.Cantidad;
-        existente.StockMinimo = item.StockMinimo;
-        existente.CostoPromedio = item.CostoPromedio;
-        existente.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        return CreatedAtAction(
+            nameof(GetMovimientos),
+            new { productoId = dto.ProductoId, sucursalId = dto.SucursalId },
+            resultado.Movimiento);
     }
 }

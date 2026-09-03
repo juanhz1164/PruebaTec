@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<Inventario> Inventarios => Set<Inventario>();
+    public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
     public DbSet<OrdenCompra> OrdenesCompra => Set<OrdenCompra>();
     public DbSet<OrdenCompraLinea> OrdenesCompraLineas => Set<OrdenCompraLinea>();
@@ -104,6 +105,39 @@ public class AppDbContext : DbContext
             entity.HasOne(i => i.Sucursal)
                 .WithMany()
                 .HasForeignKey(i => i.SucursalId);
+        });
+
+        modelBuilder.Entity<MovimientoInventario>(entity =>
+        {
+            entity.ToTable("movimientos_inventario");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Id).HasColumnName("id");
+            entity.Property(m => m.ProductoId).HasColumnName("producto_id");
+            entity.Property(m => m.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(m => m.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(m => m.Cantidad).HasColumnName("cantidad");
+            entity.Property(m => m.Motivo).HasColumnName("motivo");
+            entity.Property(m => m.ReferenciaTipo).HasColumnName("referencia_tipo");
+            entity.Property(m => m.ReferenciaId).HasColumnName("referencia_id");
+            entity.Property(m => m.Fecha).HasColumnName("fecha");
+
+            entity.Property(m => m.Tipo)
+                .HasColumnName("tipo")
+                .HasConversion(
+                    tipo => TipoMovimientoToDb(tipo),
+                    valor => TipoMovimientoFromDb(valor));
+
+            entity.HasOne(m => m.Producto)
+                .WithMany()
+                .HasForeignKey(m => m.ProductoId);
+
+            entity.HasOne(m => m.Sucursal)
+                .WithMany()
+                .HasForeignKey(m => m.SucursalId);
+
+            entity.HasOne(m => m.Usuario)
+                .WithMany()
+                .HasForeignKey(m => m.UsuarioId);
         });
 
         modelBuilder.Entity<Proveedor>(entity =>
@@ -204,5 +238,19 @@ public class AppDbContext : DbContext
         "gerente_sucursal" => RolUsuario.GerenteSucursal,
         "operador_inventario" => RolUsuario.OperadorInventario,
         _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de rol desconocido en la base de datos")
+    };
+
+    private static string TipoMovimientoToDb(TipoMovimiento tipo) => tipo switch
+    {
+        TipoMovimiento.Ingreso => "ingreso",
+        TipoMovimiento.Retiro => "retiro",
+        _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Tipo de movimiento no reconocido")
+    };
+
+    private static TipoMovimiento TipoMovimientoFromDb(string valor) => valor switch
+    {
+        "ingreso" => TipoMovimiento.Ingreso,
+        "retiro" => TipoMovimiento.Retiro,
+        _ => throw new ArgumentOutOfRangeException(nameof(valor), valor, "Valor de tipo de movimiento desconocido en la base de datos")
     };
 }

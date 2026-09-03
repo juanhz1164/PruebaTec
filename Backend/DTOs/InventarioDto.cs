@@ -1,0 +1,35 @@
+namespace InventarioMultiSucursal.Api.DTOs;
+
+// Lo que la API devuelve al consultar el inventario de una sucursal.
+// No expone el DbContext ni la forma exacta de las tablas, solo lo que el cliente necesita.
+public class InventarioDto
+{
+    public int Id { get; set; }
+    public int ProductoId { get; set; }
+    public string ProductoNombre { get; set; } = string.Empty;
+    public string ProductoSku { get; set; } = string.Empty;
+    public string UnidadMedidaAbreviatura { get; set; } = string.Empty;
+    public int SucursalId { get; set; }
+    public decimal Cantidad { get; set; }
+    public decimal StockMinimo { get; set; }
+    public decimal CostoPromedio { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+// Lo que el cliente envía para crear el registro inicial de stock de un producto en una sucursal.
+public class CrearInventarioDto
+{
+    public int ProductoId { get; set; }
+    public int SucursalId { get; set; }
+    public decimal Cantidad { get; set; }
+    public decimal StockMinimo { get; set; }
+    public decimal CostoPromedio { get; set; }
+}
+
+// Lo que el cliente envía para actualizar un registro de stock existente.
+public class ActualizarInventarioDto
+{
+    public decimal Cantidad { get; set; }
+    public decimal StockMinimo { get; set; }
+    public decimal CostoPromedio { get; set; }
+}

@@ -1,4 +1,8 @@
 using InventarioMultiSucursal.Api.Data;
+using InventarioMultiSucursal.Api.Repositories;
+using InventarioMultiSucursal.Api.Repositories.Interfaces;
+using InventarioMultiSucursal.Api.Services;
+using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +14,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
+
+// Cada capa se registra por su interfaz: el Controller pide IInventarioService,
+// el Service pide IInventarioRepository, y el contenedor de DI resuelve las
+// implementaciones concretas en tiempo de ejecución.
+builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
+builder.Services.AddScoped<IInventarioService, InventarioService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
