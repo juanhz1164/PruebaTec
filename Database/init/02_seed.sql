@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 USE inventario;
 
 -- ============================================================
@@ -34,16 +35,16 @@ INSERT INTO usuarios (sucursal_id, nombre, email, password_hash, rol, activo) VA
     (3, 'Gerente Medellín', 'gerente.medellin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE);
 
 -- ============================================================
--- Productos (catálogo base)
+-- Productos (catálogo base — tienda / minimercado de barrio)
 -- unidad_medida_id: 1=Unidad, 2=Kilogramo, 3=Litro, 4=Caja
 -- ============================================================
 
 INSERT INTO productos (unidad_medida_id, sku, nombre, descripcion, categoria, activo) VALUES
-    (1, 'PROD-001', 'Cuaderno 100 hojas', 'Cuaderno cuadriculado tamaño carta', 'Papelería', TRUE),
-    (1, 'PROD-002', 'Lapicero azul', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE),
-    (4, 'PROD-003', 'Caja de resmas A4', 'Caja con 5 resmas de papel A4', 'Papelería', TRUE),
-    (2, 'PROD-004', 'Café en grano', 'Café tostado en grano, bolsa por kg', 'Cafetería', TRUE),
-    (3, 'PROD-005', 'Leche entera', 'Leche entera UHT por litro', 'Cafetería', TRUE);
+    (1, 'PROD-001', 'Lapicero azul', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE),
+    (2, 'PROD-002', 'Arroz', 'Arroz blanco, venta a granel por kilo', 'Abarrotes', TRUE),
+    (3, 'PROD-003', 'Aceite vegetal', 'Aceite vegetal comestible, venta por litro', 'Abarrotes', TRUE),
+    (3, 'PROD-004', 'Detergente líquido', 'Detergente líquido para ropa, venta por litro', 'Aseo', TRUE),
+    (1, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE);
 
 -- ============================================================
 -- Unidades de medida alternativas por producto
@@ -51,7 +52,7 @@ INSERT INTO productos (unidad_medida_id, sku, nombre, descripcion, categoria, ac
 -- ============================================================
 
 INSERT INTO producto_unidades_medida (producto_id, unidad_medida_id, factor_conversion) VALUES
-    (2, 4, 12);
+    (1, 4, 12);
 
 -- ============================================================
 -- Inventario inicial por sucursal
@@ -60,19 +61,19 @@ INSERT INTO producto_unidades_medida (producto_id, unidad_medida_id, factor_conv
 -- ============================================================
 
 INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_promedio) VALUES
-    (1, 1, 120, 20, 2500.00),
-    (2, 1, 300, 50, 800.00),
-    (3, 1, 15, 5, 45000.00),
-    (4, 1, 40, 10, 18000.00),
-    (5, 1, 60, 15, 3200.00),
+    (1, 1, 300, 50, 800.00),
+    (2, 1, 120, 20, 3200.00),
+    (3, 1, 60, 15, 9500.00),
+    (4, 1, 40, 10, 7800.00),
+    (5, 1, 150, 30, 1800.00),
 
-    (1, 2, 80, 20, 2500.00),
-    (2, 2, 200, 50, 800.00),
-    (4, 2, 25, 10, 18000.00),
+    (1, 2, 200, 50, 800.00),
+    (2, 2, 80, 20, 3200.00),
+    (4, 2, 25, 10, 7800.00),
 
-    (1, 3, 50, 20, 2500.00),
-    (3, 3, 10, 5, 45000.00),
-    (5, 3, 30, 15, 3200.00);
+    (1, 3, 150, 50, 800.00),
+    (3, 3, 30, 15, 9500.00),
+    (5, 3, 90, 30, 1800.00);
 
 -- ============================================================
 -- Proveedores (para poder probar el módulo de compras)
@@ -80,4 +81,4 @@ INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_
 
 INSERT INTO proveedores (nombre, contacto, telefono, email, direccion, activo) VALUES
     ('Distribuidora Papelera S.A.S.', 'Laura Gómez', '6015551111', 'ventas@papelera.com', 'Zona Industrial, Bogotá', TRUE),
-    ('Café y Más Ltda.', 'Carlos Ruiz', '6015552222', 'pedidos@cafeymas.com', 'Cra 50 # 10-05, Medellín', TRUE);
+    ('Abarrotes y Aseo del Valle Ltda.', 'Carlos Ruiz', '6015552222', 'pedidos@abarrotesvalle.com', 'Cra 50 # 10-05, Medellín', TRUE);

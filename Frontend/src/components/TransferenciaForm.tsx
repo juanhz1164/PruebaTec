@@ -160,7 +160,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
       </table>
 
       <button type="button" className="secondary-button" onClick={agregarLinea}>
-        + Agregar línea
+        + Agregar producto
       </button>
 
       {error && <p className="error-text">{error}</p>}

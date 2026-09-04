@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { setAuthToken } from '../api/client'
 import { login as loginRequest } from '../api/auth'
-import type { LoginRequest, Usuario } from '../types/auth'
+import { normalizarRol, type LoginRequest, type Usuario } from '../types/auth'
 
 const STORAGE_KEY = 'inventario.session'
 
@@ -31,6 +31,7 @@ function readStoredSession(): StoredSession | null {
       localStorage.removeItem(STORAGE_KEY)
       return null
     }
+    session.usuario.rol = normalizarRol(session.usuario.rol)
     return session
   } catch {
     localStorage.removeItem(STORAGE_KEY)
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nuevaSesion: StoredSession = {
       token: response.token,
       expiraEn: response.expiraEn,
-      usuario: response.usuario,
+      usuario: { ...response.usuario, rol: normalizarRol(response.usuario.rol) },
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nuevaSesion))
     setAuthToken(nuevaSesion.token)

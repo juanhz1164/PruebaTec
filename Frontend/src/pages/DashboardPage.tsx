@@ -17,6 +17,7 @@ import type {
   VentasPorMes,
 } from '../types/dashboard'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
 
 export function DashboardPage() {
   const { usuario } = useAuth()
@@ -55,7 +56,7 @@ export function DashboardPage() {
   if (isLoading) {
     return (
       <div className="page">
-        <h1>Dashboard</h1>
+        <h1>Panel general</h1>
         <p>Cargando...</p>
       </div>
     )
@@ -64,7 +65,7 @@ export function DashboardPage() {
   if (error) {
     return (
       <div className="page">
-        <h1>Dashboard</h1>
+        <h1>Panel general</h1>
         <p className="error-text">{error}</p>
       </div>
     )
@@ -80,26 +81,34 @@ export function DashboardPage() {
 
   return (
     <div className="page">
-      <h1>Dashboard{usuario?.sucursalNombre ? ` — ${usuario.sucursalNombre}` : ''}</h1>
+      <h1>Panel general{usuario?.sucursalNombre ? ` — ${usuario.sucursalNombre}` : ''}</h1>
 
       <div className="kpi-row">
         <KpiTile
+          icon="dinero"
           label="Ventas del mes"
-          value={mesActual ? mesActual.totalVendido.toFixed(2) : '0'}
+          value={mesActual ? formatearMoneda(mesActual.totalVendido) : '0'}
           sublabel={mesActual ? `${mesActual.cantidadVentas} ventas` : undefined}
         />
-        <KpiTile label="Productos alta demanda" value={String(altaDemanda)} />
         <KpiTile
+          icon="tendenciaSubida"
+          label="Productos alta demanda"
+          value={String(altaDemanda)}
+        />
+        <KpiTile
+          icon="tendenciaBajada"
           label="Productos baja demanda"
           value={String(bajaDemanda)}
           tone={bajaDemanda > 0 ? 'warning' : 'neutral'}
         />
         <KpiTile
+          icon="transferencias"
           label="Transferencias activas"
           value={String(transferenciasActivas.length)}
           sublabel={`${totalEnTransito} unidades en tránsito`}
         />
         <KpiTile
+          icon="agotandose"
           label="Productos próximos a agotarse"
           value={String(proximosAgotarse.length)}
           tone={proximosAgotarse.length > 0 ? 'critical' : 'neutral'}
@@ -110,7 +119,7 @@ export function DashboardPage() {
       <BarChart
         data={ventasPorMes.map((v) => ({ label: v.etiquetaMes, value: v.totalVendido }))}
         colorVar="--chart-1"
-        valueFormatter={(v) => v.toFixed(0)}
+        valueFormatter={(v) => formatearMoneda(v)}
       />
 
       <h2>Rotación de inventario</h2>
@@ -207,9 +216,9 @@ export function DashboardPage() {
               {comparativa.map((c) => (
                 <tr key={c.sucursalId}>
                   <td>{c.sucursalNombre}</td>
-                  <td>{c.totalVentasMesActual.toFixed(2)}</td>
+                  <td>{formatearMoneda(c.totalVentasMesActual)}</td>
                   <td>{c.cantidadVentasMesActual}</td>
-                  <td>{c.valorInventarioActual.toFixed(2)}</td>
+                  <td>{formatearMoneda(c.valorInventarioActual)}</td>
                   <td>{c.productosBajoMinimo}</td>
                   <td>{c.transferenciasActivas}</td>
                 </tr>

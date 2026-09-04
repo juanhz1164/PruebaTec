@@ -40,6 +40,14 @@ public class VentaService : IVentaService
             return ResultadoVenta.Falla("La cantidad de cada línea debe ser mayor que cero.");
         }
 
+        // Regla de negocio: el descuento por línea solo aplica a partir de 20 unidades.
+        const decimal cantidadMinimaParaDescuento = 20m;
+        if (dto.Lineas.Any(l => l.Descuento > 0 && l.Cantidad < cantidadMinimaParaDescuento))
+        {
+            return ResultadoVenta.Falla(
+                $"El descuento solo aplica a partir de {cantidadMinimaParaDescuento} unidades por producto.");
+        }
+
         // T41: validar stock disponible de cada línea ANTES de tocar nada.
         var inventarios = new Dictionary<int, Inventario>();
         foreach (var linea in dto.Lineas)

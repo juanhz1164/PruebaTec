@@ -14,6 +14,7 @@ import type {
 } from '../types/logistica'
 import { ESTADO_TRANSFERENCIA_LABEL, PRIORIDAD_TRANSFERENCIA_LABEL } from '../types/transferencia'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
 
 export function LogisticaPage() {
   const [tiempos, setTiempos] = useState<TiempoEnvio[]>([])
@@ -178,7 +179,7 @@ export function LogisticaPage() {
                     ]
                   : '—'}
               </td>
-              <td>{r.costoPromedio?.toFixed(2) ?? '—'}</td>
+              <td>{r.costoPromedio ? formatearMoneda(r.costoPromedio) : '—'}</td>
               <td>{r.tiempoPromedioDias?.toFixed(1) ?? '—'}</td>
             </tr>
           ))}

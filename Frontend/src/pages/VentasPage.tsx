@@ -5,6 +5,9 @@ import { getVentas, crearVenta } from '../api/ventas'
 import type { InventarioItem } from '../types/inventario'
 import type { CrearVentaLinea, Venta } from '../types/venta'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
+
+const CANTIDAD_MINIMA_DESCUENTO = 20
 
 interface LineaForm {
   productoId: number | null
@@ -71,10 +74,17 @@ export function VentasPage() {
     for (const linea of lineas) {
       if (!linea.productoId) continue
       const cantidad = Number(linea.cantidad)
-      const descuento = Number(linea.descuento || '0')
+      const descuento = Number.parseFloat(linea.descuento || '0')
 
       if (!Number.isFinite(cantidad) || cantidad <= 0) {
         setError('Cada línea debe tener una cantidad mayor a cero')
+        return
+      }
+
+      if (descuento > 0 && cantidad < CANTIDAD_MINIMA_DESCUENTO) {
+        setError(
+          `El descuento solo aplica a partir de ${CANTIDAD_MINIMA_DESCUENTO} unidades por producto`,
+        )
         return
       }
 
@@ -144,6 +154,8 @@ export function VentasPage() {
               const cantidadNum = Number(linea.cantidad)
               const excedeStock =
                 stock && Number.isFinite(cantidadNum) && cantidadNum > stock.cantidad
+              const permiteDescuento =
+                Number.isFinite(cantidadNum) && cantidadNum >= CANTIDAD_MINIMA_DESCUENTO
               return (
                 <tr key={index}>
                   <td>
@@ -168,7 +180,14 @@ export function VentasPage() {
                       min="0"
                       step="any"
                       value={linea.cantidad}
-                      onChange={(e) => actualizarLinea(index, { cantidad: e.target.value })}
+                      onChange={(e) => {
+                        const nuevaCantidad = e.target.value
+                        const yaNoPermiteDescuento = Number(nuevaCantidad) < CANTIDAD_MINIMA_DESCUENTO
+                        actualizarLinea(index, {
+                          cantidad: nuevaCantidad,
+                          ...(yaNoPermiteDescuento ? { descuento: '0' } : {}),
+                        })
+                      }}
                       className={excedeStock ? 'input-error' : undefined}
                     />
                   </td>
@@ -177,10 +196,19 @@ export function VentasPage() {
                       type="number"
                       min="0"
                       max="100"
-                      step="any"
+                      step="0.01"
                       value={linea.descuento}
+                      disabled={!permiteDescuento}
+                      title={
+                        permiteDescuento
+                          ? undefined
+                          : `El descuento solo aplica a partir de ${CANTIDAD_MINIMA_DESCUENTO} unidades`
+                      }
                       onChange={(e) => actualizarLinea(index, { descuento: e.target.value })}
                     />
+                    {!permiteDescuento && (
+                      <span className="field-hint">Desde {CANTIDAD_MINIMA_DESCUENTO} unidades</span>
+                    )}
                   </td>
                   <td>
                     <button
@@ -199,7 +227,7 @@ export function VentasPage() {
         </table>
 
         <button type="button" className="secondary-button" onClick={agregarLinea}>
-          + Agregar línea
+          + Agregar producto
         </button>
 
         {error && <p className="error-text">{error}</p>}
@@ -212,11 +240,11 @@ export function VentasPage() {
       {ultimoComprobante && (
         <div className="comprobante-box">
           <h2>Comprobante {ultimoComprobante.numeroComprobante}</h2>
-          <p>Total: {ultimoComprobante.total.toFixed(2)}</p>
+          <p>Total: {formatearMoneda(ultimoComprobante.total)}</p>
           <ul>
             {ultimoComprobante.lineas.map((l) => (
               <li key={l.id}>
-                {l.cantidad} × {l.productoNombre} — {l.subtotal.toFixed(2)}
+                {l.cantidad} × {l.productoNombre} — {formatearMoneda(l.subtotal)}
               </li>
             ))}
           </ul>
@@ -245,7 +273,7 @@ export function VentasPage() {
               <tr key={v.id}>
                 <td>{v.numeroComprobante}</td>
                 <td>{new Date(v.fecha).toLocaleString()}</td>
-                <td>{v.total.toFixed(2)}</td>
+                <td>{formatearMoneda(v.total)}</td>
               </tr>
             ))}
           </tbody>

@@ -9,6 +9,7 @@ import { ComprasPage } from './pages/ComprasPage'
 import { VentasPage } from './pages/VentasPage'
 import { TransferenciasPage } from './pages/TransferenciasPage'
 import { LogisticaPage } from './pages/LogisticaPage'
+import { ReportesPage } from './pages/ReportesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { NoAutorizadoPage } from './pages/NoAutorizadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -30,6 +31,7 @@ function App() {
           <Route path="/ventas" element={<VentasPage />} />
           <Route path="/transferencias" element={<TransferenciasPage />} />
           <Route path="/logistica" element={<LogisticaPage />} />
+          <Route path="/reportes" element={<ReportesPage />} />
 
           <Route
             element={<ProtectedRoute roles={['AdministradorGeneral', 'GerenteSucursal']} />}

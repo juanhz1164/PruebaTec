@@ -4,6 +4,7 @@ import { OrdenCompraForm } from '../components/OrdenCompraForm'
 import { ESTADO_ORDEN_COMPRA, ESTADO_ORDEN_COMPRA_LABEL } from '../types/ordenCompra'
 import type { OrdenCompra } from '../types/ordenCompra'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
 
 const SIGUIENTE_ESTADO: Partial<Record<number, { estado: number; label: string }>> = {
   [ESTADO_ORDEN_COMPRA.Pendiente]: {
@@ -95,7 +96,7 @@ export function ComprasPage() {
                       {ESTADO_ORDEN_COMPRA_LABEL[orden.estado]}
                     </span>
                   </td>
-                  <td>{orden.total.toFixed(2)}</td>
+                  <td>{formatearMoneda(orden.total)}</td>
                   <td className="acciones-cell">
                     {siguiente && (
                       <button

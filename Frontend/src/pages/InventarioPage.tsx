@@ -4,6 +4,7 @@ import { getInventarioPorSucursal } from '../api/inventario'
 import { MovimientoForm } from '../components/MovimientoForm'
 import type { InventarioItem } from '../types/inventario'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
 
 export function InventarioPage() {
   const { usuario } = useAuth()
@@ -81,7 +82,7 @@ export function InventarioPage() {
                     </td>
                     <td>{item.unidadMedidaAbreviatura}</td>
                     <td>{item.stockMinimo}</td>
-                    <td>{item.costoPromedio.toFixed(2)}</td>
+                    <td>{formatearMoneda(item.costoPromedio)}</td>
                   </tr>
                 )
               })}
