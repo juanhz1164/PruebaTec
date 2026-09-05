@@ -4,6 +4,7 @@ export interface UnidadAlternativa {
   unidadMedidaNombre: string
   unidadMedidaAbreviatura: string
   factorConversion: number
+  precioVenta: number | null
 }
 
 export interface Producto {

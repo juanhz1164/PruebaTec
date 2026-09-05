@@ -10,6 +10,10 @@ public class ProductoUnidadMedida
     public int UnidadMedidaId { get; set; }
     public decimal FactorConversion { get; set; }
 
+    // Precio de venta fijo para esta unidad alternativa (ej. precio de la "Caja").
+    // Si es null, el precio se calcula como CostoPromedio * FactorConversion.
+    public decimal? PrecioVenta { get; set; }
+
     public Producto? Producto { get; set; }
     public UnidadMedida? UnidadMedida { get; set; }
 }

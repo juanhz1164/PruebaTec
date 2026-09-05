@@ -23,13 +23,10 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/inventario" element={<InventarioPage />} />
           <Route
             path="/inventario/otras-sucursales"
             element={<InventarioOtrasSucursalesPage />}
           />
-          <Route path="/ventas" element={<VentasPage />} />
-          <Route path="/transferencias" element={<TransferenciasPage />} />
           <Route path="/logistica" element={<LogisticaPage />} />
           <Route path="/reportes" element={<ReportesPage />} />
 
@@ -37,6 +34,14 @@ function App() {
             element={<ProtectedRoute roles={['AdministradorGeneral', 'GerenteSucursal']} />}
           >
             <Route path="/compras" element={<ComprasPage />} />
+          </Route>
+
+          <Route
+            element={<ProtectedRoute roles={['GerenteSucursal', 'OperadorInventario']} />}
+          >
+            <Route path="/inventario" element={<InventarioPage />} />
+            <Route path="/ventas" element={<VentasPage />} />
+            <Route path="/transferencias" element={<TransferenciasPage />} />
           </Route>
         </Route>
       </Route>

@@ -64,11 +64,15 @@ CREATE TABLE productos (
 -- en productos.unidad_medida_id). factor_conversion indica cuántas
 -- unidades base equivalen a 1 unidad alternativa
 -- (ej: unidad base "un", alternativa "caja" con factor 12 => 1 caja = 12 un).
+-- precio_venta es opcional: precio fijo de venta para esa unidad (ej. la caja
+-- se vende más barata que 12 unidades sueltas). Si es NULL, se calcula como
+-- costo_promedio del inventario * factor_conversion.
 CREATE TABLE producto_unidades_medida (
     id INT AUTO_INCREMENT PRIMARY KEY,
     producto_id INT NOT NULL,
     unidad_medida_id INT NOT NULL,
     factor_conversion DECIMAL(12,4) NOT NULL,
+    precio_venta DECIMAL(12,2) NULL,
     UNIQUE (producto_id, unidad_medida_id),
     CONSTRAINT fk_producto_unidades_producto
         FOREIGN KEY (producto_id) REFERENCES productos(id),
@@ -180,12 +184,16 @@ CREATE TABLE ventas_lineas (
     venta_id INT NOT NULL,
     producto_id INT NOT NULL,
     cantidad DECIMAL(12,2) NOT NULL,
+    unidad_medida_id INT NOT NULL,
+    cantidad_vendida DECIMAL(12,2) NOT NULL,
     precio_unitario DECIMAL(12,2) NOT NULL,
     descuento DECIMAL(5,2) NOT NULL DEFAULT 0,
     CONSTRAINT fk_ventas_lineas_venta
         FOREIGN KEY (venta_id) REFERENCES ventas(id),
     CONSTRAINT fk_ventas_lineas_producto
-        FOREIGN KEY (producto_id) REFERENCES productos(id)
+        FOREIGN KEY (producto_id) REFERENCES productos(id),
+    CONSTRAINT fk_ventas_lineas_unidad_medida
+        FOREIGN KEY (unidad_medida_id) REFERENCES unidades_medida(id)
 ) ENGINE=InnoDB;
 
 -- ============================================================

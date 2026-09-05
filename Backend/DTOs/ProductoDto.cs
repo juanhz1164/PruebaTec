@@ -23,6 +23,7 @@ public class UnidadAlternativaDto
     public string UnidadMedidaNombre { get; set; } = string.Empty;
     public string UnidadMedidaAbreviatura { get; set; } = string.Empty;
     public decimal FactorConversion { get; set; }
+    public decimal? PrecioVenta { get; set; }
 }
 
 public class CrearProductoDto
@@ -49,6 +50,7 @@ public class CrearUnidadAlternativaDto
 {
     public int UnidadMedidaId { get; set; }
     public decimal FactorConversion { get; set; }
+    public decimal? PrecioVenta { get; set; }
 }
 
 // Fila del reporte de productos con stock por debajo (o igual) del mínimo, en una sucursal (T34).

@@ -7,16 +7,24 @@ import type { CrearVentaLinea, Venta } from '../types/venta'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
 
-const CANTIDAD_MINIMA_DESCUENTO = 20
-
 interface LineaForm {
   productoId: number | null
   cantidad: string
-  descuento: string
 }
 
 function nuevaLinea(): LineaForm {
-  return { productoId: null, cantidad: '', descuento: '0' }
+  return { productoId: null, cantidad: '' }
+}
+
+// Descuento automático por volumen (unidad base), tope 15%. Debe coincidir con
+// VentaService.CalcularDescuentoPorCantidad en el backend, que es quien realmente
+// lo aplica: esto solo es para mostrarle al usuario una vista previa antes de enviar.
+function calcularDescuento(cantidadBase: number): number {
+  if (!Number.isFinite(cantidadBase)) return 0
+  if (cantidadBase >= 40) return 15
+  if (cantidadBase >= 30) return 10
+  if (cantidadBase >= 20) return 5
+  return 0
 }
 
 export function VentasPage() {
@@ -57,14 +65,33 @@ export function VentasPage() {
     return map
   }, [inventario])
 
+  const inventarioOrdenado = useMemo(
+    () => [...inventario].sort((a, b) => a.productoNombre.localeCompare(b.productoNombre, 'es')),
+    [inventario],
+  )
+
+  // Precio unitario estimado para la vista previa en vivo (costo promedio del
+  // inventario). El precio real y definitivo lo calcula el backend al registrar la venta.
+  const precioUnitarioEstimado = (productoId: number) => stockPorProducto.get(productoId)?.costoPromedio ?? 0
+
   const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
     setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))
   }
 
   const agregarLinea = () => setLineas((prev) => [...prev, nuevaLinea()])
 
-  const quitarLinea = (index: number) =>
-    setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+  const totalEnVivo = useMemo(() => {
+    return lineas.reduce((acc, linea) => {
+      if (!linea.productoId) return acc
+      const cantidad = Number(linea.cantidad)
+      if (!Number.isFinite(cantidad) || cantidad <= 0) return acc
+      const precioUnitario = precioUnitarioEstimado(linea.productoId)
+      const descuento = calcularDescuento(cantidad)
+      const subtotalLinea = cantidad * precioUnitario
+      return acc + subtotalLinea * (1 - descuento / 100)
+    }, 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineas, inventario])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -74,17 +101,9 @@ export function VentasPage() {
     for (const linea of lineas) {
       if (!linea.productoId) continue
       const cantidad = Number(linea.cantidad)
-      const descuento = Number.parseFloat(linea.descuento || '0')
 
-      if (!Number.isFinite(cantidad) || cantidad <= 0) {
-        setError('Cada línea debe tener una cantidad mayor a cero')
-        return
-      }
-
-      if (descuento > 0 && cantidad < CANTIDAD_MINIMA_DESCUENTO) {
-        setError(
-          `El descuento solo aplica a partir de ${CANTIDAD_MINIMA_DESCUENTO} unidades por producto`,
-        )
+      if (!Number.isInteger(cantidad) || cantidad <= 0) {
+        setError('Cada línea debe tener una cantidad entera mayor a cero')
         return
       }
 
@@ -96,7 +115,10 @@ export function VentasPage() {
         return
       }
 
-      lineasValidas.push({ productoId: linea.productoId, cantidad, descuento })
+      lineasValidas.push({
+        productoId: linea.productoId,
+        cantidad,
+      })
     }
 
     if (lineasValidas.length === 0) {
@@ -145,7 +167,7 @@ export function VentasPage() {
               <th>Stock disponible</th>
               <th>Cantidad</th>
               <th>Descuento %</th>
-              <th></th>
+              <th>Subtotal</th>
             </tr>
           </thead>
           <tbody>
@@ -154,8 +176,12 @@ export function VentasPage() {
               const cantidadNum = Number(linea.cantidad)
               const excedeStock =
                 stock && Number.isFinite(cantidadNum) && cantidadNum > stock.cantidad
-              const permiteDescuento =
-                Number.isFinite(cantidadNum) && cantidadNum >= CANTIDAD_MINIMA_DESCUENTO
+              const descuento = calcularDescuento(cantidadNum)
+              const precioUnitario = linea.productoId ? precioUnitarioEstimado(linea.productoId) : 0
+              const subtotalLinea =
+                linea.productoId && Number.isFinite(cantidadNum) && cantidadNum > 0
+                  ? cantidadNum * precioUnitario * (1 - descuento / 100)
+                  : 0
               return (
                 <tr key={index}>
                   <td>
@@ -166,7 +192,7 @@ export function VentasPage() {
                       }
                     >
                       <option value="">Selecciona un producto</option>
-                      {inventario.map((item) => (
+                      {inventarioOrdenado.map((item) => (
                         <option key={item.productoId} value={item.productoId}>
                           {item.productoSku} — {item.productoNombre}
                         </option>
@@ -178,48 +204,27 @@ export function VentasPage() {
                     <input
                       type="number"
                       min="0"
-                      step="any"
+                      step="1"
                       value={linea.cantidad}
                       onChange={(e) => {
-                        const nuevaCantidad = e.target.value
-                        const yaNoPermiteDescuento = Number(nuevaCantidad) < CANTIDAD_MINIMA_DESCUENTO
-                        actualizarLinea(index, {
-                          cantidad: nuevaCantidad,
-                          ...(yaNoPermiteDescuento ? { descuento: '0' } : {}),
-                        })
+                        const nuevaCantidad = e.target.value.replace(/[.,].*$/, '')
+                        actualizarLinea(index, { cantidad: nuevaCantidad })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === '.' || e.key === ',') e.preventDefault()
                       }}
                       className={excedeStock ? 'input-error' : undefined}
                     />
                   </td>
                   <td>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={linea.descuento}
-                      disabled={!permiteDescuento}
-                      title={
-                        permiteDescuento
-                          ? undefined
-                          : `El descuento solo aplica a partir de ${CANTIDAD_MINIMA_DESCUENTO} unidades`
-                      }
-                      onChange={(e) => actualizarLinea(index, { descuento: e.target.value })}
-                    />
-                    {!permiteDescuento && (
-                      <span className="field-hint">Desde {CANTIDAD_MINIMA_DESCUENTO} unidades</span>
-                    )}
+                    <span className={`descuento-badge ${descuento > 0 ? 'descuento-activo' : ''}`}>
+                      {descuento}%
+                    </span>
+                    <span className="field-hint">
+                      {descuento > 0 ? 'Descuento automático aplicado' : 'Desde 20 unidades'}
+                    </span>
                   </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="link-button"
-                      onClick={() => quitarLinea(index)}
-                      disabled={lineas.length === 1}
-                    >
-                      Quitar
-                    </button>
-                  </td>
+                  <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
                 </tr>
               )
             })}
@@ -229,6 +234,10 @@ export function VentasPage() {
         <button type="button" className="secondary-button" onClick={agregarLinea}>
           + Agregar producto
         </button>
+
+        <p className="venta-total-vivo">
+          Total: <strong>{formatearMoneda(totalEnVivo)}</strong>
+        </p>
 
         {error && <p className="error-text">{error}</p>}
 
@@ -244,7 +253,7 @@ export function VentasPage() {
           <ul>
             {ultimoComprobante.lineas.map((l) => (
               <li key={l.id}>
-                {l.cantidad} × {l.productoNombre} — {formatearMoneda(l.subtotal)}
+                {l.cantidad} {l.unidadMedidaAbreviatura} × {l.productoNombre} — {formatearMoneda(l.subtotal)}
               </li>
             ))}
           </ul>

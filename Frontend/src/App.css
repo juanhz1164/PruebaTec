@@ -71,33 +71,29 @@
   border-top: 1px solid var(--border);
 }
 
-.app-user-role {
+.app-user-name {
   display: inline-block;
+  width: fit-content;
   color: #fff;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  width: fit-content;
 }
 
-.app-user-role.rol-admin {
-  background: #aa3bff;
+.app-user-name.rol-admin,
+.app-topbar-name.rol-admin {
+  background: #d4a017;
 }
 
-.app-user-role.rol-gerente {
+.app-user-name.rol-gerente,
+.app-topbar-name.rol-gerente {
   background: #0a6ba8;
 }
 
-.app-user-role.rol-operador {
+.app-user-name.rol-operador,
+.app-topbar-name.rol-operador {
   background: #0d7a3f;
-}
-
-.app-user-name {
-  font-weight: 600;
-  color: var(--text-h);
 }
 
 .app-main {
@@ -117,15 +113,13 @@
   font-size: 13px;
 }
 
-.app-topbar .app-user-role {
-  font-size: 11px;
-  padding: 4px 12px;
-}
-
 .app-topbar-name {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--text-h);
+  display: inline-block;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .app-topbar-sucursal {
@@ -194,22 +188,23 @@
 .login-page {
   --login-navy: #0b1220;
   --login-navy-soft: #131c30;
-  --login-action: #2563eb;
-  --login-action-hover: #1d4ed8;
-  --login-action-active: #1e40af;
-  --login-bg: #f8fafc;
-  --login-text-h: #0f172a;
-  --login-text: #475569;
-  --login-border: #e2e8f0;
-  --login-error: #dc2626;
-  --login-error-bg: #fef2f2;
-  --login-error-border: #fecaca;
+  --login-action: #7c3aed;
+  --login-action-hover: #6d28d9;
+  --login-action-active: #5b21b6;
+  --login-bg: #16171d;
+  --login-card-bg: #1f2028;
+  --login-text-h: #f3f4f6;
+  --login-text: #9ca3af;
+  --login-border: #2e303a;
+  --login-error: #f87171;
+  --login-error-bg: rgba(224, 81, 125, 0.12);
+  --login-error-border: rgba(224, 81, 125, 0.35);
 
   min-height: 100svh;
   display: grid;
   grid-template-columns: 45% 55%;
   background: var(--login-bg);
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 /* Left visual panel */
@@ -368,8 +363,8 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--login-action);
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
   margin-bottom: 24px;
 }
 
@@ -426,7 +421,7 @@
   border-radius: 11px;
   font: inherit;
   font-size: 15.5px;
-  background: #fff;
+  background: var(--login-card-bg);
   color: var(--login-text-h);
   transition:
     border-color 0.15s ease,
@@ -435,17 +430,17 @@
 }
 
 .login-field input::placeholder {
-  color: #94a3b8;
+  color: #6b7280;
 }
 
 .login-field input:hover {
-  border-color: #cbd5e1;
+  border-color: #454854;
 }
 
 .login-field input:focus {
   outline: none;
   border-color: var(--login-action);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
 }
 
 .login-field input:invalid:not(:placeholder-shown) {
@@ -473,7 +468,7 @@
   justify-content: center;
   border: none;
   background: none;
-  color: #94a3b8;
+  color: #6b7280;
   cursor: pointer;
   padding: 0;
   transition: color 0.15s ease;
@@ -875,6 +870,18 @@
   cursor: not-allowed;
 }
 
+.venta-total-vivo {
+  align-self: flex-end;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.venta-total-vivo strong {
+  color: var(--text-h);
+  font-size: 20px;
+  margin-left: 6px;
+}
+
 .link-button {
   border: none;
   background: none;
@@ -920,6 +927,23 @@
 .input-error {
   border-color: #e0245e !important;
   outline: 1px solid #e0245e;
+}
+
+.descuento-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.descuento-badge.descuento-activo {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
 }
 
 .field-hint {

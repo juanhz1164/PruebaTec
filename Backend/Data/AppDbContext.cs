@@ -97,6 +97,7 @@ public class AppDbContext : DbContext
             entity.Property(pum => pum.ProductoId).HasColumnName("producto_id");
             entity.Property(pum => pum.UnidadMedidaId).HasColumnName("unidad_medida_id");
             entity.Property(pum => pum.FactorConversion).HasColumnName("factor_conversion");
+            entity.Property(pum => pum.PrecioVenta).HasColumnName("precio_venta");
 
             entity.HasIndex(pum => new { pum.ProductoId, pum.UnidadMedidaId }).IsUnique();
 
@@ -197,12 +198,18 @@ public class AppDbContext : DbContext
             entity.Property(l => l.VentaId).HasColumnName("venta_id");
             entity.Property(l => l.ProductoId).HasColumnName("producto_id");
             entity.Property(l => l.Cantidad).HasColumnName("cantidad");
+            entity.Property(l => l.UnidadMedidaId).HasColumnName("unidad_medida_id");
+            entity.Property(l => l.CantidadVendida).HasColumnName("cantidad_vendida");
             entity.Property(l => l.PrecioUnitario).HasColumnName("precio_unitario");
             entity.Property(l => l.Descuento).HasColumnName("descuento");
 
             entity.HasOne(l => l.Venta)
                 .WithMany(v => v.Lineas)
                 .HasForeignKey(l => l.VentaId);
+
+            entity.HasOne(l => l.UnidadMedida)
+                .WithMany()
+                .HasForeignKey(l => l.UnidadMedidaId);
 
             entity.HasOne(l => l.Producto)
                 .WithMany()

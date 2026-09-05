@@ -8,10 +8,12 @@ namespace InventarioMultiSucursal.Api.Services;
 public class VentaService : IVentaService
 {
     private readonly IVentaRepository _repository;
+    private readonly IProductoRepository _productoRepository;
 
-    public VentaService(IVentaRepository repository)
+    public VentaService(IVentaRepository repository, IProductoRepository productoRepository)
     {
         _repository = repository;
+        _productoRepository = productoRepository;
     }
 
     public async Task<List<VentaDto>> GetAllAsync()
@@ -40,30 +42,62 @@ public class VentaService : IVentaService
             return ResultadoVenta.Falla("La cantidad de cada línea debe ser mayor que cero.");
         }
 
-        // Regla de negocio: el descuento por línea solo aplica a partir de 20 unidades.
-        const decimal cantidadMinimaParaDescuento = 20m;
-        if (dto.Lineas.Any(l => l.Descuento > 0 && l.Cantidad < cantidadMinimaParaDescuento))
+        if (dto.Lineas.Any(l => l.Cantidad != decimal.Truncate(l.Cantidad)))
         {
-            return ResultadoVenta.Falla(
-                $"El descuento solo aplica a partir de {cantidadMinimaParaDescuento} unidades por producto.");
+            return ResultadoVenta.Falla("La cantidad de cada línea debe ser un número entero.");
         }
 
         // T41: validar stock disponible de cada línea ANTES de tocar nada.
+        // Cada línea puede venderse en la unidad base del producto o en una unidad
+        // alternativa (ej. "Caja"); en ese caso se convierte a unidad base con su
+        // FactorConversion para comparar contra el stock, que siempre está en unidad base.
         var inventarios = new Dictionary<int, Inventario>();
+        var cantidadesBase = new Dictionary<int, decimal>();
+        var unidadesVenta = new Dictionary<int, int>();
+        var factoresConversion = new Dictionary<int, decimal>();
+        var preciosVentaUnidad = new Dictionary<int, decimal?>();
+
         foreach (var linea in dto.Lineas)
         {
+            var producto = await _productoRepository.GetByIdAsync(linea.ProductoId);
+            if (producto is null)
+            {
+                return ResultadoVenta.Falla($"No existe el producto {linea.ProductoId}.");
+            }
+
+            var unidadMedidaId = linea.UnidadMedidaId ?? producto.UnidadMedidaId;
+            decimal factorConversion = 1m;
+            decimal? precioVentaUnidad = null;
+
+            if (unidadMedidaId != producto.UnidadMedidaId)
+            {
+                var unidadAlternativa = await _productoRepository.GetUnidadAlternativaAsync(linea.ProductoId, unidadMedidaId);
+                if (unidadAlternativa is null)
+                {
+                    return ResultadoVenta.Falla($"El producto {linea.ProductoId} no tiene esa unidad de venta configurada.");
+                }
+                factorConversion = unidadAlternativa.FactorConversion;
+                precioVentaUnidad = unidadAlternativa.PrecioVenta;
+            }
+
+            var cantidadBase = linea.Cantidad * factorConversion;
+
             var inventario = await _repository.GetInventarioAsync(linea.ProductoId, dto.SucursalId);
             if (inventario is null)
             {
                 return ResultadoVenta.Falla($"No existe inventario del producto {linea.ProductoId} en esa sucursal.");
             }
 
-            if (inventario.Cantidad < linea.Cantidad)
+            if (inventario.Cantidad < cantidadBase)
             {
-                return ResultadoVenta.Falla($"Stock insuficiente para el producto {linea.ProductoId}: disponible {inventario.Cantidad}, solicitado {linea.Cantidad}.");
+                return ResultadoVenta.Falla($"Stock insuficiente para el producto {linea.ProductoId}: disponible {inventario.Cantidad}, solicitado {cantidadBase}.");
             }
 
             inventarios[linea.ProductoId] = inventario;
+            cantidadesBase[linea.ProductoId] = cantidadBase;
+            unidadesVenta[linea.ProductoId] = unidadMedidaId;
+            factoresConversion[linea.ProductoId] = factorConversion;
+            preciosVentaUnidad[linea.ProductoId] = precioVentaUnidad;
         }
 
         await using var transaction = await _repository.BeginTransactionAsync();
@@ -75,14 +109,25 @@ public class VentaService : IVentaService
         foreach (var lineaDto in dto.Lineas)
         {
             var inventario = inventarios[lineaDto.ProductoId];
+            var cantidadBase = cantidadesBase[lineaDto.ProductoId];
+            var factorConversion = factoresConversion[lineaDto.ProductoId];
 
-            // T42: precio base = costo promedio del inventario si no se envía uno explícito.
+            // T42: precio base = costo promedio del inventario (por unidad base) si no
+            // se envía uno explícito. Si se vende en unidad alternativa, el precio
+            // explícito se interpreta por esa unidad (ej. precio de 1 caja). Si la
+            // unidad alternativa tiene un precio de venta fijo configurado (ej. la
+            // caja se vende más barata que 12 unidades sueltas), ese precio fijo
+            // tiene prioridad sobre el cálculo por costo promedio.
+            var precioVentaUnidad = preciosVentaUnidad[lineaDto.ProductoId];
             var precioUnitario = lineaDto.PrecioUnitario is > 0
                 ? lineaDto.PrecioUnitario.Value
-                : inventario.CostoPromedio;
+                : precioVentaUnidad is > 0
+                    ? precioVentaUnidad.Value
+                    : inventario.CostoPromedio * factorConversion;
 
+            var descuentoPorcentaje = CalcularDescuentoPorCantidad(cantidadBase);
             var subtotalLinea = lineaDto.Cantidad * precioUnitario;
-            var descuentoLinea = subtotalLinea * (lineaDto.Descuento / 100m);
+            var descuentoLinea = subtotalLinea * (descuentoPorcentaje / 100m);
 
             subtotal += subtotalLinea;
             descuentoTotal += descuentoLinea;
@@ -90,13 +135,15 @@ public class VentaService : IVentaService
             lineasVenta.Add(new VentaLinea
             {
                 ProductoId = lineaDto.ProductoId,
-                Cantidad = lineaDto.Cantidad,
+                Cantidad = cantidadBase,
+                UnidadMedidaId = unidadesVenta[lineaDto.ProductoId],
+                CantidadVendida = lineaDto.Cantidad,
                 PrecioUnitario = precioUnitario,
-                Descuento = lineaDto.Descuento
+                Descuento = descuentoPorcentaje
             });
 
-            // T40: retira el stock vendido.
-            inventario.Cantidad -= lineaDto.Cantidad;
+            // T40: retira el stock vendido (siempre en unidad base).
+            inventario.Cantidad -= cantidadBase;
             inventario.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -124,7 +171,7 @@ public class VentaService : IVentaService
                 SucursalId = dto.SucursalId,
                 UsuarioId = dto.UsuarioId,
                 Tipo = TipoMovimiento.Retiro,
-                Cantidad = lineaDto.Cantidad,
+                Cantidad = cantidadesBase[lineaDto.ProductoId],
                 Motivo = "Venta",
                 ReferenciaTipo = "venta",
                 ReferenciaId = venta.Id,
@@ -137,6 +184,16 @@ public class VentaService : IVentaService
 
         var creada = await _repository.GetByIdAsync(venta.Id);
         return ResultadoVenta.Ok(MapToDto(creada!));
+    }
+
+    // Regla de negocio: descuento automático por volumen (unidad base), tope 15%.
+    // 20+ unidades -> 5%, 30+ -> 10%, 40+ -> 15%. No es configurable por el cliente.
+    private static decimal CalcularDescuentoPorCantidad(decimal cantidadBase)
+    {
+        if (cantidadBase >= 40m) return 15m;
+        if (cantidadBase >= 30m) return 10m;
+        if (cantidadBase >= 20m) return 5m;
+        return 0m;
     }
 
     // T43: comprobante único y consultable (VTA-<fecha>-<consecutivo>).
@@ -169,10 +226,11 @@ public class VentaService : IVentaService
             ProductoId = l.ProductoId,
             ProductoNombre = l.Producto?.Nombre ?? string.Empty,
             ProductoSku = l.Producto?.Sku ?? string.Empty,
-            Cantidad = l.Cantidad,
+            Cantidad = l.CantidadVendida,
+            UnidadMedidaAbreviatura = l.UnidadMedida?.Abreviatura ?? string.Empty,
             PrecioUnitario = l.PrecioUnitario,
             Descuento = l.Descuento,
-            Subtotal = l.Cantidad * l.PrecioUnitario * (1 - l.Descuento / 100m)
+            Subtotal = l.CantidadVendida * l.PrecioUnitario * (1 - l.Descuento / 100m)
         }).ToList()
     };
 }

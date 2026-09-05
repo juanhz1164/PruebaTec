@@ -40,24 +40,24 @@ INSERT INTO usuarios (sucursal_id, nombre, email, password_hash, rol, activo) VA
 -- ============================================================
 
 INSERT INTO productos (unidad_medida_id, sku, nombre, descripcion, categoria, activo) VALUES
-    (1, 'PROD-001', 'Lapicero azul', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE),
+    (1, 'PROD-001', 'Lapicero', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE),
     (2, 'PROD-002', 'Arroz', 'Arroz blanco, venta a granel por kilo', 'Abarrotes', TRUE),
     (3, 'PROD-003', 'Aceite vegetal', 'Aceite vegetal comestible, venta por litro', 'Abarrotes', TRUE),
     (3, 'PROD-004', 'Detergente líquido', 'Detergente líquido para ropa, venta por litro', 'Aseo', TRUE),
-    (1, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE);
-
--- ============================================================
--- Unidades de medida alternativas por producto
--- Ej: el Lapicero azul (base "un") también se maneja por "Caja" (1 caja = 12 un)
--- ============================================================
-
-INSERT INTO producto_unidades_medida (producto_id, unidad_medida_id, factor_conversion) VALUES
-    (1, 4, 12);
+    (1, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE),
+    (3, 'PROD-006', 'Detergente líquido 3L', 'Detergente líquido para ropa, presentación de 3 litros', 'Aseo', TRUE),
+    (3, 'PROD-007', 'Detergente líquido 5L', 'Detergente líquido para ropa, presentación de 5 litros', 'Aseo', TRUE),
+    (3, 'PROD-008', 'Detergente líquido 7L', 'Detergente líquido para ropa, presentación de 7 litros', 'Aseo', TRUE),
+    (4, 'PROD-009', 'Caja de lapiceros', 'Caja con 12 lapiceros azules, más económica que comprarlos sueltos', 'Papelería', TRUE);
 
 -- ============================================================
 -- Inventario inicial por sucursal
--- producto_id: 1..5 en el mismo orden de arriba
+-- producto_id: 1..9 en el mismo orden de arriba
 -- sucursal_id: 1=Centro, 2=Norte, 3=Medellín
+-- Costo de los detergentes 3L/5L/7L (productos 6-8): proporcional al litro
+-- del detergente base (~$7.800/L) con descuento por tamaño de envase.
+-- "Caja de lapiceros" (producto 9) es un producto independiente con su propio
+-- stock: no descuenta del stock de "Lapicero" al venderse.
 -- ============================================================
 
 INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_promedio) VALUES
@@ -66,14 +66,23 @@ INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_
     (3, 1, 60, 15, 9500.00),
     (4, 1, 40, 10, 7800.00),
     (5, 1, 150, 30, 1800.00),
+    (6, 1, 30, 8, 21000.00),
+    (7, 1, 25, 6, 33000.00),
+    (8, 1, 15, 5, 44000.00),
+    (9, 1, 25, 5, 8400.00),
 
     (1, 2, 200, 50, 800.00),
     (2, 2, 80, 20, 3200.00),
     (4, 2, 25, 10, 7800.00),
+    (6, 2, 20, 8, 21000.00),
+    (7, 2, 15, 6, 33000.00),
+    (8, 2, 10, 5, 44000.00),
+    (9, 2, 15, 5, 8400.00),
 
     (1, 3, 150, 50, 800.00),
     (3, 3, 30, 15, 9500.00),
-    (5, 3, 90, 30, 1800.00);
+    (5, 3, 90, 30, 1800.00),
+    (9, 3, 10, 5, 8400.00);
 
 -- ============================================================
 -- Proveedores (para poder probar el módulo de compras)

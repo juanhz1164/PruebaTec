@@ -22,6 +22,8 @@ public class VentaRepository : IVentaRepository
             .Include(v => v.Usuario)
             .Include(v => v.Lineas)
                 .ThenInclude(l => l.Producto)
+            .Include(v => v.Lineas)
+                .ThenInclude(l => l.UnidadMedida)
             .OrderByDescending(v => v.Fecha)
             .ToListAsync();
     }
@@ -33,6 +35,8 @@ public class VentaRepository : IVentaRepository
             .Include(v => v.Usuario)
             .Include(v => v.Lineas)
                 .ThenInclude(l => l.Producto)
+            .Include(v => v.Lineas)
+                .ThenInclude(l => l.UnidadMedida)
             .FirstOrDefaultAsync(v => v.Id == id);
     }
 

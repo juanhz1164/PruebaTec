@@ -106,7 +106,8 @@ public class ProductoService : IProductoService
         {
             ProductoId = productoId,
             UnidadMedidaId = dto.UnidadMedidaId,
-            FactorConversion = dto.FactorConversion
+            FactorConversion = dto.FactorConversion,
+            PrecioVenta = dto.PrecioVenta
         };
 
         await _repository.AddUnidadAlternativaAsync(unidad);
@@ -168,6 +169,7 @@ public class ProductoService : IProductoService
         UnidadMedidaId = ua.UnidadMedidaId,
         UnidadMedidaNombre = ua.UnidadMedida?.Nombre ?? string.Empty,
         UnidadMedidaAbreviatura = ua.UnidadMedida?.Abreviatura ?? string.Empty,
-        FactorConversion = ua.FactorConversion
+        FactorConversion = ua.FactorConversion,
+        PrecioVenta = ua.PrecioVenta
     };
 }

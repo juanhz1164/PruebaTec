@@ -4,6 +4,7 @@ export interface VentaLinea {
   productoNombre: string
   productoSku: string
   cantidad: number
+  unidadMedidaAbreviatura: string
   precioUnitario: number
   descuento: number
   subtotal: number
@@ -25,9 +26,9 @@ export interface Venta {
 
 export interface CrearVentaLinea {
   productoId: number
+  unidadMedidaId?: number | null
   cantidad: number
   precioUnitario?: number | null
-  descuento: number
 }
 
 export interface CrearVenta {

@@ -118,7 +118,7 @@ export function DashboardPage() {
       <h2>Ventas: mes actual vs. anteriores</h2>
       <BarChart
         data={ventasPorMes.map((v) => ({ label: v.etiquetaMes, value: v.totalVendido }))}
-        colorVar="--chart-1"
+        colorVar="--chart-3"
         valueFormatter={(v) => formatearMoneda(v)}
       />
 
