@@ -159,6 +159,8 @@ public class ProductoService : IProductoService
         UnidadMedidaId = p.UnidadMedidaId,
         UnidadMedidaNombre = p.UnidadMedida?.Nombre ?? string.Empty,
         UnidadMedidaAbreviatura = p.UnidadMedida?.Abreviatura ?? string.Empty,
+        ProveedorId = p.ProveedorId,
+        ProveedorNombre = p.Proveedor?.Nombre,
         CreatedAt = p.CreatedAt,
         UnidadesAlternativas = p.UnidadesAlternativas.Select(MapToDto).ToList()
     };

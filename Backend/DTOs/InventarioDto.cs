@@ -14,6 +14,11 @@ public class InventarioDto
     public decimal StockMinimo { get; set; }
     public decimal CostoPromedio { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // true cuando el producto no tiene ningún registro de inventario en esta
+    // sucursal (nunca se dio de alta ahí) o su cantidad es 0. En ambos casos
+    // Id queda en 0 porque no hay una fila real de inventario que editar.
+    public bool Agotado { get; set; }
 }
 
 // Lo que el cliente envía para crear el registro inicial de stock de un producto en una sucursal.

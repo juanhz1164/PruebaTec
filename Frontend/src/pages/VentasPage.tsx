@@ -16,14 +16,29 @@ function nuevaLinea(): LineaForm {
   return { productoId: null, cantidad: '' }
 }
 
-// Descuento automático por volumen (unidad base), tope 15%. Debe coincidir con
-// VentaService.CalcularDescuentoPorCantidad en el backend, que es quien realmente
-// lo aplica: esto solo es para mostrarle al usuario una vista previa antes de enviar.
-function calcularDescuento(cantidadBase: number): number {
-  if (!Number.isFinite(cantidadBase)) return 0
-  if (cantidadBase >= 40) return 15
-  if (cantidadBase >= 30) return 10
-  if (cantidadBase >= 20) return 5
+const SKU_CAJA_LAPICEROS = 'PROD-009'
+
+// Descuento automático por volumen, tope 15%. Debe coincidir con
+// VentaService.CalcularDescuentoPorCantidad en el backend, que es quien
+// realmente lo aplica: esto solo es para la vista previa antes de enviar.
+// Se calcula sobre la SUMA de unidades de todos los productos "normales" de
+// la venta (no por línea individual), excepto "Caja de lapiceros", que usa
+// su propia escala (ver calcularDescuentoPorCajas).
+function calcularDescuentoGeneral(cantidadTotal: number): number {
+  if (!Number.isFinite(cantidadTotal)) return 0
+  if (cantidadTotal >= 40) return 15
+  if (cantidadTotal >= 30) return 10
+  if (cantidadTotal >= 20) return 5
+  return 0
+}
+
+// Descuento por cantidad de CAJAS de lapiceros (no de lapiceros sueltos), ya
+// que cada caja ya trae 12. Debe coincidir con VentaService.CalcularDescuentoPorCajas.
+function calcularDescuentoPorCajas(cantidadCajas: number): number {
+  if (!Number.isFinite(cantidadCajas)) return 0
+  if (cantidadCajas >= 8) return 15
+  if (cantidadCajas >= 5) return 10
+  if (cantidadCajas >= 2) return 5
   return 0
 }
 
@@ -80,18 +95,37 @@ export function VentasPage() {
 
   const agregarLinea = () => setLineas((prev) => [...prev, nuevaLinea()])
 
+  const esLineaCaja = (productoId: number | null) =>
+    productoId !== null && stockPorProducto.get(productoId)?.productoSku === SKU_CAJA_LAPICEROS
+
+  // Cantidad total de las líneas "normales" (todo excepto cajas de
+  // lapiceros): define el % de descuento general que aplica a esas líneas.
+  const cantidadTotalGeneral = useMemo(() => {
+    return lineas.reduce((acc, linea) => {
+      if (!linea.productoId || esLineaCaja(linea.productoId)) return acc
+      const cantidad = Number(linea.cantidad)
+      return Number.isFinite(cantidad) && cantidad > 0 ? acc + cantidad : acc
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineas, inventario])
+
+  const descuentoGeneral = calcularDescuentoGeneral(cantidadTotalGeneral)
+
   const totalEnVivo = useMemo(() => {
     return lineas.reduce((acc, linea) => {
       if (!linea.productoId) return acc
       const cantidad = Number(linea.cantidad)
       if (!Number.isFinite(cantidad) || cantidad <= 0) return acc
       const precioUnitario = precioUnitarioEstimado(linea.productoId)
-      const descuento = calcularDescuento(cantidad)
+      const descuento = esLineaCaja(linea.productoId)
+        ? calcularDescuentoPorCajas(cantidad)
+        : descuentoGeneral
       const subtotalLinea = cantidad * precioUnitario
       return acc + subtotalLinea * (1 - descuento / 100)
     }, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineas, inventario])
+  }, [lineas, inventario, descuentoGeneral])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -176,7 +210,9 @@ export function VentasPage() {
               const cantidadNum = Number(linea.cantidad)
               const excedeStock =
                 stock && Number.isFinite(cantidadNum) && cantidadNum > stock.cantidad
-              const descuento = calcularDescuento(cantidadNum)
+              const descuento = esLineaCaja(linea.productoId)
+                ? calcularDescuentoPorCajas(cantidadNum)
+                : descuentoGeneral
               const precioUnitario = linea.productoId ? precioUnitarioEstimado(linea.productoId) : 0
               const subtotalLinea =
                 linea.productoId && Number.isFinite(cantidadNum) && cantidadNum > 0
@@ -221,7 +257,11 @@ export function VentasPage() {
                       {descuento}%
                     </span>
                     <span className="field-hint">
-                      {descuento > 0 ? 'Descuento automático aplicado' : 'Desde 20 unidades'}
+                      {descuento > 0
+                        ? 'Descuento automático aplicado'
+                        : esLineaCaja(linea.productoId)
+                          ? 'Desde 2 cajas'
+                          : 'Desde 20 unidades entre todos los productos'}
                     </span>
                   </td>
                   <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>

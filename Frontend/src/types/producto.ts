@@ -17,6 +17,8 @@ export interface Producto {
   unidadMedidaId: number
   unidadMedidaNombre: string
   unidadMedidaAbreviatura: string
+  proveedorId: number | null
+  proveedorNombre: string | null
   createdAt: string
   unidadesAlternativas: UnidadAlternativa[]
 }

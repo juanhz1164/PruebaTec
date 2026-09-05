@@ -79,13 +79,14 @@ export function InventarioPage() {
                 </tr>
               )}
               {items.map((item) => {
-                const stockBajo = item.cantidad <= item.stockMinimo
+                const stockBajo = !item.agotado && item.cantidad <= item.stockMinimo
                 return (
-                  <tr key={item.id} className={stockBajo ? 'row-alert' : undefined}>
+                  <tr key={`${item.productoId}-${item.id}`} className={item.agotado || stockBajo ? 'row-alert' : undefined}>
                     <td>{item.productoSku}</td>
                     <td>{item.productoNombre}</td>
                     <td>
                       {item.cantidad}
+                      {item.agotado && <span className="badge-alert">agotado</span>}
                       {stockBajo && <span className="badge-alert">stock bajo</span>}
                     </td>
                     <td>{item.unidadMedidaAbreviatura}</td>

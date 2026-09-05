@@ -9,4 +9,5 @@ export interface InventarioItem {
   stockMinimo: number
   costoPromedio: number
   updatedAt: string
+  agotado: boolean
 }

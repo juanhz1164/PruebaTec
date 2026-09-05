@@ -8,6 +8,7 @@ namespace InventarioMultiSucursal.Api.Repositories.Interfaces;
 public interface IInventarioRepository
 {
     Task<List<Inventario>> GetPorSucursalAsync(int sucursalId);
+    Task<List<Inventario>> GetTodosAsync();
     Task<Inventario?> GetByIdAsync(int id);
     Task<Inventario?> GetPorProductoYSucursalAsync(int productoId, int sucursalId);
     Task AddAsync(Inventario inventario);

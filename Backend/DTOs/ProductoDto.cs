@@ -11,6 +11,8 @@ public class ProductoDto
     public int UnidadMedidaId { get; set; }
     public string UnidadMedidaNombre { get; set; } = string.Empty;
     public string UnidadMedidaAbreviatura { get; set; } = string.Empty;
+    public int? ProveedorId { get; set; }
+    public string? ProveedorNombre { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<UnidadAlternativaDto> UnidadesAlternativas { get; set; } = new();
 }

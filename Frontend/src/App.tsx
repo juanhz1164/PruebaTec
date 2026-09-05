@@ -31,12 +31,6 @@ function App() {
           <Route path="/logistica" element={<LogisticaPage />} />
           <Route path="/reportes" element={<ReportesPage />} />
 
-          <Route
-            element={<ProtectedRoute roles={['AdministradorGeneral', 'GerenteSucursal']} />}
-          >
-            <Route path="/compras" element={<ComprasPage />} />
-          </Route>
-
           <Route element={<ProtectedRoute roles={['AdministradorGeneral']} />}>
             <Route path="/comparativa-sucursales" element={<ComparativaSucursalesPage />} />
           </Route>
@@ -47,6 +41,8 @@ function App() {
             <Route path="/inventario" element={<InventarioPage />} />
             <Route path="/ventas" element={<VentasPage />} />
           </Route>
+
+          <Route path="/compras" element={<ComprasPage />} />
 
           <Route path="/transferencias" element={<TransferenciasPage />} />
         </Route>

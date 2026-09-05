@@ -46,9 +46,12 @@ CREATE TABLE usuarios (
 -- Inventario: productos, stock por sucursal y movimientos
 -- ============================================================
 
+-- proveedor_id es opcional y su FK se agrega más abajo (después de crear la
+-- tabla proveedores, que se declara luego en este mismo archivo).
 CREATE TABLE productos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     unidad_medida_id INT NOT NULL,
+    proveedor_id INT NULL,
     sku VARCHAR(50) NOT NULL,
     nombre VARCHAR(150) NOT NULL,
     descripcion TEXT,
@@ -128,6 +131,13 @@ CREATE TABLE proveedores (
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- Cada producto es distribuido por un único proveedor principal. Sirve para
+-- que, al elegir un proveedor en Compras, solo se ofrezcan los productos que
+-- él distribuye.
+ALTER TABLE productos
+    ADD CONSTRAINT fk_productos_proveedor
+        FOREIGN KEY (proveedor_id) REFERENCES proveedores(id);
 
 CREATE TABLE ordenes_compra (
     id INT AUTO_INCREMENT PRIMARY KEY,

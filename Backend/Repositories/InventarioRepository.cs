@@ -26,6 +26,11 @@ public class InventarioRepository : IInventarioRepository
             .ToListAsync();
     }
 
+    public async Task<List<Inventario>> GetTodosAsync()
+    {
+        return await _context.Inventarios.ToListAsync();
+    }
+
     public async Task<Inventario?> GetByIdAsync(int id)
     {
         return await _context.Inventarios

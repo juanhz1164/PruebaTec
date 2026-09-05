@@ -77,6 +77,7 @@ public class AppDbContext : DbContext
             entity.HasKey(p => p.Id);
             entity.Property(p => p.Id).HasColumnName("id");
             entity.Property(p => p.UnidadMedidaId).HasColumnName("unidad_medida_id");
+            entity.Property(p => p.ProveedorId).HasColumnName("proveedor_id");
             entity.Property(p => p.Sku).HasColumnName("sku");
             entity.Property(p => p.Nombre).HasColumnName("nombre");
             entity.Property(p => p.Descripcion).HasColumnName("descripcion");
@@ -87,6 +88,10 @@ public class AppDbContext : DbContext
             entity.HasOne(p => p.UnidadMedida)
                 .WithMany(um => um.Productos)
                 .HasForeignKey(p => p.UnidadMedidaId);
+
+            entity.HasOne(p => p.Proveedor)
+                .WithMany()
+                .HasForeignKey(p => p.ProveedorId);
         });
 
         modelBuilder.Entity<ProductoUnidadMedida>(entity =>

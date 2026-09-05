@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getProveedores } from '../api/proveedores'
@@ -41,11 +41,32 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
       .catch(() => setError('No se pudo cargar el listado de proveedores'))
   }, [])
 
+  // Solo se ofrecen los productos que distribuye el proveedor elegido.
+  const productosDelProveedor = useMemo(
+    () => productos.filter((p) => p.proveedorId === proveedorId),
+    [productos, proveedorId],
+  )
+
   const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
     setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))
   }
 
   const agregarLinea = () => setLineas((prev) => [...prev, nuevaLinea()])
+
+  // Al cambiar de proveedor, cualquier producto ya elegido que no sea de ese
+  // proveedor deja de ser válido: se limpia para evitar enviar una línea con
+  // un producto que no corresponde al proveedor de la orden.
+  const cambiarProveedor = (nuevoProveedorId: number) => {
+    setProveedorId(nuevoProveedorId)
+    setLineas((prev) =>
+      prev.map((l) => {
+        const producto = productos.find((p) => p.id === l.productoId)
+        return producto && producto.proveedorId !== nuevoProveedorId
+          ? { ...l, productoId: null }
+          : l
+      }),
+    )
+  }
 
   const quitarLinea = (index: number) =>
     setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
@@ -119,7 +140,7 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
         <select
           id="oc-proveedor"
           value={proveedorId ?? ''}
-          onChange={(e) => setProveedorId(Number(e.target.value))}
+          onChange={(e) => cambiarProveedor(Number(e.target.value))}
         >
           {proveedores.map((p) => (
             <option key={p.id} value={p.id}>
@@ -160,7 +181,7 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
                   onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
                 >
                   <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
+                  {productosDelProveedor.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.sku} — {p.nombre}
                     </option>

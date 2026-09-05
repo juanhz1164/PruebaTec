@@ -7,6 +7,11 @@ namespace InventarioMultiSucursal.Api.Services;
 
 public class VentaService : IVentaService
 {
+    // SKU con escala de descuento propia (ver CalcularDescuentoPorCajas): cada
+    // caja ya trae 12 lapiceros, así que su umbral de cantidad es mucho menor
+    // que el de productos vendidos por unidad suelta.
+    private const string SkuCajaLapiceros = "PROD-009";
+
     private readonly IVentaRepository _repository;
     private readonly IProductoRepository _productoRepository;
 
@@ -56,6 +61,7 @@ public class VentaService : IVentaService
         var unidadesVenta = new Dictionary<int, int>();
         var factoresConversion = new Dictionary<int, decimal>();
         var preciosVentaUnidad = new Dictionary<int, decimal?>();
+        var skuPorProducto = new Dictionary<int, string>();
 
         foreach (var linea in dto.Lineas)
         {
@@ -64,6 +70,8 @@ public class VentaService : IVentaService
             {
                 return ResultadoVenta.Falla($"No existe el producto {linea.ProductoId}.");
             }
+
+            skuPorProducto[linea.ProductoId] = producto.Sku;
 
             var unidadMedidaId = linea.UnidadMedidaId ?? producto.UnidadMedidaId;
             decimal factorConversion = 1m;
@@ -100,6 +108,16 @@ public class VentaService : IVentaService
             preciosVentaUnidad[linea.ProductoId] = precioVentaUnidad;
         }
 
+        // Regla de negocio: el descuento por volumen general se calcula sobre la
+        // SUMA de unidades de todos los productos de la venta (ej. 15 arroz + 5
+        // lapiceros = 20 unidades → aplica descuento a esas líneas), EXCEPTO
+        // "Caja de lapiceros", que por traer 12 lapiceros cada una tiene su
+        // propia escala de cantidad de cajas y no se mezcla con el total general.
+        var cantidadTotalGeneral = dto.Lineas
+            .Where(l => skuPorProducto[l.ProductoId] != SkuCajaLapiceros)
+            .Sum(l => cantidadesBase[l.ProductoId]);
+        var descuentoGeneral = CalcularDescuentoPorCantidad(cantidadTotalGeneral);
+
         await using var transaction = await _repository.BeginTransactionAsync();
 
         var lineasVenta = new List<VentaLinea>();
@@ -111,6 +129,7 @@ public class VentaService : IVentaService
             var inventario = inventarios[lineaDto.ProductoId];
             var cantidadBase = cantidadesBase[lineaDto.ProductoId];
             var factorConversion = factoresConversion[lineaDto.ProductoId];
+            var esCajaLapiceros = skuPorProducto[lineaDto.ProductoId] == SkuCajaLapiceros;
 
             // T42: precio base = costo promedio del inventario (por unidad base) si no
             // se envía uno explícito. Si se vende en unidad alternativa, el precio
@@ -125,7 +144,9 @@ public class VentaService : IVentaService
                     ? precioVentaUnidad.Value
                     : inventario.CostoPromedio * factorConversion;
 
-            var descuentoPorcentaje = CalcularDescuentoPorCantidad(cantidadBase);
+            var descuentoPorcentaje = esCajaLapiceros
+                ? CalcularDescuentoPorCajas(lineaDto.Cantidad)
+                : descuentoGeneral;
             var subtotalLinea = lineaDto.Cantidad * precioUnitario;
             var descuentoLinea = subtotalLinea * (descuentoPorcentaje / 100m);
 
@@ -187,12 +208,27 @@ public class VentaService : IVentaService
     }
 
     // Regla de negocio: descuento automático por volumen (unidad base), tope 15%.
-    // 20+ unidades -> 5%, 30+ -> 10%, 40+ -> 15%. No es configurable por el cliente.
+    // 20+ unidades -> 5%, 30+ -> 10%, 40+ -> 15%. Se calcula sobre la suma de
+    // TODOS los productos "normales" de la venta (no solo uno), y no aplica a
+    // "Caja de lapiceros", que tiene su propia escala (ver CalcularDescuentoPorCajas).
+    // No es configurable por el cliente.
     private static decimal CalcularDescuentoPorCantidad(decimal cantidadBase)
     {
         if (cantidadBase >= 40m) return 15m;
         if (cantidadBase >= 30m) return 10m;
         if (cantidadBase >= 20m) return 5m;
+        return 0m;
+    }
+
+    // Regla de negocio: descuento por volumen para "Caja de lapiceros", en
+    // cantidad de CAJAS (no de lapiceros sueltos), ya que cada caja ya trae 12.
+    // 2+ cajas -> 5%, 5+ -> 10%, 8+ -> 15%. Independiente del descuento general
+    // y no se mezcla con las unidades de otros productos de la misma venta.
+    private static decimal CalcularDescuentoPorCajas(decimal cantidadCajas)
+    {
+        if (cantidadCajas >= 8m) return 15m;
+        if (cantidadCajas >= 5m) return 10m;
+        if (cantidadCajas >= 2m) return 5m;
         return 0m;
     }
 

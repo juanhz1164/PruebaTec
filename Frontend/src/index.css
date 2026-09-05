@@ -20,6 +20,13 @@
   --status-critical: #e0517d;
   --status-critical-bg: rgba(224, 81, 125, 0.15);
 
+  /* Paleta dorada, para gráficas dentro de pantallas exclusivas del
+     Administrador (cuyo color de rol es el dorado --status-warning). */
+  --chart-gold-1: #d4a017;
+  --chart-gold-2: #b8860b;
+  --chart-gold-3: #e8c158;
+  --chart-gold-4: #8c6d1f;
+
   --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;

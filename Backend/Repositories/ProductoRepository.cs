@@ -18,6 +18,7 @@ public class ProductoRepository : IProductoRepository
     {
         return await _context.Productos
             .Include(p => p.UnidadMedida)
+            .Include(p => p.Proveedor)
             .Include(p => p.UnidadesAlternativas)
                 .ThenInclude(ua => ua.UnidadMedida)
             .ToListAsync();
@@ -27,6 +28,7 @@ public class ProductoRepository : IProductoRepository
     {
         return await _context.Productos
             .Include(p => p.UnidadMedida)
+            .Include(p => p.Proveedor)
             .Include(p => p.UnidadesAlternativas)
                 .ThenInclude(ua => ua.UnidadMedida)
             .FirstOrDefaultAsync(p => p.Id == id);

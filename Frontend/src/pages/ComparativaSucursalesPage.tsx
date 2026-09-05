@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getComparativaSucursales } from '../api/dashboard'
+import { BarChart } from '../components/BarChart'
 import type { ComparativaSucursal } from '../types/dashboard'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
+
+const COLORES_SUCURSAL = ['--chart-gold-1', '--chart-gold-2', '--chart-gold-3', '--chart-gold-4']
 
 export function ComparativaSucursalesPage() {
   const [comparativa, setComparativa] = useState<ComparativaSucursal[]>([])
@@ -59,6 +62,21 @@ export function ComparativaSucursalesPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!isLoading && !error && (
+        <>
+          <h2>Ventas del mes por sucursal</h2>
+          <BarChart
+            data={comparativa.map((c, i) => ({
+              label: c.sucursalNombre,
+              value: c.totalVentasMesActual,
+              colorVar: COLORES_SUCURSAL[i % COLORES_SUCURSAL.length],
+            }))}
+            valueFormatter={(v) => formatearMoneda(v)}
+            barWidthRatio={0.4}
+          />
+        </>
       )}
     </div>
   )

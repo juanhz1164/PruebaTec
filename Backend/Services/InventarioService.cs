@@ -11,16 +11,41 @@ namespace InventarioMultiSucursal.Api.Services;
 public class InventarioService : IInventarioService
 {
     private readonly IInventarioRepository _repository;
+    private readonly IProductoRepository _productoRepository;
 
-    public InventarioService(IInventarioRepository repository)
+    public InventarioService(IInventarioRepository repository, IProductoRepository productoRepository)
     {
         _repository = repository;
+        _productoRepository = productoRepository;
     }
 
+    // Devuelve una fila por CADA producto activo del catálogo, no solo los que
+    // ya tienen inventario dado de alta en esta sucursal: los que no tienen
+    // registro (o su cantidad es 0) aparecen marcados como Agotado, en vez de
+    // simplemente faltar de la lista.
     public async Task<List<InventarioDto>> GetPorSucursalAsync(int sucursalId)
     {
         var items = await _repository.GetPorSucursalAsync(sucursalId);
-        return items.Select(MapToDto).ToList();
+        var itemsPorProducto = items.ToDictionary(i => i.ProductoId);
+
+        var productos = await _productoRepository.GetAllAsync();
+
+        // El stock mínimo de un producto es el mismo en todas las sucursales
+        // (es una propiedad del producto, aunque se guarde por sucursal). Para
+        // un producto agotado en esta sucursal se usa el stock mínimo definido
+        // en cualquier otra sucursal donde sí exista, en vez de mostrar 0.
+        var todosLosItems = await _repository.GetTodosAsync();
+        var stockMinimoPorProducto = todosLosItems
+            .GroupBy(i => i.ProductoId)
+            .ToDictionary(g => g.Key, g => g.First().StockMinimo);
+
+        return productos
+            .Where(p => p.Activo)
+            .Select(p => itemsPorProducto.TryGetValue(p.Id, out var item)
+                ? MapToDto(item)
+                : MapAgotado(p, sucursalId, stockMinimoPorProducto.GetValueOrDefault(p.Id)))
+            .OrderBy(dto => dto.ProductoNombre)
+            .ToList();
     }
 
     public async Task<InventarioDto?> GetByIdAsync(int id)
@@ -128,7 +153,27 @@ public class InventarioService : IInventarioService
         Cantidad = i.Cantidad,
         StockMinimo = i.StockMinimo,
         CostoPromedio = i.CostoPromedio,
-        UpdatedAt = i.UpdatedAt
+        UpdatedAt = i.UpdatedAt,
+        Agotado = i.Cantidad <= 0
+    };
+
+    // Producto activo sin ningún registro de inventario en esta sucursal: se
+    // muestra igual, pero marcado como agotado, sin un Id de inventario real.
+    // El stock mínimo se toma de otra sucursal donde el producto sí exista
+    // (es el mismo valor en toda la red), no se inventa un 0.
+    private static InventarioDto MapAgotado(Producto p, int sucursalId, decimal stockMinimoReferencia) => new()
+    {
+        Id = 0,
+        ProductoId = p.Id,
+        ProductoNombre = p.Nombre,
+        ProductoSku = p.Sku,
+        UnidadMedidaAbreviatura = p.UnidadMedida?.Abreviatura ?? string.Empty,
+        SucursalId = sucursalId,
+        Cantidad = 0,
+        StockMinimo = stockMinimoReferencia,
+        CostoPromedio = 0,
+        UpdatedAt = p.CreatedAt,
+        Agotado = true
     };
 
     private static MovimientoInventarioDto MapToDto(MovimientoInventario m) => new()
