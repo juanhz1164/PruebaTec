@@ -7,16 +7,25 @@ import type { Producto } from '../types/producto'
 import type { Proveedor } from '../types/proveedor'
 import type { CrearOrdenCompraLinea } from '../types/ordenCompra'
 import { ApiError } from '../api/client'
+import { formatearMoneda } from '../utils/format'
 
 interface LineaForm {
   productoId: number | null
   cantidad: string
   precioUnitario: string
-  descuento: string
 }
 
 function nuevaLinea(): LineaForm {
-  return { productoId: null, cantidad: '', precioUnitario: '', descuento: '0' }
+  return { productoId: null, cantidad: '', precioUnitario: '' }
+}
+
+// % de cuánto más barato compra la tienda al proveedor que su propio precio
+// de venta al público (ej. venta $1.000, proveedor $700 → 30%). Es solo
+// informativo para quien arma la orden; no afecta el costo registrado.
+function calcularDescuentoVsVenta(precioVenta: number, precioUnitario: number): number {
+  if (!Number.isFinite(precioVenta) || precioVenta <= 0) return 0
+  const descuento = ((precioVenta - precioUnitario) / precioVenta) * 100
+  return Math.round(Math.max(0, descuento) * 10) / 10
 }
 
 export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
@@ -71,6 +80,17 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
   const quitarLinea = (index: number) =>
     setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
 
+  const totalEnVivo = useMemo(() => {
+    return lineas.reduce((acc, linea) => {
+      const cantidad = Number(linea.cantidad)
+      const precioUnitario = Number(linea.precioUnitario)
+      if (!linea.productoId || !Number.isFinite(cantidad) || !Number.isFinite(precioUnitario)) {
+        return acc
+      }
+      return acc + cantidad * precioUnitario
+    }, 0)
+  }, [lineas])
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!usuario?.sucursalId || !proveedorId) return
@@ -80,7 +100,6 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
       if (!linea.productoId) continue
       const cantidad = Number(linea.cantidad)
       const precioUnitario = Number(linea.precioUnitario)
-      const descuento = Number(linea.descuento || '0')
       if (!Number.isFinite(cantidad) || cantidad <= 0) {
         setError('Cada línea debe tener una cantidad mayor a cero')
         return
@@ -89,6 +108,8 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
         setError('Cada línea debe tener un precio unitario válido')
         return
       }
+      const producto = productos.find((p) => p.id === linea.productoId)
+      const descuento = producto ? calcularDescuentoVsVenta(producto.precioVenta, precioUnitario) : 0
       lineasValidas.push({
         productoId: linea.productoId,
         cantidad,
@@ -167,73 +188,99 @@ export function OrdenCompraForm({ onCreada }: { onCreada: () => void }) {
           <tr>
             <th>Producto</th>
             <th>Cantidad</th>
-            <th>Precio unitario</th>
-            <th>Descuento %</th>
+            <th>Precio unitario (proveedor)</th>
+            <th>Descuento vs. venta</th>
+            <th>Subtotal</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {lineas.map((linea, index) => (
-            <tr key={index}>
-              <td>
-                <select
-                  value={linea.productoId ?? ''}
-                  onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productosDelProveedor.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.sku} — {p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={linea.cantidad}
-                  onChange={(e) => actualizarLinea(index, { cantidad: e.target.value })}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={linea.precioUnitario}
-                  onChange={(e) => actualizarLinea(index, { precioUnitario: e.target.value })}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="any"
-                  value={linea.descuento}
-                  onChange={(e) => actualizarLinea(index, { descuento: e.target.value })}
-                />
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => quitarLinea(index)}
-                  disabled={lineas.length === 1}
-                >
-                  Quitar
-                </button>
-              </td>
-            </tr>
-          ))}
+          {lineas.map((linea, index) => {
+            const producto = productos.find((p) => p.id === linea.productoId)
+            const cantidadNum = Number(linea.cantidad)
+            const precioUnitarioNum = Number(linea.precioUnitario)
+            const descuentoVsVenta =
+              producto && Number.isFinite(precioUnitarioNum)
+                ? calcularDescuentoVsVenta(producto.precioVenta, precioUnitarioNum)
+                : 0
+            const subtotalLinea =
+              linea.productoId && Number.isFinite(cantidadNum) && Number.isFinite(precioUnitarioNum)
+                ? cantidadNum * precioUnitarioNum
+                : 0
+            return (
+              <tr key={index}>
+                <td>
+                  <select
+                    value={linea.productoId ?? ''}
+                    onChange={(e) => {
+                      const nuevoProductoId = Number(e.target.value)
+                      const nuevoProducto = productos.find((p) => p.id === nuevoProductoId)
+                      actualizarLinea(index, {
+                        productoId: nuevoProductoId,
+                        precioUnitario: nuevoProducto ? String(nuevoProducto.precioProveedor) : '',
+                      })
+                    }}
+                  >
+                    <option value="">Selecciona un producto</option>
+                    {productosDelProveedor.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.sku} — {p.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={linea.cantidad}
+                    onChange={(e) => actualizarLinea(index, { cantidad: e.target.value })}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={linea.precioUnitario}
+                    onChange={(e) => actualizarLinea(index, { precioUnitario: e.target.value })}
+                  />
+                  {producto && (
+                    <span className="field-hint">Venta al público: {producto.precioVenta}</span>
+                  )}
+                </td>
+                <td>
+                  <span
+                    className={`descuento-badge ${descuentoVsVenta > 0 ? 'descuento-activo' : ''}`}
+                  >
+                    {descuentoVsVenta}%
+                  </span>
+                </td>
+                <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => quitarLinea(index)}
+                    disabled={lineas.length === 1}
+                  >
+                    Quitar
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 
       <button type="button" className="secondary-button" onClick={agregarLinea}>
         + Agregar línea
       </button>
+
+      <p className="venta-total-vivo">
+        Total: <strong>{formatearMoneda(totalEnVivo)}</strong>
+      </p>
 
       {error && <p className="error-text">{error}</p>}
 

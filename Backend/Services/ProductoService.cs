@@ -161,6 +161,8 @@ public class ProductoService : IProductoService
         UnidadMedidaAbreviatura = p.UnidadMedida?.Abreviatura ?? string.Empty,
         ProveedorId = p.ProveedorId,
         ProveedorNombre = p.Proveedor?.Nombre,
+        PrecioVenta = p.PrecioVenta,
+        PrecioProveedor = p.PrecioProveedor,
         CreatedAt = p.CreatedAt,
         UnidadesAlternativas = p.UnidadesAlternativas.Select(MapToDto).ToList()
     };

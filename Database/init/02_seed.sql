@@ -54,17 +54,20 @@ INSERT INTO proveedores (nombre, contacto, telefono, email, direccion, activo) V
 -- proveedor_id: 1=Papelera, 2=Abarrotes del Valle, 3=Aseo y Limpieza
 -- ============================================================
 
-INSERT INTO productos (unidad_medida_id, proveedor_id, sku, nombre, descripcion, categoria, activo) VALUES
-    (1, 1, 'PROD-001', 'Lapicero', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE),
-    (2, 2, 'PROD-002', 'Arroz', 'Arroz blanco, venta a granel por kilo', 'Abarrotes', TRUE),
-    (3, 2, 'PROD-003', 'Aceite vegetal', 'Aceite vegetal comestible, venta por litro', 'Abarrotes', TRUE),
-    (3, 3, 'PROD-004', 'Detergente líquido', 'Detergente líquido para ropa, venta por litro', 'Aseo', TRUE),
-    (1, 3, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE),
-    (3, 3, 'PROD-006', 'Detergente líquido 3L', 'Detergente líquido para ropa, presentación de 3 litros', 'Aseo', TRUE),
-    (3, 3, 'PROD-007', 'Detergente líquido 5L', 'Detergente líquido para ropa, presentación de 5 litros', 'Aseo', TRUE),
-    (3, 3, 'PROD-008', 'Detergente líquido 7L', 'Detergente líquido para ropa, presentación de 7 litros', 'Aseo', TRUE),
-    (4, 1, 'PROD-009', 'Caja de lapiceros', 'Caja con 12 lapiceros azules, más económica que comprarlos sueltos', 'Papelería', TRUE),
-    (1, 1, 'PROD-010', 'Cuaderno', 'Cuaderno cuadriculado de 100 hojas', 'Papelería', TRUE);
+-- precio_venta / precio_proveedor: ~30% de margen entre el costo del
+-- proveedor y el precio de venta al público en todo el catálogo, igual que
+-- el ejemplo de referencia (Lapicero: venta $1.000, proveedor $700 = 30%).
+INSERT INTO productos (unidad_medida_id, proveedor_id, sku, nombre, descripcion, categoria, activo, precio_venta, precio_proveedor) VALUES
+    (1, 1, 'PROD-001', 'Lapicero', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE, 1000.00, 700.00),
+    (2, 2, 'PROD-002', 'Arroz', 'Arroz blanco, venta a granel por kilo', 'Abarrotes', TRUE, 4600.00, 3200.00),
+    (3, 2, 'PROD-003', 'Aceite vegetal', 'Aceite vegetal comestible, venta por litro', 'Abarrotes', TRUE, 13600.00, 9500.00),
+    (3, 3, 'PROD-004', 'Detergente líquido', 'Detergente líquido para ropa, venta por litro', 'Aseo', TRUE, 11200.00, 7800.00),
+    (1, 3, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE, 2600.00, 1800.00),
+    (3, 3, 'PROD-006', 'Detergente líquido 3L', 'Detergente líquido para ropa, presentación de 3 litros', 'Aseo', TRUE, 30000.00, 21000.00),
+    (3, 3, 'PROD-007', 'Detergente líquido 5L', 'Detergente líquido para ropa, presentación de 5 litros', 'Aseo', TRUE, 47000.00, 33000.00),
+    (3, 3, 'PROD-008', 'Detergente líquido 7L', 'Detergente líquido para ropa, presentación de 7 litros', 'Aseo', TRUE, 63000.00, 44000.00),
+    (4, 1, 'PROD-009', 'Caja de lapiceros', 'Caja con 12 lapiceros azules, más económica que comprarlos sueltos', 'Papelería', TRUE, 12000.00, 8400.00),
+    (1, 1, 'PROD-010', 'Cuaderno', 'Cuaderno cuadriculado de 100 hojas', 'Papelería', TRUE, 3600.00, 2500.00);
 
 -- ============================================================
 -- Inventario inicial por sucursal

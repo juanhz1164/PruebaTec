@@ -12,6 +12,17 @@ public class Producto
     public string? Descripcion { get; set; }
     public string? Categoria { get; set; }
     public bool Activo { get; set; } = true;
+
+    // Precio de venta al público (fijo, por unidad base): lo usa Ventas como
+    // precio por defecto, y en Compras sirve para calcular el % de descuento
+    // (cuánto más barato compra la tienda que su propio precio de venta).
+    public decimal PrecioVenta { get; set; }
+
+    // Precio de costo al que el proveedor principal vende este producto a la
+    // tienda: se autocompleta como precio unitario por defecto al crear una
+    // orden de compra.
+    public decimal PrecioProveedor { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public UnidadMedida? UnidadMedida { get; set; }

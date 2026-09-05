@@ -1,3 +1,4 @@
+using InventarioMultiSucursal.Api.Auth;
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -5,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
-// Cualquier rol autenticado puede operar este módulo.
+// Cualquier rol autenticado puede consultar y crear órdenes; cambiar su
+// estado (confirmar, recibir, cancelar) requiere ser Administrador.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -50,7 +52,10 @@ public class OrdenesCompraController : ControllerBase
     // Cambia el estado de la orden. Pendiente -> Confirmada -> Recibida, o -> Cancelada.
     // Al pasar a "Recibida", actualiza el stock y el costo promedio ponderado
     // de cada producto de las líneas en la sucursal de la orden (T37, T39).
+    // Solo el Administrador aprueba/recibe/cancela: Gerente y Operador crean la
+    // orden y solo consultan su estado.
     [HttpPut("{id}/estado")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> CambiarEstado(int id, CambiarEstadoOrdenCompraDto dto)
     {
         var resultado = await _service.CambiarEstadoAsync(id, dto);

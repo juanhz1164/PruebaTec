@@ -62,6 +62,7 @@ public class VentaService : IVentaService
         var factoresConversion = new Dictionary<int, decimal>();
         var preciosVentaUnidad = new Dictionary<int, decimal?>();
         var skuPorProducto = new Dictionary<int, string>();
+        var preciosVentaProducto = new Dictionary<int, decimal>();
 
         foreach (var linea in dto.Lineas)
         {
@@ -72,6 +73,7 @@ public class VentaService : IVentaService
             }
 
             skuPorProducto[linea.ProductoId] = producto.Sku;
+            preciosVentaProducto[linea.ProductoId] = producto.PrecioVenta;
 
             var unidadMedidaId = linea.UnidadMedidaId ?? producto.UnidadMedidaId;
             decimal factorConversion = 1m;
@@ -131,18 +133,18 @@ public class VentaService : IVentaService
             var factorConversion = factoresConversion[lineaDto.ProductoId];
             var esCajaLapiceros = skuPorProducto[lineaDto.ProductoId] == SkuCajaLapiceros;
 
-            // T42: precio base = costo promedio del inventario (por unidad base) si no
-            // se envía uno explícito. Si se vende en unidad alternativa, el precio
-            // explícito se interpreta por esa unidad (ej. precio de 1 caja). Si la
-            // unidad alternativa tiene un precio de venta fijo configurado (ej. la
-            // caja se vende más barata que 12 unidades sueltas), ese precio fijo
-            // tiene prioridad sobre el cálculo por costo promedio.
+            // T42: precio base = precio de venta fijo del producto (por unidad
+            // base) si no se envía uno explícito. Si se vende en unidad
+            // alternativa, el precio explícito se interpreta por esa unidad (ej.
+            // precio de 1 caja). Si la unidad alternativa tiene un precio de
+            // venta fijo propio (ej. la caja se vende más barata que 12 unidades
+            // sueltas), ese precio fijo tiene prioridad sobre el del producto.
             var precioVentaUnidad = preciosVentaUnidad[lineaDto.ProductoId];
             var precioUnitario = lineaDto.PrecioUnitario is > 0
                 ? lineaDto.PrecioUnitario.Value
                 : precioVentaUnidad is > 0
                     ? precioVentaUnidad.Value
-                    : inventario.CostoPromedio * factorConversion;
+                    : preciosVentaProducto[lineaDto.ProductoId] * factorConversion;
 
             var descuentoPorcentaje = esCajaLapiceros
                 ? CalcularDescuentoPorCajas(lineaDto.Cantidad)

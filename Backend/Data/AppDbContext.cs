@@ -83,6 +83,8 @@ public class AppDbContext : DbContext
             entity.Property(p => p.Descripcion).HasColumnName("descripcion");
             entity.Property(p => p.Categoria).HasColumnName("categoria");
             entity.Property(p => p.Activo).HasColumnName("activo");
+            entity.Property(p => p.PrecioVenta).HasColumnName("precio_venta");
+            entity.Property(p => p.PrecioProveedor).HasColumnName("precio_proveedor");
             entity.Property(p => p.CreatedAt).HasColumnName("created_at");
 
             entity.HasOne(p => p.UnidadMedida)

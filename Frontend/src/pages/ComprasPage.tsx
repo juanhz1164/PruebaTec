@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../auth/AuthContext'
 import { getOrdenesCompra, cambiarEstadoOrdenCompra } from '../api/ordenesCompra'
 import { OrdenCompraForm } from '../components/OrdenCompraForm'
 import { ESTADO_ORDEN_COMPRA, ESTADO_ORDEN_COMPRA_LABEL } from '../types/ordenCompra'
@@ -18,6 +19,8 @@ const SIGUIENTE_ESTADO: Partial<Record<number, { estado: number; label: string }
 }
 
 export function ComprasPage() {
+  const { usuario } = useAuth()
+  const esAdmin = usuario?.rol === 'AdministradorGeneral'
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,13 +75,13 @@ export function ComprasPage() {
               <th>Sucursal</th>
               <th>Estado</th>
               <th>Total</th>
-              <th>Acciones</th>
+              {esAdmin && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {ordenes.length === 0 && (
               <tr>
-                <td colSpan={6}>No hay órdenes de compra registradas.</td>
+                <td colSpan={esAdmin ? 6 : 5}>No hay órdenes de compra registradas.</td>
               </tr>
             )}
             {ordenes.map((orden) => {
@@ -97,28 +100,30 @@ export function ComprasPage() {
                     </span>
                   </td>
                   <td>{formatearMoneda(orden.total)}</td>
-                  <td className="acciones-cell">
-                    {siguiente && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        disabled={actualizandoId === orden.id}
-                        onClick={() => cambiarEstado(orden.id, siguiente.estado)}
-                      >
-                        {siguiente.label}
-                      </button>
-                    )}
-                    {puedeCancelar && (
-                      <button
-                        type="button"
-                        className="link-button"
-                        disabled={actualizandoId === orden.id}
-                        onClick={() => cancelar(orden.id)}
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </td>
+                  {esAdmin && (
+                    <td className="acciones-cell">
+                      {siguiente && (
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={actualizandoId === orden.id}
+                          onClick={() => cambiarEstado(orden.id, siguiente.estado)}
+                        >
+                          {siguiente.label}
+                        </button>
+                      )}
+                      {puedeCancelar && (
+                        <button
+                          type="button"
+                          className="link-button"
+                          disabled={actualizandoId === orden.id}
+                          onClick={() => cancelar(orden.id)}
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               )
             })}

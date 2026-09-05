@@ -57,6 +57,11 @@ CREATE TABLE productos (
     descripcion TEXT,
     categoria VARCHAR(100),
     activo BOOLEAN NOT NULL DEFAULT TRUE,
+    -- precio_venta: precio fijo al público (Ventas lo usa por defecto).
+    -- precio_proveedor: precio de costo del proveedor principal (Compras lo
+    -- autocompleta como precio unitario por defecto).
+    precio_venta DECIMAL(12,2) NOT NULL DEFAULT 0,
+    precio_proveedor DECIMAL(12,2) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (sku),
     CONSTRAINT fk_productos_unidad_medida

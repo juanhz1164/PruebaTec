@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getInventarioPorSucursal } from '../api/inventario'
+import { getProductos } from '../api/productos'
 import { getVentas, crearVenta } from '../api/ventas'
 import type { InventarioItem } from '../types/inventario'
+import type { Producto } from '../types/producto'
 import type { CrearVentaLinea, Venta } from '../types/venta'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
@@ -45,6 +47,7 @@ function calcularDescuentoPorCajas(cantidadCajas: number): number {
 export function VentasPage() {
   const { usuario } = useAuth()
   const [inventario, setInventario] = useState<InventarioItem[]>([])
+  const [productos, setProductos] = useState<Producto[]>([])
   const [ventas, setVentas] = useState<Venta[]>([])
   const [lineas, setLineas] = useState<LineaForm[]>([nuevaLinea()])
   const [isLoading, setIsLoading] = useState(true)
@@ -59,10 +62,11 @@ export function VentasPage() {
     }
     setIsLoading(true)
     setError(null)
-    return Promise.all([getInventarioPorSucursal(usuario.sucursalId), getVentas()])
-      .then(([inv, vts]) => {
+    return Promise.all([getInventarioPorSucursal(usuario.sucursalId), getVentas(), getProductos()])
+      .then(([inv, vts, prods]) => {
         setInventario(inv)
         setVentas(vts.filter((v) => v.sucursalId === usuario.sucursalId))
+        setProductos(prods)
       })
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : 'No se pudo cargar la información')
@@ -85,9 +89,16 @@ export function VentasPage() {
     [inventario],
   )
 
-  // Precio unitario estimado para la vista previa en vivo (costo promedio del
-  // inventario). El precio real y definitivo lo calcula el backend al registrar la venta.
-  const precioUnitarioEstimado = (productoId: number) => stockPorProducto.get(productoId)?.costoPromedio ?? 0
+  const productoPorId = useMemo(() => {
+    const map = new Map<number, Producto>()
+    for (const p of productos) map.set(p.id, p)
+    return map
+  }, [productos])
+
+  // Precio unitario estimado para la vista previa en vivo: el precio de venta
+  // fijo del producto (el mismo que usa el backend por defecto al registrar
+  // la venta), no el costo promedio de inventario.
+  const precioUnitarioEstimado = (productoId: number) => productoPorId.get(productoId)?.precioVenta ?? 0
 
   const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
     setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))

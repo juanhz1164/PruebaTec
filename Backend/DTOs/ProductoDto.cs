@@ -13,6 +13,8 @@ public class ProductoDto
     public string UnidadMedidaAbreviatura { get; set; } = string.Empty;
     public int? ProveedorId { get; set; }
     public string? ProveedorNombre { get; set; }
+    public decimal PrecioVenta { get; set; }
+    public decimal PrecioProveedor { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<UnidadAlternativaDto> UnidadesAlternativas { get; set; } = new();
 }
