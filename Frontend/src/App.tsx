@@ -11,6 +11,7 @@ import { TransferenciasPage } from './pages/TransferenciasPage'
 import { LogisticaPage } from './pages/LogisticaPage'
 import { ReportesPage } from './pages/ReportesPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { ComparativaSucursalesPage } from './pages/ComparativaSucursalesPage'
 import { NoAutorizadoPage } from './pages/NoAutorizadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -36,13 +37,18 @@ function App() {
             <Route path="/compras" element={<ComprasPage />} />
           </Route>
 
+          <Route element={<ProtectedRoute roles={['AdministradorGeneral']} />}>
+            <Route path="/comparativa-sucursales" element={<ComparativaSucursalesPage />} />
+          </Route>
+
           <Route
             element={<ProtectedRoute roles={['GerenteSucursal', 'OperadorInventario']} />}
           >
             <Route path="/inventario" element={<InventarioPage />} />
             <Route path="/ventas" element={<VentasPage />} />
-            <Route path="/transferencias" element={<TransferenciasPage />} />
           </Route>
+
+          <Route path="/transferencias" element={<TransferenciasPage />} />
         </Route>
       </Route>
 

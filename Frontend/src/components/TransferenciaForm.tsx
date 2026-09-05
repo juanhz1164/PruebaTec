@@ -19,8 +19,10 @@ function nuevaLinea(): LineaForm {
 
 export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   const { usuario } = useAuth()
+  const esAdmin = usuario?.rol === 'AdministradorGeneral'
   const [productos, setProductos] = useState<Producto[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
+  const [sucursalOrigenId, setSucursalOrigenId] = useState<number | null>(null)
   const [sucursalDestinoId, setSucursalDestinoId] = useState<number | null>(null)
   const [lineas, setLineas] = useState<LineaForm[]>([nuevaLinea()])
   const [error, setError] = useState<string | null>(null)
@@ -32,12 +34,25 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
       .catch(() => setError('No se pudo cargar el catálogo de productos'))
     getSucursales()
       .then((data) => {
+        if (esAdmin) {
+          // El Administrador general no tiene sucursal propia: elige tanto
+          // origen como destino entre todas las sucursales de la red.
+          setSucursales(data)
+          setSucursalOrigenId((current) => current ?? data[0]?.id ?? null)
+          setSucursalDestinoId((current) => current ?? data[1]?.id ?? data[0]?.id ?? null)
+          return
+        }
         const otras = data.filter((s) => s.id !== usuario?.sucursalId)
         setSucursales(otras)
+        setSucursalOrigenId(usuario?.sucursalId ?? null)
         setSucursalDestinoId((current) => current ?? otras[0]?.id ?? null)
       })
       .catch(() => setError('No se pudo cargar el listado de sucursales'))
-  }, [usuario?.sucursalId])
+  }, [usuario?.sucursalId, esAdmin])
+
+  const sucursalesDestino = esAdmin
+    ? sucursales.filter((s) => s.id !== sucursalOrigenId)
+    : sucursales
 
   const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
     setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))
@@ -50,7 +65,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!usuario?.sucursalId || !sucursalDestinoId) return
+    if (!sucursalOrigenId || !sucursalDestinoId) return
 
     const lineasValidas: CrearTransferenciaLinea[] = []
     for (const linea of lineas) {
@@ -72,9 +87,9 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     setIsSubmitting(true)
     try {
       await crearTransferencia({
-        sucursalOrigenId: usuario.sucursalId,
+        sucursalOrigenId,
         sucursalDestinoId,
-        usuarioSolicitanteId: usuario.id,
+        usuarioSolicitanteId: usuario!.id,
         lineas: lineasValidas,
       })
       setLineas([nuevaLinea()])
@@ -86,13 +101,30 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     }
   }
 
-  if (!usuario?.sucursalId) {
+  if (!usuario?.sucursalId && !esAdmin) {
     return null
   }
 
   return (
     <form className="orden-form" onSubmit={handleSubmit}>
       <h2>Solicitar transferencia</h2>
+
+      {esAdmin && (
+        <div className="form-row">
+          <label htmlFor="tr-origen">Sucursal origen</label>
+          <select
+            id="tr-origen"
+            value={sucursalOrigenId ?? ''}
+            onChange={(e) => setSucursalOrigenId(Number(e.target.value))}
+          >
+            {sucursales.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="form-row">
         <label htmlFor="tr-destino">Sucursal destino</label>
@@ -101,7 +133,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
           value={sucursalDestinoId ?? ''}
           onChange={(e) => setSucursalDestinoId(Number(e.target.value))}
         >
-          {sucursales.map((s) => (
+          {sucursalesDestino.map((s) => (
             <option key={s.id} value={s.id}>
               {s.nombre}
             </option>

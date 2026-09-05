@@ -16,9 +16,15 @@ const NAV_ITEMS: { to: string; label: string; icon: NavIconName; roles: readonly
   { to: '/inventario/otras-sucursales', label: 'Inventario de sucursales', icon: 'sucursales', roles: null },
   { to: '/compras', label: 'Compras', icon: 'compras', roles: ['AdministradorGeneral', 'GerenteSucursal'] },
   { to: '/ventas', label: 'Ventas', icon: 'ventas', roles: NO_ADMIN_GENERAL },
-  { to: '/transferencias', label: 'Transferencias', icon: 'transferencias', roles: NO_ADMIN_GENERAL },
+  { to: '/transferencias', label: 'Transferencias', icon: 'transferencias', roles: null },
   { to: '/logistica', label: 'Logística', icon: 'logistica', roles: null },
   { to: '/reportes', label: 'Reportes del mes', icon: 'reportes', roles: null },
+  {
+    to: '/comparativa-sucursales',
+    label: 'Comparativa de sucursales',
+    icon: 'tendenciaSubida',
+    roles: ['AdministradorGeneral'],
+  },
 ]
 
 export function AppLayout() {

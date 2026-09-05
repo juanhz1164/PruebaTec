@@ -25,24 +25,31 @@ export function TransferenciasPage() {
   const [actualizandoId, setActualizandoId] = useState<number | null>(null)
   const [recepcionId, setRecepcionId] = useState<number | null>(null)
 
+  const esAdmin = usuario?.rol === 'AdministradorGeneral'
+
   const cargar = useCallback(() => {
     setIsLoading(true)
     setError(null)
     return getTransferencias()
       .then((data) =>
         setTransferencias(
-          data.filter(
-            (t) =>
-              t.sucursalOrigenId === usuario?.sucursalId ||
-              t.sucursalDestinoId === usuario?.sucursalId,
-          ),
+          // El Administrador general tiene visibilidad total y no está atado a
+          // una sucursal propia: ve todas las transferencias de la red, no solo
+          // las de "su" sucursal (que no tiene).
+          esAdmin
+            ? data
+            : data.filter(
+                (t) =>
+                  t.sucursalOrigenId === usuario?.sucursalId ||
+                  t.sucursalDestinoId === usuario?.sucursalId,
+              ),
         ),
       )
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : 'No se pudieron cargar las transferencias')
       })
       .finally(() => setIsLoading(false))
-  }, [usuario?.sucursalId])
+  }, [usuario?.sucursalId, esAdmin])
 
   useEffect(() => {
     cargar()
@@ -94,7 +101,7 @@ export function TransferenciasPage() {
     }
   }
 
-  if (!usuario?.sucursalId) {
+  if (!usuario?.sucursalId && !esAdmin) {
     return (
       <div className="page">
         <h1>Transferencias</h1>
@@ -105,7 +112,7 @@ export function TransferenciasPage() {
 
   return (
     <div className="page">
-      <h1>Transferencias — {usuario.sucursalNombre}</h1>
+      <h1>Transferencias{usuario?.sucursalNombre ? ` — ${usuario.sucursalNombre}` : ' — Todas las sucursales'}</h1>
 
       <TransferenciaForm onCreada={cargar} />
 
@@ -148,8 +155,10 @@ export function TransferenciasPage() {
               </tr>
             )}
             {transferencias.map((t) => {
-              const esOrigen = t.sucursalOrigenId === usuario.sucursalId
-              const esDestino = t.sucursalDestinoId === usuario.sucursalId
+              // El Administrador general puede actuar sobre cualquier
+              // transferencia de la red, sin importar de qué sucursal sea.
+              const esOrigen = esAdmin || t.sucursalOrigenId === usuario?.sucursalId
+              const esDestino = esAdmin || t.sucursalDestinoId === usuario?.sucursalId
               const puedeCancelar =
                 t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
                 t.estado === ESTADO_TRANSFERENCIA.EnPreparacion
