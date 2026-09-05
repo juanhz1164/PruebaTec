@@ -29,7 +29,7 @@ export function AppLayout() {
   )
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${usuario ? ROL_CLASS[usuario.rol] : ''}`}>
       <aside className="app-sidebar">
         <span className="app-title">Inventario Multi-Sucursal</span>
         <nav className="app-nav">

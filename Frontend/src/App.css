@@ -1,8 +1,32 @@
 .app-shell {
+  --rol-accent: var(--accent);
+  --rol-accent-bg: var(--accent-bg);
+  --rol-accent-border: var(--accent-border);
   display: flex;
   flex-direction: row;
   min-height: 100svh;
   text-align: left;
+}
+
+/* Todo el acento de la app (menú activo, botones, líneas de formulario) toma
+   el color del rol de la sesión: dorado para Administrador, azul para
+   Gerente, verde para Operador. */
+.app-shell.rol-admin {
+  --rol-accent: #d4a017;
+  --rol-accent-bg: rgba(212, 160, 23, 0.15);
+  --rol-accent-border: rgba(212, 160, 23, 0.5);
+}
+
+.app-shell.rol-gerente {
+  --rol-accent: #2a7fc9;
+  --rol-accent-bg: rgba(42, 127, 201, 0.15);
+  --rol-accent-border: rgba(42, 127, 201, 0.5);
+}
+
+.app-shell.rol-operador {
+  --rol-accent: #10b981;
+  --rol-accent-bg: rgba(16, 185, 129, 0.15);
+  --rol-accent-border: rgba(16, 185, 129, 0.5);
 }
 
 .app-sidebar {
@@ -44,8 +68,8 @@
 
 .app-nav a.active {
   color: var(--text-h);
-  background: var(--accent-bg);
-  border-left-color: var(--accent);
+  background: var(--rol-accent-bg);
+  border-left-color: var(--rol-accent);
   font-weight: 600;
 }
 
@@ -59,7 +83,7 @@
 }
 
 .app-nav a.active .nav-icon {
-  color: var(--accent);
+  color: var(--rol-accent);
 }
 
 .app-user {
@@ -88,12 +112,12 @@
 
 .app-user-name.rol-gerente,
 .app-topbar-name.rol-gerente {
-  background: #0a6ba8;
+  background: #2a7fc9;
 }
 
 .app-user-name.rol-operador,
 .app-topbar-name.rol-operador {
-  background: #0d7a3f;
+  background: #10b981;
 }
 
 .app-main {
@@ -164,7 +188,7 @@
   .app-nav a.active {
     background: none;
     border-left: none;
-    border-bottom-color: var(--accent);
+    border-bottom-color: var(--rol-accent);
   }
 
   .app-user {
@@ -188,9 +212,9 @@
 .login-page {
   --login-navy: #0b1220;
   --login-navy-soft: #131c30;
-  --login-action: #7c3aed;
-  --login-action-hover: #6d28d9;
-  --login-action-active: #5b21b6;
+  --login-action: #f3f4f6;
+  --login-action-hover: #ffffff;
+  --login-action-active: #d1d5db;
   --login-bg: #16171d;
   --login-card-bg: #1f2028;
   --login-text-h: #f3f4f6;
@@ -363,8 +387,9 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(124, 58, 237, 0.15);
-  color: #a78bfa;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f3f4f6;
   margin-bottom: 24px;
 }
 
@@ -440,7 +465,7 @@
 .login-field input:focus {
   outline: none;
   border-color: var(--login-action);
-  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 4px rgba(243, 244, 246, 0.15);
 }
 
 .login-field input:invalid:not(:placeholder-shown) {
@@ -494,7 +519,7 @@
   border: none;
   border-radius: 11px;
   background: var(--login-action);
-  color: #fff;
+  color: #0b1220;
   font: inherit;
   font-size: 15.5px;
   font-weight: 600;
@@ -526,8 +551,8 @@
 .login-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border: 2px solid rgba(11, 18, 32, 0.3);
+  border-top-color: #0b1220;
   border-radius: 50%;
   animation: login-spin 0.6s linear infinite;
 }
@@ -757,7 +782,7 @@
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  background: var(--accent);
+  background: var(--rol-accent);
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -841,7 +866,7 @@
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  background: var(--accent);
+  background: var(--rol-accent);
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -856,10 +881,10 @@
 .secondary-button {
   align-self: flex-start;
   padding: 6px 12px;
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--rol-accent-border);
   border-radius: 4px;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: var(--rol-accent-bg);
+  color: var(--rol-accent);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -941,9 +966,9 @@
 }
 
 .descuento-badge.descuento-activo {
-  color: var(--accent);
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
+  color: var(--rol-accent);
+  background: var(--rol-accent-bg);
+  border-color: var(--rol-accent-border);
 }
 
 .field-hint {
@@ -956,8 +981,8 @@
 .comprobante-box {
   margin: 20px 0;
   padding: 16px;
-  border: 1px solid var(--accent-border);
-  background: var(--accent-bg);
+  border: 1px solid var(--rol-accent-border);
+  background: var(--rol-accent-bg);
   border-radius: 8px;
 }
 
@@ -993,8 +1018,8 @@
 }
 
 .recepcion-form {
-  border-color: var(--accent-border);
-  background: var(--accent-bg);
+  border-color: var(--rol-accent-border);
+  background: var(--rol-accent-bg);
 }
 
 .faltantes-list {
@@ -1046,7 +1071,7 @@
 .kpi-header .nav-icon {
   width: 16px;
   height: 16px;
-  color: var(--accent);
+  color: var(--rol-accent);
 }
 
 .kpi-tile-warning .kpi-header .nav-icon {
