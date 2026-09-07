@@ -8,6 +8,7 @@ import { InventarioOtrasSucursalesPage } from './pages/InventarioOtrasSucursales
 import { ComprasPage } from './pages/ComprasPage'
 import { VentasPage } from './pages/VentasPage'
 import { TransferenciasPage } from './pages/TransferenciasPage'
+import { VisitasPage } from './pages/VisitasPage'
 import { LogisticaPage } from './pages/LogisticaPage'
 import { ReportesPage } from './pages/ReportesPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -40,6 +41,7 @@ function App() {
           >
             <Route path="/inventario" element={<InventarioPage />} />
             <Route path="/ventas" element={<VentasPage />} />
+            <Route path="/visitas" element={<VisitasPage />} />
           </Route>
 
           <Route path="/compras" element={<ComprasPage />} />

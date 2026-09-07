@@ -9,5 +9,6 @@ public static class Roles
     public const string Operador = "OperadorInventario";
 
     public const string AdminYGerente = $"{Admin},{Gerente}";
+    public const string GerenteYOperador = $"{Gerente},{Operador}";
     public const string Todos = $"{Admin},{Gerente},{Operador}";
 }

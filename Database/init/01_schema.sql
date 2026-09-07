@@ -256,3 +256,22 @@ CREATE TABLE transferencias_lineas (
     CONSTRAINT fk_transferencias_lineas_producto
         FOREIGN KEY (producto_id) REFERENCES productos(id)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- Visitas: control de ingreso de visitantes por sucursal
+-- ============================================================
+
+-- Una visita = un grupo que ingresa junto (no una persona). cantidad_personas
+-- es siempre >= 1. La fecha/hora la fija el backend (NOW()), nunca el usuario.
+CREATE TABLE visitas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    cantidad_personas INT NOT NULL,
+    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_visitas_sucursal
+        FOREIGN KEY (sucursal_id) REFERENCES sucursales(id),
+    CONSTRAINT fk_visitas_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    CONSTRAINT chk_visitas_cantidad_personas CHECK (cantidad_personas >= 1)
+) ENGINE=InnoDB;

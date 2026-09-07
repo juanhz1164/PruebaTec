@@ -57,8 +57,9 @@ export function LineChart({
             backgroundColor: `${accent}22`,
             pointBackgroundColor: accent,
             pointBorderColor: accent,
-            pointRadius: 3,
+            pointRadius: data.length > 12 ? 0 : 3,
             pointHoverRadius: 5,
+            pointHitRadius: 10,
             borderWidth: 2,
             tension: 0.35,
             fill: true,
@@ -88,16 +89,18 @@ export function LineChart({
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: text, font: { size: 11 } },
+            ticks: { color: text, font: { size: 12 }, autoSkip: true, maxRotation: 0 },
             border: { color: border },
           },
           y: {
             grid: { color: border },
             ticks: {
               color: text,
-              font: { size: 11 },
+              font: { size: 12 },
+              precision: 0,
               callback: (v: string | number) => valueFormatter(Number(v)),
             },
+            beginAtZero: true,
             border: { display: false },
           },
         },
@@ -107,7 +110,10 @@ export function LineChart({
     chartRef.current?.destroy()
     chartRef.current = new Chart(canvas, config)
 
+    const resizeId = requestAnimationFrame(() => chartRef.current?.resize())
+
     return () => {
+      cancelAnimationFrame(resizeId)
       chartRef.current?.destroy()
       chartRef.current = null
     }

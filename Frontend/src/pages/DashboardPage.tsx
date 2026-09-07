@@ -6,6 +6,7 @@ import {
   getProductosProximosAgotarse,
   getRotacionInventario,
 } from '../api/dashboard'
+import { getFlujoPersonasPorDia, getFlujoPersonasPorMes } from '../api/visitas'
 import { LineChart } from '../components/LineChart'
 import { KpiTile } from '../components/KpiTile'
 import type {
@@ -14,8 +15,24 @@ import type {
   TransferenciaActiva,
   VentasPorMes,
 } from '../types/dashboard'
+import type { FlujoPersonasResumen } from '../types/visita'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
+
+// El backend filtra "el día" en hora de Colombia (ver ZonaHorariaColombia),
+// así que "hoy" debe calcularse en hora local aquí también — toISOString()
+// es UTC y desalinearía el día cerca de la medianoche.
+function hoyIso(): string {
+  const ahora = new Date()
+  const anio = ahora.getFullYear()
+  const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+  const dia = String(ahora.getDate()).padStart(2, '0')
+  return `${anio}-${mes}-${dia}`
+}
+
+function mesActualIso(): string {
+  return hoyIso().slice(0, 7)
+}
 
 function variacionPorcentual(actual: number, anterior: number): number | null {
   if (anterior === 0) return null
@@ -25,11 +42,15 @@ function variacionPorcentual(actual: number, anterior: number): number | null {
 export function DashboardPage() {
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
+  const esGerente = usuario?.rol === 'GerenteSucursal'
 
   const [ventasPorMes, setVentasPorMes] = useState<VentasPorMes[]>([])
+  const [mesVentasSeleccionado, setMesVentasSeleccionado] = useState(mesActualIso())
   const [transferenciasActivas, setTransferenciasActivas] = useState<TransferenciaActiva[]>([])
   const [proximosAgotarse, setProximosAgotarse] = useState<ProductoProximoAgotarse[]>([])
   const [rotacion, setRotacion] = useState<RotacionProducto[]>([])
+  const [flujoHoy, setFlujoHoy] = useState<FlujoPersonasResumen | null>(null)
+  const [flujoMes, setFlujoMes] = useState<FlujoPersonasResumen | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,17 +59,40 @@ export function DashboardPage() {
     setError(null)
 
     const sucursalId = usuario?.sucursalId ?? undefined
-    Promise.all([
-      getVentasPorMes(sucursalId).then(setVentasPorMes),
+    const peticiones: Promise<unknown>[] = [
       getTransferenciasActivas().then(setTransferenciasActivas),
       getProductosProximosAgotarse(sucursalId).then(setProximosAgotarse),
       getRotacionInventario(sucursalId).then(setRotacion),
-    ])
+    ]
+
+    // Solo el Gerente ve "Flujo de personas" en el Panel general (reemplaza
+    // ahí a "Alertas de inventario"); Admin y Operador siguen viendo alertas.
+    if (esGerente) {
+      const ahora = new Date()
+      peticiones.push(
+        getFlujoPersonasPorDia(hoyIso()).then(setFlujoHoy),
+        getFlujoPersonasPorMes(ahora.getFullYear(), ahora.getMonth() + 1).then(setFlujoMes),
+      )
+    }
+
+    Promise.all(peticiones)
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : 'No se pudo cargar el dashboard')
       })
       .finally(() => setIsLoading(false))
-  }, [usuario?.sucursalId, esAdmin])
+  }, [usuario?.sucursalId, esAdmin, esGerente])
+
+  useEffect(() => {
+    const sucursalId = usuario?.sucursalId ?? undefined
+    const anio = Number(mesVentasSeleccionado.slice(0, 4))
+    const mes = Number(mesVentasSeleccionado.slice(5, 7))
+
+    getVentasPorMes(sucursalId, anio, mes)
+      .then(setVentasPorMes)
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : 'No se pudo cargar las ventas por mes')
+      })
+  }, [usuario?.sucursalId, mesVentasSeleccionado])
 
   if (isLoading) {
     return (
@@ -99,10 +143,9 @@ export function DashboardPage() {
             Resumen del estado del inventario y las ventas
             {esAdmin ? ' en todas las sucursales' : usuario?.sucursalNombre ? ` — ${usuario.sucursalNombre}` : ''}
           </p>
-          <span className="dash-rol-chip">{esAdmin ? 'Admin General' : usuario?.sucursalNombre}</span>
         </div>
 
-        <div className="kpi-row">
+        <div className="kpi-row kpi-row--compacta">
           <KpiTile
             icon="dinero"
             label="Ventas del mes"
@@ -135,7 +178,17 @@ export function DashboardPage() {
       <div className="page-scroll-body">
         <div className="dash-grid">
           <section className="dash-card dash-card--wide">
-            <h2>Ventas por mes</h2>
+            <div className="dash-card-header-row">
+              <h2>Ventas por mes</h2>
+              <input
+                type="month"
+                className="dash-mes-selector"
+                value={mesVentasSeleccionado}
+                max={mesActualIso()}
+                onChange={(e) => setMesVentasSeleccionado(e.target.value)}
+              />
+            </div>
+            <p className="dash-card-hint">Ventas del mes elegido y los 3 meses anteriores</p>
             <LineChart
               data={ventasPorMes.map((v) => ({ label: v.etiquetaMes, value: v.totalVendido }))}
               valueFormatter={(v) => formatearMoneda(v)}
@@ -143,29 +196,60 @@ export function DashboardPage() {
             />
           </section>
 
-          <section className="dash-card">
-            <h2>Alertas de inventario</h2>
-            {alertasInventario.length === 0 ? (
-              <p className="chart-empty">No hay productos próximos a agotarse.</p>
-            ) : (
-              <ul className="dash-alertas-list">
-                {alertasInventario.map((p) => {
-                  const critico = p.cantidad <= p.stockMinimo / 2
-                  return (
-                    <li key={`${p.productoId}-${p.sucursalId}`} className="dash-alerta-item">
-                      <span className={`dash-alerta-dot ${critico ? 'dash-alerta-dot--critico' : 'dash-alerta-dot--alerta'}`} />
-                      <div className="dash-alerta-info">
-                        <span className="dash-alerta-nombre">{p.productoNombre}</span>
-                        <span className="dash-alerta-detalle">
-                          {p.sucursalNombre} · Stock: {p.cantidad} / Mínimo: {p.stockMinimo}
-                        </span>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </section>
+          {esGerente ? (
+            <section className="dash-card">
+              <h2>Flujo de personas</h2>
+              {!flujoHoy && !flujoMes ? (
+                <p className="chart-empty">No hay datos disponibles para este período.</p>
+              ) : (
+                <div className="dash-flujo-personas">
+                  <div className="dash-flujo-personas-item">
+                    <span className="dash-flujo-personas-label">Hoy</span>
+                    <span className="dash-flujo-personas-valor">
+                      {flujoHoy?.totalPersonas ?? 0} personas
+                    </span>
+                    <span className="dash-flujo-personas-sub">
+                      {flujoHoy?.totalVisitas ?? 0} visita{flujoHoy?.totalVisitas === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="dash-flujo-personas-item">
+                    <span className="dash-flujo-personas-label">Este mes</span>
+                    <span className="dash-flujo-personas-valor">
+                      {flujoMes?.totalPersonas ?? 0} personas
+                    </span>
+                    <span className="dash-flujo-personas-sub">
+                      {flujoMes?.totalVisitas ?? 0} visita{flujoMes?.totalVisitas === 1 ? '' : 's'} ·
+                      promedio {(flujoMes?.promedioPersonasPorVisita ?? 0).toFixed(2)} por visita
+                    </span>
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="dash-card">
+              <h2>Alertas de inventario</h2>
+              {alertasInventario.length === 0 ? (
+                <p className="chart-empty">No hay productos próximos a agotarse.</p>
+              ) : (
+                <ul className="dash-alertas-list">
+                  {alertasInventario.map((p) => {
+                    const critico = p.cantidad <= p.stockMinimo / 2
+                    return (
+                      <li key={`${p.productoId}-${p.sucursalId}`} className="dash-alerta-item">
+                        <span className={`dash-alerta-dot ${critico ? 'dash-alerta-dot--critico' : 'dash-alerta-dot--alerta'}`} />
+                        <div className="dash-alerta-info">
+                          <span className="dash-alerta-nombre">{p.productoNombre}</span>
+                          <span className="dash-alerta-detalle">
+                            {p.sucursalNombre} · Stock: {p.cantidad} / Mínimo: {p.stockMinimo}
+                          </span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
 
           {masVendidos.length > 0 && (
             <section className="dash-card">

@@ -13,10 +13,25 @@ public class DashboardService : IDashboardService
         _repository = repository;
     }
 
-    // T52: volumen de ventas del mes en curso vs. los 3 meses anteriores (4 meses en total).
-    public async Task<List<VentasPorMesDto>> GetVentasMesActualVsAnterioresAsync(int? sucursalId)
+    // T52: volumen de ventas de un mes (por defecto, el mes en curso) vs. los 3
+    // meses anteriores (4 meses en total). El mes final nunca puede ser
+    // posterior al mes en curso (hora de Colombia): no tiene sentido pedir
+    // ventas de un mes que todavía no ha ocurrido.
+    public async Task<List<VentasPorMesDto>> GetVentasMesActualVsAnterioresAsync(int? sucursalId, int? anio = null, int? mes = null)
     {
-        var inicioRango = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-3);
+        var hoyLocal = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
+        var mesActual = new DateTime(hoyLocal.Year, hoyLocal.Month, 1);
+
+        var mesFinal = anio.HasValue && mes.HasValue
+            ? new DateTime(anio.Value, mes.Value, 1)
+            : mesActual;
+
+        if (mesFinal > mesActual)
+        {
+            mesFinal = mesActual;
+        }
+
+        var inicioRango = mesFinal.AddMonths(-3);
         var ventas = await _repository.GetVentasDesdeAsync(inicioRango);
 
         if (sucursalId.HasValue)

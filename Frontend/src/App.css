@@ -221,11 +221,72 @@
   flex-shrink: 0;
 }
 
+/* Cabecera comprimida para "Flujo de personas": ese contenido de pestaña ya
+   necesita bastante alto propio (KPIs + 2 gráficas), así que aquí se reduce
+   al mínimo el subtítulo/KPIs superiores/título/tabs para que todo quepa
+   en la pantalla sin scroll. */
+.page-header-sticky--compacto .page-subtitle {
+  margin-top: 0;
+  font-size: 12px;
+}
+
+.page-header-sticky--compacto .kpi-row--compacta {
+  margin: 6px 0;
+  gap: 6px;
+}
+
+.page-header-sticky--compacto .kpi-row--compacta .kpi-tile {
+  padding: 6px 10px;
+}
+
+.page-header-sticky--compacto .kpi-row--compacta .kpi-value {
+  font-size: 15px;
+}
+
+.page-header-sticky--compacto .kpi-row--compacta .kpi-label {
+  font-size: 10px;
+}
+
+.page-header-sticky--compacto .analisis-sucursal-titulo {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.page-header-sticky--compacto .tabs {
+  margin: 4px 0 0;
+}
+
+.page-header-sticky--compacto .tab-button {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
 .page-scroll-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+/* Oculta visualmente la barra de scroll cuando el contenido desborda apenas
+   unos píxeles (scroll "fantasma"), sin dejar de permitir el desplazamiento. */
+.page-scroll-body--sin-barra {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.page-scroll-body--sin-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* "Flujo de personas" está pensado para caber entero sin scroll; si por un
+   viewport muy bajo algo se pasa por unos px, se recorta en vez de mostrar
+   scroll (la cabecera ya se comprime al máximo para evitar llegar aquí). */
+.page-scroll-body--clip {
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 @media (max-width: 640px) {
@@ -1806,6 +1867,36 @@
   color: var(--text);
 }
 
+/* Variante compacta: Panel general y Comparación de sucursales, donde los
+   KPIs conviven con gráficas grandes y no necesitan tanto protagonismo. */
+.kpi-row--compacta {
+  margin: 10px 0;
+  gap: 10px;
+}
+
+.kpi-row--compacta .kpi-tile {
+  min-width: 140px;
+  padding: 10px 12px;
+  gap: 2px;
+}
+
+.kpi-row--compacta .kpi-value {
+  font-size: 19px;
+}
+
+.kpi-row--compacta .kpi-label {
+  font-size: 12px;
+}
+
+.kpi-row--compacta .kpi-sublabel {
+  font-size: 11px;
+}
+
+.kpi-row--compacta .kpi-header .nav-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .chart-empty {
   color: var(--text);
   font-size: 14px;
@@ -1856,17 +1947,6 @@
   gap: 12px;
 }
 
-.dash-rol-chip {
-  padding: 5px 12px;
-  border: 1px solid var(--rol-accent-border);
-  border-radius: 999px;
-  background: var(--rol-accent-bg);
-  color: var(--rol-accent);
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -1909,6 +1989,27 @@
   margin: -6px 0 0;
   font-size: 12px;
   color: var(--text);
+}
+
+.dash-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-card-header-row h2 {
+  flex-shrink: 0;
+}
+
+.dash-mes-selector {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
 }
 
 .line-chart,
@@ -2050,10 +2151,34 @@
   margin: 12px 0 20px;
 }
 
+/* Variante para "Flujo de personas": márgenes/padding reducidos y alturas
+   fijas y pequeñas en las gráficas (en vez de repartir el alto disponible
+   por flexbox) para que TODO quepa sin scroll incluso en ventanas bajas. */
+.analisis-sucursal-card--full {
+  margin: 6px 0 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.analisis-sucursal-body--full {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .tabs--scroll {
   flex-wrap: nowrap;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs--scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .tabs--scroll .tab-button {
@@ -2062,6 +2187,20 @@
 
 .analisis-sucursal-body {
   padding-top: 4px;
+}
+
+.analisis-sucursal-body--full {
+  gap: 4px;
+}
+
+.analisis-sucursal-body--full h3,
+.analisis-sucursal-body--full .dash-card-hint {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.analisis-sucursal-body--full .dash-card-hint {
+  font-size: 11px;
 }
 
 .analisis-sucursal-body h3 {
@@ -2080,7 +2219,8 @@
 .doughnut-chart {
   position: relative;
   flex-shrink: 0;
-  width: 240px;
+  aspect-ratio: 1 / 1;
+  max-width: 240px;
 }
 
 .doughnut-chart-center {
@@ -2145,4 +2285,602 @@
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text-h);
+}
+
+/* Página de Visitas: panel de registro a la izquierda (KPIs ya viven en el
+   header fijo) y grid de tarjetas de visitas como elemento principal. */
+.visitas-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  align-items: start;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .visitas-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.visitas-registro-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  position: sticky;
+  top: 0;
+}
+
+.visitas-registro-card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.visitas-registro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.visitas-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.visitas-stepper button {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.visitas-stepper button:hover {
+  border-color: var(--rol-accent-border);
+  color: var(--rol-accent);
+}
+
+.visitas-stepper input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.visitas-registrar-btn {
+  padding: 11px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--rol-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.visitas-registrar-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.visitas-registrar-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.visitas-por-sucursal {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.visitas-por-sucursal h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.visitas-por-sucursal ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visitas-por-sucursal li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.visitas-por-sucursal-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.visitas-por-sucursal-valor {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.visitas-listado {
+  min-width: 0;
+}
+
+.visitas-listado-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.visitas-listado-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.visitas-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 48px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-align: center;
+}
+
+.visitas-vacio svg {
+  color: var(--rol-accent);
+  margin-bottom: 4px;
+}
+
+.visitas-vacio p {
+  margin: 0;
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.visitas-vacio span {
+  font-size: 13px;
+}
+
+.visitas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.visita-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  animation: visita-card-in 0.25s ease-out;
+}
+
+.visita-card:hover {
+  border-color: var(--rol-accent-border);
+  transform: translateY(-1px);
+}
+
+@keyframes visita-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.visita-card-eliminar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(224, 36, 94, 0.35);
+  border-radius: 6px;
+  background: rgba(224, 36, 94, 0.08);
+  color: #e0245e;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.visita-card:hover .visita-card-eliminar,
+.visita-card-eliminar:focus-visible {
+  opacity: 1;
+}
+
+.visita-card-eliminar:hover {
+  background: rgba(224, 36, 94, 0.16);
+}
+
+.visita-card-personas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rol-accent);
+  padding-right: 24px;
+}
+
+.visita-card-personas svg {
+  flex-shrink: 0;
+}
+
+.visita-card-personas span {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.visita-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.visita-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.visita-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.visita-card-numero {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rol-accent);
+}
+
+.visita-card-usuario {
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  padding: 16px;
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 380px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.confirm-dialog p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.confirm-dialog .acciones-cell {
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+/* Panel general: tarjeta "Flujo de personas" (solo Gerente), sustituye
+   visualmente a "Alertas de inventario" en esa posición del grid. */
+.dash-flujo-personas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-flujo-personas-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-flujo-personas-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.dash-flujo-personas-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.dash-flujo-personas-valor {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.dash-flujo-personas-sub {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* Comparación de sucursales: pestaña "Flujo de personas" con selector de
+   período (día/mes) y tarjetas resumen sobre el gráfico de la pestaña. */
+.flujo-periodo-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.flujo-periodo-tipo {
+  display: flex;
+  gap: 4px;
+}
+
+.flujo-periodo-tipo button {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.flujo-periodo-tipo button.activo {
+  border-color: var(--rol-accent-border);
+  background: var(--rol-accent-bg);
+  color: var(--rol-accent);
+}
+
+.flujo-periodo-selector input[type='date'],
+.flujo-periodo-selector input[type='month'] {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
+}
+
+.flujo-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.flujo-kpi-tile {
+  flex: 1;
+  min-width: 160px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.flujo-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.flujo-kpi-valor {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.flujo-kpi-sub {
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+/* Variante compacta: KPIs de "Flujo de personas" conviven con dos gráficas
+   grandes debajo, no necesitan tanto protagonismo. */
+.flujo-kpi-valor--texto {
+  font-size: 14px;
+}
+
+/* Layout compacto de "Flujo de personas": 3 cajas en una sola fila —
+   info (Personas/Visitas/Promedio/Mayor flujo) ocupando todo el alto a la
+   izquierda, barras por sucursal en el centro y curva de flujo a la
+   derecha — pensado para caber completo sin scroll de página. */
+.flujo-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 3 cajas en fila: info (angosta), barras por sucursal y curva de flujo
+   (por hora si es un día, por día si es un mes). Todas ocupan el alto
+   real disponible de la card (flex:1) en vez de una altura fija en px,
+   así el contenido nunca se corta ni deja espacio muerto. */
+.flujo-columnas {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 860px) {
+  .flujo-columnas {
+    flex-direction: column;
+  }
+}
+
+.flujo-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Caja de info: más angosta que las gráficas. Los 4 tiles van en grid 2x2
+   para que el alto que ocupan no crezca en línea recta con la cantidad de
+   KPIs (evita que se corten en viewports bajos). */
+.flujo-columna--kpis {
+  flex: 0 1 200px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+
+.flujo-columna--kpis .flujo-kpi-tile {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  gap: 2px;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.flujo-columna--kpis .flujo-kpi-label {
+  font-size: 10px;
+  letter-spacing: 0.01em;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.flujo-columna--kpis .flujo-kpi-valor {
+  font-size: 17px;
+}
+
+.flujo-columna--kpis .flujo-kpi-valor--texto {
+  font-size: 14px;
+}
+
+/* Las gráficas llenan todo el alto restante de su columna (flex:1) en vez
+   de una altura fija en px: con pocas categorías no queda espacio muerto,
+   y con muchas, el contenedor nunca se desborda del alto de la card. */
+.flujo-columna .hbar-chart,
+.flujo-columna .line-chart {
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+}
+
+.chart-empty--placeholder {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: 0;
+  font-size: 13px;
+}
+
+.flujo-columna h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  flex-shrink: 0;
+  line-height: 22px;
+}
+
+.flujo-columna-header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.flujo-columna-header .flujo-periodo-tipo button {
+  padding: 2px 8px;
+  font-size: 11px;
 }

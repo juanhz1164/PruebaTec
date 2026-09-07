@@ -21,12 +21,22 @@ public class DashboardController : ControllerBase
         _service = service;
     }
 
-    // GET api/Dashboard/ventas-por-mes?sucursalId=1
-    // T52: volumen de ventas del mes en curso vs. los 3 meses anteriores.
+    // GET api/Dashboard/ventas-por-mes?sucursalId=1&anio=2026&mes=9
+    // T52: volumen de ventas del mes indicado (por defecto, el mes en curso)
+    // vs. los 3 meses anteriores. anio/mes deben pasarse juntos; si se omiten,
+    // se usa el mes en curso. Un mes futuro se recorta al mes en curso.
     [HttpGet("ventas-por-mes")]
-    public async Task<ActionResult<IEnumerable<VentasPorMesDto>>> GetVentasPorMes([FromQuery] int? sucursalId)
+    public async Task<ActionResult<IEnumerable<VentasPorMesDto>>> GetVentasPorMes(
+        [FromQuery] int? sucursalId,
+        [FromQuery] int? anio,
+        [FromQuery] int? mes)
     {
-        return Ok(await _service.GetVentasMesActualVsAnterioresAsync(sucursalId));
+        if (mes.HasValue && (mes.Value < 1 || mes.Value > 12))
+        {
+            return BadRequest("El mes debe estar entre 1 y 12.");
+        }
+
+        return Ok(await _service.GetVentasMesActualVsAnterioresAsync(sucursalId, anio, mes));
     }
 
     // GET api/Dashboard/rotacion-inventario?sucursalId=1

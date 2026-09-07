@@ -22,6 +22,7 @@ const NAV_ITEMS: { to: string; label: string; icon: NavIconName; roles: readonly
   { to: '/inventario', label: 'Inventario', icon: 'inventario', roles: NO_ADMIN_GENERAL },
   { to: '/inventario/otras-sucursales', label: 'Inventario de sucursales', icon: 'sucursales', roles: null },
   { to: '/ventas', label: 'Ventas', icon: 'ventas', roles: NO_ADMIN_GENERAL },
+  { to: '/visitas', label: 'Visitas', icon: 'visitas', roles: NO_ADMIN_GENERAL },
   { to: '/compras', label: 'Compras', icon: 'compras', roles: null },
   { to: '/transferencias', label: 'Transferencias', icon: 'transferencias', roles: null },
   { to: '/logistica', label: 'Logística', icon: 'logistica', roles: null },

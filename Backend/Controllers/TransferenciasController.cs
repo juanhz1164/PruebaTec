@@ -6,9 +6,15 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
-// Cualquier rol autenticado puede consultar, solicitar (T44) y confirmar recepción
-// (T46/T47). Preparar y confirmar envío (T45) queda reservado a Gerente/Admin,
-// porque el PDF asigna la "aprobación de transferencias" al Gerente de sucursal.
+// Cualquier rol autenticado puede consultar y solicitar (T44) una transferencia
+// entre dos sucursales cualesquiera (el Administrador general no está atado a
+// una sucursal y puede pedirle a cualquier sucursal que transfiera a otra).
+//
+// Pero preparar/enviar (T45) y confirmar recepción (T46/T47) son operaciones
+// físicas que solo puede realizar quien está en la sucursal correspondiente:
+// el Gerente de la sucursal ORIGEN prepara y envía; el Gerente de la sucursal
+// DESTINO confirma la recepción. El Administrador general no participa en
+// estos pasos porque no está físicamente en ninguna sucursal.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -20,6 +26,9 @@ public class TransferenciasController : ControllerBase
     {
         _service = service;
     }
+
+    private int? SucursalIdUsuarioActual =>
+        int.TryParse(User.FindFirst("sucursalId")?.Value, out var id) ? id : null;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TransferenciaDto>>> GetAll()
@@ -49,32 +58,69 @@ public class TransferenciasController : ControllerBase
     }
 
     // PUT api/Transferencias/5/preparar
-    // T45: marca la transferencia como en preparación.
+    // T45: marca la transferencia como en preparación. Solo el Gerente de la
+    // sucursal de ORIGEN (quien físicamente prepara el envío).
     [HttpPut("{id}/preparar")]
-    [Authorize(Roles = Roles.AdminYGerente)]
+    [Authorize(Roles = Roles.Gerente)]
     public async Task<IActionResult> Preparar(int id)
     {
+        var transferencia = await _service.GetByIdAsync(id);
+        if (transferencia is null)
+        {
+            return BadRequest("La transferencia no existe.");
+        }
+
+        if (transferencia.SucursalOrigenId != SucursalIdUsuarioActual)
+        {
+            return Forbid();
+        }
+
         var resultado = await _service.IniciarPreparacionAsync(id);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
 
     // PUT api/Transferencias/5/enviar
     // T45: confirma el envío (transportista, ruta, fecha estimada, cantidades enviadas)
-    // y retira el stock correspondiente de la sucursal de origen.
+    // y retira el stock correspondiente de la sucursal de origen. Solo el Gerente
+    // de la sucursal de ORIGEN.
     [HttpPut("{id}/enviar")]
-    [Authorize(Roles = Roles.AdminYGerente)]
+    [Authorize(Roles = Roles.Gerente)]
     public async Task<IActionResult> RegistrarEnvio(int id, RegistrarEnvioDto dto)
     {
+        var transferencia = await _service.GetByIdAsync(id);
+        if (transferencia is null)
+        {
+            return BadRequest("La transferencia no existe.");
+        }
+
+        if (transferencia.SucursalOrigenId != SucursalIdUsuarioActual)
+        {
+            return Forbid();
+        }
+
         var resultado = await _service.RegistrarEnvioAsync(id, dto);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
 
     // PUT api/Transferencias/5/recibir
     // T46/T47: confirma la recepción (completa o parcial) e ingresa el stock recibido
-    // a la sucursal destino.
+    // a la sucursal destino. Solo el Gerente de la sucursal DESTINO (quien
+    // físicamente recibe la mercancía).
     [HttpPut("{id}/recibir")]
+    [Authorize(Roles = Roles.Gerente)]
     public async Task<IActionResult> ConfirmarRecepcion(int id, ConfirmarRecepcionDto dto)
     {
+        var transferencia = await _service.GetByIdAsync(id);
+        if (transferencia is null)
+        {
+            return BadRequest("La transferencia no existe.");
+        }
+
+        if (transferencia.SucursalDestinoId != SucursalIdUsuarioActual)
+        {
+            return Forbid();
+        }
+
         var resultado = await _service.ConfirmarRecepcionAsync(id, dto);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }

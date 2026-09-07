@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<VentaLinea> VentasLineas => Set<VentaLinea>();
     public DbSet<Transferencia> Transferencias => Set<Transferencia>();
     public DbSet<TransferenciaLinea> TransferenciasLineas => Set<TransferenciaLinea>();
+    public DbSet<Visita> Visitas => Set<Visita>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -349,6 +350,25 @@ public class AppDbContext : DbContext
             entity.HasOne(l => l.Producto)
                 .WithMany()
                 .HasForeignKey(l => l.ProductoId);
+        });
+
+        modelBuilder.Entity<Visita>(entity =>
+        {
+            entity.ToTable("visitas");
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.Id).HasColumnName("id");
+            entity.Property(v => v.SucursalId).HasColumnName("sucursal_id");
+            entity.Property(v => v.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(v => v.CantidadPersonas).HasColumnName("cantidad_personas");
+            entity.Property(v => v.FechaHora).HasColumnName("fecha_hora");
+
+            entity.HasOne(v => v.Sucursal)
+                .WithMany()
+                .HasForeignKey(v => v.SucursalId);
+
+            entity.HasOne(v => v.Usuario)
+                .WithMany()
+                .HasForeignKey(v => v.UsuarioId);
         });
     }
 

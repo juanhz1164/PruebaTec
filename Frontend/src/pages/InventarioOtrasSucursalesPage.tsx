@@ -57,8 +57,6 @@ export function InventarioOtrasSucursalesPage() {
   return (
     <div className="page page-fixed-header">
       <div className="page-header-sticky">
-        <h1>Inventario de otras sucursales</h1>
-
         <label htmlFor="sucursal-select">Sucursal</label>
         <select
           id="sucursal-select"

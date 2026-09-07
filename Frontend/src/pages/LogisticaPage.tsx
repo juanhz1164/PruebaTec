@@ -57,8 +57,6 @@ export function LogisticaPage() {
   return (
     <div className="page page-fixed-header">
       <div className="page-header-sticky">
-        <h1>Logística</h1>
-
         <div className="tabs">
           {TABS.map((t) => (
             <button

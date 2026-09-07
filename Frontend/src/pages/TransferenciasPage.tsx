@@ -15,7 +15,7 @@ import {
 import type { Transferencia } from '../types/transferencia'
 import { ApiError } from '../api/client'
 
-const PUEDE_APROBAR = ['AdministradorGeneral', 'GerenteSucursal']
+const PUEDE_APROBAR = ['GerenteSucursal']
 
 type Tab = 'solicitar' | 'gestionar'
 
@@ -192,13 +192,18 @@ export function TransferenciasPage() {
                       return pendienteA ? -1 : 1
                     })
                     .map((t) => {
-                    // El Administrador general puede actuar sobre cualquier
-                    // transferencia de la red, sin importar de qué sucursal sea.
-                    const esOrigen = esAdmin || t.sucursalOrigenId === usuario?.sucursalId
-                    const esDestino = esAdmin || t.sucursalDestinoId === usuario?.sucursalId
+                    // Preparar, registrar envío y confirmar recepción son operaciones
+                    // físicas: solo el Gerente de la sucursal de origen/destino puede
+                    // hacerlas (el Administrador general no está en ninguna sucursal).
+                    // Cancelar sí sigue disponible para el Admin, ya que puede haber
+                    // solicitado la transferencia él mismo.
+                    const esOrigen = t.sucursalOrigenId === usuario?.sucursalId
+                    const esDestino = t.sucursalDestinoId === usuario?.sucursalId
+                    const puedeCancelarPorSucursal = esAdmin || esOrigen
                     const puedeCancelar =
-                      t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
-                      t.estado === ESTADO_TRANSFERENCIA.EnPreparacion
+                      puedeCancelarPorSucursal &&
+                      (t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
+                        t.estado === ESTADO_TRANSFERENCIA.EnPreparacion)
                     return (
                       <tr key={t.id}>
                         <td>{t.sucursalOrigenNombre}</td>
@@ -253,7 +258,7 @@ export function TransferenciasPage() {
                                 Confirmar recepción
                               </button>
                             )}
-                            {esOrigen && puedeCancelar && (
+                            {puedeCancelar && (
                               <button
                                 type="button"
                                 className="danger-button"

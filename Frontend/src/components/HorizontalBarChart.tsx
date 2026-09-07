@@ -57,7 +57,7 @@ export function HorizontalBarChart({
             data: ordenados.map((d) => d.value),
             backgroundColor: ordenados.map((d) => (d.colorVar ? cssVar(d.colorVar) || accent : accent)),
             borderRadius: 4,
-            barThickness: 18,
+            maxBarThickness: 28,
           },
         ],
       },
@@ -90,14 +90,14 @@ export function HorizontalBarChart({
             grid: { color: border },
             ticks: {
               color: text,
-              font: { size: 11 },
+              font: { size: 12 },
               callback: (v) => valueFormatter(Number(v)),
             },
             border: { display: false },
           },
           y: {
             grid: { display: false },
-            ticks: { color: textH, font: { size: 12 } },
+            ticks: { color: textH, font: { size: 13 } },
             border: { color: border },
           },
         },
@@ -107,7 +107,10 @@ export function HorizontalBarChart({
     chartRef.current?.destroy()
     chartRef.current = new Chart(canvas, config)
 
+    const resizeId = requestAnimationFrame(() => chartRef.current?.resize())
+
     return () => {
+      cancelAnimationFrame(resizeId)
       chartRef.current?.destroy()
       chartRef.current = null
     }

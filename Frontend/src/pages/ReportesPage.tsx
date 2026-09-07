@@ -143,7 +143,6 @@ export function ReportesPage() {
     return (
       <div className="page page-fixed-header">
         <div className="page-header-sticky">
-          <h1>Reportes del mes — {usuario?.sucursalNombre ?? 'Mi sucursal'}</h1>
           <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
 
           <div className="kpi-row">
@@ -172,7 +171,6 @@ export function ReportesPage() {
   return (
     <div className="page page-fixed-header">
       <div className="page-header-sticky">
-        <h1>Reportes del mes — Todas las sucursales</h1>
         <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
 
         <div className="kpi-row">

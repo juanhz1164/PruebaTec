@@ -11,6 +11,7 @@ export type NavIconName =
   | 'tendenciaSubida'
   | 'tendenciaBajada'
   | 'agotandose'
+  | 'visitas'
 
 const PATHS: Record<NavIconName, React.ReactNode> = {
   panel: (
@@ -93,6 +94,14 @@ const PATHS: Record<NavIconName, React.ReactNode> = {
     <>
       <path d="M12 2v6" />
       <path d="M12 8c-3 2.5-5 5.5-5 8a5 5 0 0 0 10 0c0-2.5-2-5.5-5-8Z" />
+    </>
+  ),
+  visitas: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <circle cx="17" cy="7" r="2.4" />
+      <path d="M15.5 13.2c2.4.5 4.5 2.5 4.5 5.8" />
     </>
   ),
 }
