@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { NavIcon, type NavIconName } from '../components/NavIcon'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 const ROL_CLASS: Record<string, string> = {
   AdministradorGeneral: 'rol-admin',
@@ -47,10 +48,22 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="app-user">
-          <span className={`app-user-name ${usuario ? ROL_CLASS[usuario.rol] : ''}`}>
-            {usuario?.nombre}
-          </span>
-          <button type="button" onClick={logout}>
+          <button type="button" className="logout-button" onClick={logout}>
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="M16 17l5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
             Cerrar sesión
           </button>
         </div>
@@ -63,6 +76,7 @@ export function AppLayout() {
           {usuario?.sucursalNombre && (
             <span className="app-topbar-sucursal">· {usuario.sucursalNombre}</span>
           )}
+          <ThemeToggle />
         </div>
         <main className="app-content">
           <Outlet />

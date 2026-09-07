@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getSucursales } from '../api/sucursales'
+import { getInventarioPorSucursal } from '../api/inventario'
 import { crearTransferencia } from '../api/transferencias'
 import type { Producto } from '../types/producto'
 import type { Sucursal } from '../types/sucursal'
@@ -27,6 +28,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   const [lineas, setLineas] = useState<LineaForm[]>([nuevaLinea()])
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [stockOrigen, setStockOrigen] = useState<Record<number, number>>({})
 
   useEffect(() => {
     getProductos()
@@ -50,9 +52,25 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
       .catch(() => setError('No se pudo cargar el listado de sucursales'))
   }, [usuario?.sucursalId, esAdmin])
 
+  // Solo para mostrar el stock disponible junto a cada línea; no participa
+  // en ninguna validación ni en el payload enviado al backend.
+  useEffect(() => {
+    if (!sucursalOrigenId) {
+      setStockOrigen({})
+      return
+    }
+    getInventarioPorSucursal(sucursalOrigenId)
+      .then((items) => {
+        setStockOrigen(Object.fromEntries(items.map((i) => [i.productoId, i.cantidad])))
+      })
+      .catch(() => setStockOrigen({}))
+  }, [sucursalOrigenId])
+
   const sucursalesDestino = esAdmin
     ? sucursales.filter((s) => s.id !== sucursalOrigenId)
     : sucursales
+
+  const sucursalOrigen = sucursales.find((s) => s.id === sucursalOrigenId) ?? null
 
   const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
     setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))
@@ -62,6 +80,8 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
 
   const quitarLinea = (index: number) =>
     setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+
+  const lineasConProducto = lineas.filter((l) => l.productoId !== null)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -106,100 +126,135 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   }
 
   return (
-    <form className="orden-form" onSubmit={handleSubmit}>
-      <h2>Solicitar transferencia</h2>
+    <form className="tr-form" onSubmit={handleSubmit}>
+      <div className="tr-form-header">
+        <h2>Nueva solicitud de transferencia</h2>
+        <div className="tr-form-header-actions">
+          {error && <p className="error-text tr-form-header-error">{error}</p>}
+          <button type="submit" className="tr-submit-btn" disabled={isSubmitting || !sucursalDestinoId}>
+            {isSubmitting ? 'Enviando...' : 'Solicitar transferencia'}
+          </button>
+        </div>
+      </div>
 
-      {esAdmin && (
-        <div className="form-row">
-          <label htmlFor="tr-origen">Sucursal origen</label>
+      <div className="tr-ruta">
+        <div className="tr-ruta-card tr-ruta-card--origen">
+          <span className="tr-ruta-eyebrow">Origen</span>
+          {esAdmin ? (
+            <select
+              className="tr-ruta-select"
+              id="tr-origen"
+              value={sucursalOrigenId ?? ''}
+              onChange={(e) => setSucursalOrigenId(Number(e.target.value))}
+            >
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="tr-ruta-nombre">{sucursalOrigen?.nombre ?? '—'}</span>
+          )}
+          <span className="tr-ruta-hint">Inventario de salida</span>
+        </div>
+
+        <div className="tr-ruta-flecha" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" />
+            <path d="M13 6l6 6-6 6" />
+          </svg>
+        </div>
+
+        <div className="tr-ruta-card tr-ruta-card--destino">
+          <span className="tr-ruta-eyebrow">Destino</span>
           <select
-            id="tr-origen"
-            value={sucursalOrigenId ?? ''}
-            onChange={(e) => setSucursalOrigenId(Number(e.target.value))}
+            className="tr-ruta-select"
+            id="tr-destino"
+            value={sucursalDestinoId ?? ''}
+            onChange={(e) => setSucursalDestinoId(Number(e.target.value))}
           >
-            {sucursales.map((s) => (
+            {sucursalesDestino.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.nombre}
               </option>
             ))}
           </select>
+          <span className="tr-ruta-hint">Sucursal receptora</span>
         </div>
-      )}
-
-      <div className="form-row">
-        <label htmlFor="tr-destino">Sucursal destino</label>
-        <select
-          id="tr-destino"
-          value={sucursalDestinoId ?? ''}
-          onChange={(e) => setSucursalDestinoId(Number(e.target.value))}
-        >
-          {sucursalesDestino.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.nombre}
-            </option>
-          ))}
-        </select>
       </div>
 
-      <table className="data-table lineas-table">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad solicitada</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {lineas.map((linea, index) => (
-            <tr key={index}>
-              <td>
-                <select
-                  value={linea.productoId ?? ''}
-                  onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.sku} — {p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={linea.cantidadSolicitada}
-                  onChange={(e) =>
-                    actualizarLinea(index, { cantidadSolicitada: e.target.value })
-                  }
-                />
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => quitarLinea(index)}
-                  disabled={lineas.length === 1}
-                >
-                  Quitar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <section className="tr-productos-card">
+        <div className="tr-productos-header">
+          <h2>Productos a transferir</h2>
+          {lineasConProducto.length > 0 && (
+            <span className="tr-productos-contador">
+              {lineasConProducto.length} producto{lineasConProducto.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
 
-      <button type="button" className="secondary-button" onClick={agregarLinea}>
-        + Agregar producto
-      </button>
+        <div className="tr-productos-builder">
+          <button type="button" className="secondary-button tr-agregar-btn" onClick={agregarLinea}>
+            + Agregar producto
+          </button>
 
-      {error && <p className="error-text">{error}</p>}
-
-      <button type="submit" disabled={isSubmitting || !sucursalDestinoId}>
-        {isSubmitting ? 'Enviando...' : 'Solicitar transferencia'}
-      </button>
+          <div className="tr-lineas-scroll">
+            {lineas.map((linea, index) => {
+              const stock = linea.productoId !== null ? stockOrigen[linea.productoId] : undefined
+              return (
+                <div key={index} className="tr-linea-row">
+                  <div className="form-row">
+                    <label>Producto</label>
+                    <select
+                      value={linea.productoId ?? ''}
+                      onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
+                    >
+                      <option value="">Selecciona un producto</option>
+                      {productos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.sku} — {p.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {linea.productoId !== null && (
+                    <span className="tr-linea-stock">
+                      Stock: {stock !== undefined ? stock : '—'}
+                    </span>
+                  )}
+                  <div className="form-row form-row--compacto">
+                    <label>Cantidad solicitada</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={linea.cantidadSolicitada}
+                      onChange={(e) =>
+                        actualizarLinea(index, { cantidadSolicitada: e.target.value })
+                      }
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="danger-button tr-linea-quitar"
+                    onClick={() => quitarLinea(index)}
+                    disabled={lineas.length === 1}
+                    aria-label="Quitar producto"
+                    title="Quitar producto"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    </svg>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
     </form>
   )
 }

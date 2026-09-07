@@ -80,7 +80,7 @@ INSERT INTO productos (unidad_medida_id, proveedor_id, sku, nombre, descripcion,
 -- ============================================================
 
 INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_promedio) VALUES
-    (1, 1, 300, 50, 800.00),
+    (1, 1, 85, 50, 800.00),
     (2, 1, 120, 20, 3200.00),
     (3, 1, 60, 15, 9500.00),
     (4, 1, 40, 10, 7800.00),

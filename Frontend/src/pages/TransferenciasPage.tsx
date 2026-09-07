@@ -17,8 +17,11 @@ import { ApiError } from '../api/client'
 
 const PUEDE_APROBAR = ['AdministradorGeneral', 'GerenteSucursal']
 
+type Tab = 'solicitar' | 'gestionar'
+
 export function TransferenciasPage() {
   const { usuario } = useAuth()
+  const [tab, setTab] = useState<Tab>('solicitar')
   const [transferencias, setTransferencias] = useState<Transferencia[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -111,10 +114,27 @@ export function TransferenciasPage() {
   }
 
   return (
-    <div className="page">
-      <h1>Transferencias{usuario?.sucursalNombre ? ` — ${usuario.sucursalNombre}` : ' — Todas las sucursales'}</h1>
+    <div className="page transferencias-page page-fixed-header">
+      <div className="page-header-sticky">
+        {error && <p className="error-text">{error}</p>}
 
-      <TransferenciaForm onCreada={cargar} />
+        <div className="tabs">
+          <button
+            type="button"
+            className={`tab-button ${tab === 'solicitar' ? 'tab-button--activo' : ''}`}
+            onClick={() => setTab('solicitar')}
+          >
+            Solicitar transferencia
+          </button>
+          <button
+            type="button"
+            className={`tab-button ${tab === 'gestionar' ? 'tab-button--activo' : ''}`}
+            onClick={() => setTab('gestionar')}
+          >
+            Transferencias
+          </button>
+        </div>
+      </div>
 
       {recepcionId &&
         (() => {
@@ -132,106 +152,128 @@ export function TransferenciasPage() {
           )
         })()}
 
-      {isLoading && <p>Cargando...</p>}
-      {error && <p className="error-text">{error}</p>}
+      {tab === 'solicitar' && (
+        <section className="transferencias-bloque">
+          <div className="page-scroll-body">
+            <TransferenciaForm onCreada={cargar} />
+          </div>
+        </section>
+      )}
 
-      {!isLoading && (
-        <div className="table-scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Origen</th>
-              <th>Destino</th>
-              <th>Estado</th>
-              <th>Solicitada</th>
-              <th>Faltantes</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transferencias.length === 0 && (
-              <tr>
-                <td colSpan={6}>No hay transferencias para esta sucursal.</td>
-              </tr>
+      {tab === 'gestionar' && (
+        <section className="transferencias-bloque">
+          <div className="page-scroll-body">
+            {isLoading && <p>Cargando...</p>}
+
+            {!isLoading && (
+              <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Origen</th>
+                    <th>Destino</th>
+                    <th>Estado</th>
+                    <th>Solicitada</th>
+                    <th>Faltantes</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transferencias.length === 0 && (
+                    <tr>
+                      <td colSpan={6}>No hay transferencias para esta sucursal.</td>
+                    </tr>
+                  )}
+                  {[...transferencias]
+                    .sort((a, b) => {
+                      const pendienteA = a.estado !== ESTADO_TRANSFERENCIA.Cancelada && a.estado !== ESTADO_TRANSFERENCIA.RecibidaCompleta
+                      const pendienteB = b.estado !== ESTADO_TRANSFERENCIA.Cancelada && b.estado !== ESTADO_TRANSFERENCIA.RecibidaCompleta
+                      if (pendienteA === pendienteB) return 0
+                      return pendienteA ? -1 : 1
+                    })
+                    .map((t) => {
+                    // El Administrador general puede actuar sobre cualquier
+                    // transferencia de la red, sin importar de qué sucursal sea.
+                    const esOrigen = esAdmin || t.sucursalOrigenId === usuario?.sucursalId
+                    const esDestino = esAdmin || t.sucursalDestinoId === usuario?.sucursalId
+                    const puedeCancelar =
+                      t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
+                      t.estado === ESTADO_TRANSFERENCIA.EnPreparacion
+                    return (
+                      <tr key={t.id}>
+                        <td>{t.sucursalOrigenNombre}</td>
+                        <td>{t.sucursalDestinoNombre}</td>
+                        <td>
+                          <span className={`estado-badge estado-transferencia-${t.estado}`}>
+                            {ESTADO_TRANSFERENCIA_LABEL[t.estado]}
+                          </span>
+                        </td>
+                        <td>{new Date(t.fechaSolicitud).toLocaleDateString()}</td>
+                        <td>
+                          {t.estado === ESTADO_TRANSFERENCIA.RecibidaParcial && (
+                            <ul className="faltantes-list">
+                              {t.lineas
+                                .filter((l) => l.faltante > 0)
+                                .map((l) => (
+                                  <li key={l.id}>
+                                    {l.productoNombre}: faltan {l.faltante}
+                                  </li>
+                                ))}
+                            </ul>
+                          )}
+                        </td>
+                        <td>
+                          <div className="acciones-cell">
+                            {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.Solicitada && (
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={actualizandoId === t.id}
+                                onClick={() => preparar(t.id)}
+                              >
+                                Preparar
+                              </button>
+                            )}
+                            {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.EnPreparacion && (
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={actualizandoId === t.id}
+                                onClick={() => enviar(t)}
+                              >
+                                Registrar envío
+                              </button>
+                            )}
+                            {esDestino && t.estado === ESTADO_TRANSFERENCIA.EnTransito && (
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => setRecepcionId(t.id)}
+                              >
+                                Confirmar recepción
+                              </button>
+                            )}
+                            {esOrigen && puedeCancelar && (
+                              <button
+                                type="button"
+                                className="danger-button"
+                                disabled={actualizandoId === t.id}
+                                onClick={() => cancelar(t.id)}
+                              >
+                                Cancelar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              </div>
             )}
-            {transferencias.map((t) => {
-              // El Administrador general puede actuar sobre cualquier
-              // transferencia de la red, sin importar de qué sucursal sea.
-              const esOrigen = esAdmin || t.sucursalOrigenId === usuario?.sucursalId
-              const esDestino = esAdmin || t.sucursalDestinoId === usuario?.sucursalId
-              const puedeCancelar =
-                t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
-                t.estado === ESTADO_TRANSFERENCIA.EnPreparacion
-              return (
-                <tr key={t.id}>
-                  <td>{t.sucursalOrigenNombre}</td>
-                  <td>{t.sucursalDestinoNombre}</td>
-                  <td>
-                    <span className={`estado-badge estado-transferencia-${t.estado}`}>
-                      {ESTADO_TRANSFERENCIA_LABEL[t.estado]}
-                    </span>
-                  </td>
-                  <td>{new Date(t.fechaSolicitud).toLocaleDateString()}</td>
-                  <td>
-                    {t.estado === ESTADO_TRANSFERENCIA.RecibidaParcial && (
-                      <ul className="faltantes-list">
-                        {t.lineas
-                          .filter((l) => l.faltante > 0)
-                          .map((l) => (
-                            <li key={l.id}>
-                              {l.productoNombre}: faltan {l.faltante}
-                            </li>
-                          ))}
-                      </ul>
-                    )}
-                  </td>
-                  <td className="acciones-cell">
-                    {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.Solicitada && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        disabled={actualizandoId === t.id}
-                        onClick={() => preparar(t.id)}
-                      >
-                        Preparar
-                      </button>
-                    )}
-                    {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.EnPreparacion && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        disabled={actualizandoId === t.id}
-                        onClick={() => enviar(t)}
-                      >
-                        Registrar envío
-                      </button>
-                    )}
-                    {esDestino && t.estado === ESTADO_TRANSFERENCIA.EnTransito && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => setRecepcionId(t.id)}
-                      >
-                        Confirmar recepción
-                      </button>
-                    )}
-                    {esOrigen && puedeCancelar && (
-                      <button
-                        type="button"
-                        className="link-button"
-                        disabled={actualizandoId === t.id}
-                        onClick={() => cancelar(t.id)}
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        </div>
+          </div>
+        </section>
       )}
     </div>
   )

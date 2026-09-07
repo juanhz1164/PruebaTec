@@ -46,8 +46,43 @@
   }
 }
 
+/* Tema claro (botón de modo claro/oscuro): mismos tokens, valores invertidos. */
+:root[data-theme='light'] {
+  --text: #4b5563;
+  --text-h: #111827;
+  --bg: #ffffff;
+  --border: #e2e5eb;
+  --code-bg: #f4f5f7;
+  --accent: #059669;
+  --accent-bg: rgba(5, 150, 105, 0.1);
+  --accent-border: rgba(5, 150, 105, 0.4);
+  --social-bg: rgba(228, 229, 232, 0.6);
+  --shadow:
+    rgba(0, 0, 0, 0.08) 0 10px 15px -3px, rgba(0, 0, 0, 0.04) 0 4px 6px -2px;
+
+  --chart-1: #059669;
+  --chart-2: #0f7a4a;
+  --chart-3: #1d6fb8;
+  --chart-4: #c73866;
+  --status-warning: #b8860b;
+  --status-warning-bg: rgba(184, 134, 11, 0.1);
+  --status-critical: #c73866;
+  --status-critical-bg: rgba(199, 56, 102, 0.1);
+
+  --chart-gold-1: #b8860b;
+  --chart-gold-2: #9a6f09;
+  --chart-gold-3: #d4a017;
+  --chart-gold-4: #7a5807;
+
+  color-scheme: light;
+}
+
 #social .button-icon {
   filter: invert(1) brightness(2);
+}
+
+:root[data-theme='light'] #social .button-icon {
+  filter: none;
 }
 
 #root {

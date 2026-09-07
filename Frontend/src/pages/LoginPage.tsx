@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { ApiError } from '../api/client'
 
 export function LoginPage() {
@@ -34,6 +35,9 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      <div className="login-theme-toggle">
+        <ThemeToggle />
+      </div>
       <aside className="login-panel" aria-hidden="true">
         <div className="login-panel-pattern" />
         <div className="login-panel-content">
