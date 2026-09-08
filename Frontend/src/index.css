@@ -102,6 +102,34 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* Barra de scroll global: delgada y del color de los bordes del tema (en vez
+   de la barra gris ancha por defecto del sistema/navegador, que no combina
+   con el resto de la UI). Se aplica a CUALQUIER elemento con scroll interno
+   que no tenga ya una regla más específica (tablas, modales, listas, etc.),
+   para no tener que repetir este estilo contenedor por contenedor. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--rol-accent-border, var(--accent-border));
+}
+
 h1,
 h2 {
   font-family: var(--heading);

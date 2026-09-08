@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 export interface AccionMenu {
   label: string
   onSelect: () => void
-  tone?: 'default' | 'danger'
+  tone?: 'default' | 'danger' | 'success'
   disabled?: boolean
 }
 
@@ -45,7 +45,13 @@ export function ActionsMenu({ acciones }: { acciones: AccionMenu[] }) {
               key={accion.label}
               type="button"
               role="menuitem"
-              className={`actions-menu-item ${accion.tone === 'danger' ? 'actions-menu-item--danger' : ''}`}
+              className={`actions-menu-item ${
+                accion.tone === 'danger'
+                  ? 'actions-menu-item--danger'
+                  : accion.tone === 'success'
+                    ? 'actions-menu-item--success'
+                    : ''
+              }`}
               disabled={accion.disabled}
               onClick={() => {
                 setAbierto(false)

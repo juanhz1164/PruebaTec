@@ -83,6 +83,7 @@ export function ComparativaSucursalesPage() {
   useEffect(() => {
     if (tab !== 'flujoPersonas') return
 
+    let cancelled = false
     setIsLoadingFlujo(true)
     setErrorFlujo(null)
 
@@ -92,11 +93,21 @@ export function ComparativaSucursalesPage() {
         : getFlujoPersonasPorMes(Number(fechaMes.slice(0, 4)), Number(fechaMes.slice(5, 7)))
 
     peticion
-      .then(setFlujo)
-      .catch((err) => {
-        setErrorFlujo(err instanceof ApiError ? err.message : 'No se pudo cargar el flujo de personas')
+      .then((data) => {
+        if (!cancelled) setFlujo(data)
       })
-      .finally(() => setIsLoadingFlujo(false))
+      .catch((err) => {
+        if (!cancelled) {
+          setErrorFlujo(err instanceof ApiError ? err.message : 'No se pudo cargar el flujo de personas')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingFlujo(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [tab, tipoPeriodo, fechaDia, fechaMes])
 
   const totalVentas = comparativa.reduce((sum, c) => sum + c.totalVentasMesActual, 0)
@@ -114,7 +125,7 @@ export function ComparativaSucursalesPage() {
 
   return (
     <div className="page page-fixed-header">
-      <div className={`page-header-sticky ${tab === 'flujoPersonas' ? 'page-header-sticky--compacto' : ''}`}>
+      <div className="page-header-sticky page-header-sticky--compacto">
         <p className="page-subtitle">Analiza el rendimiento y estado del inventario de cada sucursal</p>
 
         {isLoading && <p>Cargando...</p>}
@@ -157,26 +168,15 @@ export function ComparativaSucursalesPage() {
       </div>
 
       {!isLoading && !error && comparativa.length > 0 && (
-        <div
-          className={`page-scroll-body page-scroll-body--sin-barra ${
-            tab === 'flujoPersonas' ? 'page-scroll-body--clip' : ''
-          }`}
-        >
-          <section
-            className={`dash-card analisis-sucursal-card ${
-              tab === 'flujoPersonas' ? 'analisis-sucursal-card--full' : ''
-            }`}
-          >
-            <div
-              className={`analisis-sucursal-body ${
-                tab === 'flujoPersonas' ? 'analisis-sucursal-body--full' : ''
-              }`}
-            >
+        <div className="page-scroll-body page-scroll-body--sin-barra page-scroll-body--clip">
+          <section className="dash-card analisis-sucursal-card analisis-sucursal-card--full">
+            <div className="analisis-sucursal-body analisis-sucursal-body--full">
               {tab === 'ventas' && (
-                <>
+                <div className="analisis-sucursal-tab-contenido">
                   <h3>Ventas por sucursal</h3>
                   <p className="dash-card-hint">Ventas del mes actual, de mayor a menor</p>
                   <HorizontalBarChart
+                    fill
                     data={ordenadaPorVentas.map((c) => ({
                       label: c.sucursalNombre,
                       value: c.totalVentasMesActual,
@@ -185,14 +185,15 @@ export function ComparativaSucursalesPage() {
                     }))}
                     valueFormatter={(v) => formatearMoneda(v)}
                   />
-                </>
+                </div>
               )}
 
               {tab === 'inventario' && (
-                <>
+                <div className="analisis-sucursal-tab-contenido">
                   <h3>Valor del inventario por sucursal</h3>
                   <p className="dash-card-hint">Valor actual del inventario, de mayor a menor</p>
                   <HorizontalBarChart
+                    fill
                     data={comparativa.map((c) => ({
                       label: c.sucursalNombre,
                       value: c.valorInventarioActual,
@@ -200,14 +201,14 @@ export function ComparativaSucursalesPage() {
                     }))}
                     valueFormatter={(v) => formatearMoneda(v)}
                   />
-                </>
+                </div>
               )}
 
               {tab === 'participacion' && (
-                <>
+                <div className="analisis-sucursal-tab-contenido">
                   <h3>Participación de ventas por sucursal</h3>
                   <p className="dash-card-hint">Porcentaje del total de ventas que aporta cada sucursal</p>
-                  <div className="doughnut-chart-wrap">
+                  <div className="doughnut-chart-wrap doughnut-chart-wrap--fill">
                     <DoughnutChart
                       data={comparativa.map((c) => ({
                         label: c.sucursalNombre,
@@ -217,7 +218,6 @@ export function ComparativaSucursalesPage() {
                       valueFormatter={(v) => formatearMoneda(v)}
                       centerValue={formatearMoneda(totalVentas)}
                       centerLabel="Ventas totales"
-                      height={180}
                     />
                     <ul className="doughnut-legend">
                       {ordenadaPorVentas.map((c) => (
@@ -234,14 +234,15 @@ export function ComparativaSucursalesPage() {
                       ))}
                     </ul>
                   </div>
-                </>
+                </div>
               )}
 
               {tab === 'stockCritico' && (
-                <>
+                <div className="analisis-sucursal-tab-contenido">
                   <h3>Productos bajo mínimo por sucursal</h3>
                   <p className="dash-card-hint">Sucursales con productos por debajo del stock mínimo</p>
                   <HorizontalBarChart
+                    fill
                     data={ordenadaPorBajoMinimo.map((c) => ({
                       label: c.sucursalNombre,
                       value: c.productosBajoMinimo,
@@ -249,11 +250,11 @@ export function ComparativaSucursalesPage() {
                     }))}
                     valueFormatter={(v) => String(v)}
                   />
-                </>
+                </div>
               )}
 
               {tab === 'flujoPersonas' && (
-                <>
+                <div className="analisis-sucursal-tab-contenido">
                   <h3>Flujo de personas por sucursal</h3>
                   <p className="dash-card-hint">
                     Grupos y personas que ingresaron, según registros reales de Visitas
@@ -391,7 +392,7 @@ export function ComparativaSucursalesPage() {
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           </section>

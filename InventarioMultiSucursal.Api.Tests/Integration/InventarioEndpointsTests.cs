@@ -99,4 +99,74 @@ public class InventarioEndpointsTests : IntegrationTestBase
         var item = items!.Single(i => i.ProductoId == ProductoId);
         Assert.Equal(120m, item.Cantidad);
     }
+
+    [Fact]
+    public async Task CrearMovimiento_OperadorConSucursalAjena_DevuelveForbiddenYNoModificaStock()
+    {
+        // El Operador de Origen intenta registrar un movimiento en la sucursal
+        // Destino (cambiando solo el SucursalId del body): debe rechazarse.
+        var client = CrearClienteComoOperador();
+
+        var dto = new
+        {
+            ProductoId,
+            SucursalId = SucursalDestinoId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Tipo = 0,
+            Cantidad = 20m,
+            Motivo = "Intento de movimiento en sucursal ajena"
+        };
+
+        var response = await client.PostAsJsonAsync("/api/Inventario/movimientos", dto);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMovimientos_GerenteConSucursalAjenaEnQuery_IgnoraElParametroYUsaLaSuyaPropia()
+    {
+        // El Gerente de Origen registra un movimiento en su propia sucursal...
+        var clienteOrigen = CrearClienteComoOperador();
+        await clienteOrigen.PostAsJsonAsync("/api/Inventario/movimientos", new
+        {
+            ProductoId,
+            SucursalId = SucursalOrigenId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Tipo = 0,
+            Cantidad = 5m,
+            Motivo = "Movimiento de origen"
+        });
+
+        // ...y el Gerente de Destino intenta leer el historial pasando
+        // sucursalId=Origen en la query: debe recibir SU PROPIO historial
+        // (vacío), no el de Origen.
+        var clienteDestino = CrearClienteComoGerente(SucursalDestinoId);
+        var response = await clienteDestino.GetAsync($"/api/Inventario/movimientos?sucursalId={SucursalOrigenId}");
+
+        response.EnsureSuccessStatusCode();
+        var movimientos = await response.Content.ReadFromJsonAsync<List<MovimientoInventarioDto>>();
+        Assert.Empty(movimientos!);
+    }
+
+    [Fact]
+    public async Task GetMovimientos_ComoAdmin_RespetaElSucursalIdSolicitado()
+    {
+        var clienteOrigen = CrearClienteComoOperador();
+        await clienteOrigen.PostAsJsonAsync("/api/Inventario/movimientos", new
+        {
+            ProductoId,
+            SucursalId = SucursalOrigenId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Tipo = 0,
+            Cantidad = 5m,
+            Motivo = "Movimiento de origen"
+        });
+
+        var clienteAdmin = CrearClienteComoAdmin();
+        var response = await clienteAdmin.GetAsync($"/api/Inventario/movimientos?sucursalId={SucursalOrigenId}");
+
+        response.EnsureSuccessStatusCode();
+        var movimientos = await response.Content.ReadFromJsonAsync<List<MovimientoInventarioDto>>();
+        Assert.Single(movimientos!);
+    }
 }

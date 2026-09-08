@@ -15,17 +15,23 @@ public class VentaRepository : IVentaRepository
         _context = context;
     }
 
-    public async Task<List<Venta>> GetAllAsync()
+    public async Task<List<Venta>> GetAllAsync(int? sucursalId)
     {
-        return await _context.Ventas
+        var query = _context.Ventas
             .Include(v => v.Sucursal)
             .Include(v => v.Usuario)
             .Include(v => v.Lineas)
                 .ThenInclude(l => l.Producto)
             .Include(v => v.Lineas)
                 .ThenInclude(l => l.UnidadMedida)
-            .OrderByDescending(v => v.Fecha)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (sucursalId.HasValue)
+        {
+            query = query.Where(v => v.SucursalId == sucursalId.Value);
+        }
+
+        return await query.OrderByDescending(v => v.Fecha).ToListAsync();
     }
 
     public async Task<Venta?> GetByIdAsync(int id)

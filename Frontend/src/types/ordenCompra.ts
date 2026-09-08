@@ -7,9 +7,15 @@ export const ESTADO_ORDEN_COMPRA = {
 
 export type EstadoOrdenCompra = (typeof ESTADO_ORDEN_COMPRA)[keyof typeof ESTADO_ORDEN_COMPRA]
 
+// Los nombres del enum (Pendiente/Confirmada) reflejan la transición real en
+// el backend, pero de cara al usuario se muestran como lo que significan en
+// el flujo físico de la compra: "Pendiente por confirmar" (nadie la ha
+// aprobado) y "Pendiente de recibir" (ya aprobada, esperando que llegue a la
+// sucursal) — ambas se resaltan en el mismo tono de "atención" para no
+// confundirlas con un estado ya cerrado (Recibida/Cancelada).
 export const ESTADO_ORDEN_COMPRA_LABEL: Record<EstadoOrdenCompra, string> = {
-  [ESTADO_ORDEN_COMPRA.Pendiente]: 'Pendiente',
-  [ESTADO_ORDEN_COMPRA.Confirmada]: 'Confirmada',
+  [ESTADO_ORDEN_COMPRA.Pendiente]: 'Pendiente por confirmar',
+  [ESTADO_ORDEN_COMPRA.Confirmada]: 'Pendiente de recibir',
   [ESTADO_ORDEN_COMPRA.Recibida]: 'Recibida',
   [ESTADO_ORDEN_COMPRA.Cancelada]: 'Cancelada',
 }

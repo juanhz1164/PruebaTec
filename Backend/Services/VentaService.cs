@@ -21,9 +21,9 @@ public class VentaService : IVentaService
         _productoRepository = productoRepository;
     }
 
-    public async Task<List<VentaDto>> GetAllAsync()
+    public async Task<List<VentaDto>> GetAllAsync(int? sucursalId)
     {
-        var ventas = await _repository.GetAllAsync();
+        var ventas = await _repository.GetAllAsync(sucursalId);
         return ventas.Select(MapToDto).ToList();
     }
 

@@ -54,7 +54,7 @@ export function InventarioPage() {
 
         {!isLoading && !error && (
           <div className="admin-card admin-card--tabla">
-            <div className="table-scroll">
+            <div className="table-scroll table-scroll--sin-padding-inferior">
               <table className="data-table">
                 <thead>
                   <tr>

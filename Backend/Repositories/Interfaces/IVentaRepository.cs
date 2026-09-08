@@ -5,7 +5,7 @@ namespace InventarioMultiSucursal.Api.Repositories.Interfaces;
 
 public interface IVentaRepository
 {
-    Task<List<Venta>> GetAllAsync();
+    Task<List<Venta>> GetAllAsync(int? sucursalId);
     Task<Venta?> GetByIdAsync(int id);
     Task AddAsync(Venta venta);
     Task<int> SaveChangesAsync();

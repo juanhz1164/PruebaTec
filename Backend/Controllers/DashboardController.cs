@@ -21,6 +21,18 @@ public class DashboardController : ControllerBase
         _service = service;
     }
 
+    private int? SucursalIdUsuarioActual =>
+        int.TryParse(User.FindFirst("sucursalId")?.Value, out var id) ? id : null;
+
+    private bool EsAdmin => User.IsInRole(Roles.Admin);
+
+    // El Admin puede consultar cualquier sucursal (o todas, sin filtro); Gerente
+    // y Operador solo deben ver la suya, sin importar qué sucursalId envíen en
+    // la query — de lo contrario cualquier cliente autenticado podía leer el
+    // dashboard consolidado de toda la red pidiendo el endpoint sin filtro.
+    private int? SucursalIdEfectiva(int? sucursalIdSolicitado) =>
+        EsAdmin ? sucursalIdSolicitado : SucursalIdUsuarioActual;
+
     // GET api/Dashboard/ventas-por-mes?sucursalId=1&anio=2026&mes=9
     // T52: volumen de ventas del mes indicado (por defecto, el mes en curso)
     // vs. los 3 meses anteriores. anio/mes deben pasarse juntos; si se omiten,
@@ -36,7 +48,7 @@ public class DashboardController : ControllerBase
             return BadRequest("El mes debe estar entre 1 y 12.");
         }
 
-        return Ok(await _service.GetVentasMesActualVsAnterioresAsync(sucursalId, anio, mes));
+        return Ok(await _service.GetVentasMesActualVsAnterioresAsync(SucursalIdEfectiva(sucursalId), anio, mes));
     }
 
     // GET api/Dashboard/rotacion-inventario?sucursalId=1
@@ -44,7 +56,7 @@ public class DashboardController : ControllerBase
     [HttpGet("rotacion-inventario")]
     public async Task<ActionResult<IEnumerable<RotacionProductoDto>>> GetRotacionInventario([FromQuery] int? sucursalId)
     {
-        return Ok(await _service.GetRotacionInventarioAsync(sucursalId));
+        return Ok(await _service.GetRotacionInventarioAsync(SucursalIdEfectiva(sucursalId)));
     }
 
     // GET api/Dashboard/transferencias-activas
@@ -60,7 +72,7 @@ public class DashboardController : ControllerBase
     [HttpGet("productos-proximos-agotarse")]
     public async Task<ActionResult<IEnumerable<ProductoProximoAgotarseDto>>> GetProductosProximosAgotarse([FromQuery] int? sucursalId)
     {
-        return Ok(await _service.GetProductosProximosAgotarseAsync(sucursalId));
+        return Ok(await _service.GetProductosProximosAgotarseAsync(SucursalIdEfectiva(sucursalId)));
     }
 
     // GET api/Dashboard/comparativa-sucursales

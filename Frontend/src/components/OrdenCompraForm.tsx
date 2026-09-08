@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getProveedores } from '../api/proveedores'
+import { getSucursales } from '../api/sucursales'
 import { crearOrdenCompra } from '../api/ordenesCompra'
 import type { Producto } from '../types/producto'
 import type { Proveedor } from '../types/proveedor'
+import type { Sucursal } from '../types/sucursal'
 import type { CrearOrdenCompraLinea, OrdenCompra } from '../types/ordenCompra'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
@@ -30,9 +32,15 @@ function calcularDescuentoVsVenta(precioVenta: number, precioUnitario: number): 
 
 export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) => void }) {
   const { usuario } = useAuth()
+  const esAdmin = usuario?.rol === 'AdministradorGeneral'
   const [productos, setProductos] = useState<Producto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [proveedorId, setProveedorId] = useState<number | null>(null)
+  // El Admin no tiene sucursal propia: puede comprar para cualquier sucursal
+  // de la red y elige explícitamente a cuál va la orden. Gerente/Operador
+  // solo compran para su propia sucursal, como ya ocurría.
+  const [sucursales, setSucursales] = useState<Sucursal[]>([])
+  const [sucursalId, setSucursalId] = useState<number | null>(usuario?.sucursalId ?? null)
   // El backend requiere PlazoPagoDias en la orden, pero no se le muestra al
   // usuario un control para editarlo (no aporta valor en el flujo actual):
   // se envía siempre este valor fijo.
@@ -51,7 +59,15 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
         setProveedorId((current) => current ?? data[0]?.id ?? null)
       })
       .catch(() => setError('No se pudo cargar el listado de proveedores'))
-  }, [])
+    if (esAdmin) {
+      getSucursales()
+        .then((data) => {
+          setSucursales(data)
+          setSucursalId((current) => current ?? data[0]?.id ?? null)
+        })
+        .catch(() => setError('No se pudo cargar el listado de sucursales'))
+    }
+  }, [esAdmin])
 
   // Solo se ofrecen los productos que distribuye el proveedor elegido.
   const productosDelProveedor = useMemo(
@@ -109,7 +125,7 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!usuario?.sucursalId || !proveedorId) return
+    if (!sucursalId || !proveedorId) return
 
     const lineasValidas: CrearOrdenCompraLinea[] = []
     for (const linea of lineas) {
@@ -144,8 +160,8 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
     try {
       const orden = await crearOrdenCompra({
         proveedorId,
-        sucursalId: usuario.sucursalId,
-        usuarioId: usuario.id,
+        sucursalId,
+        usuarioId: usuario!.id,
         plazoPagoDias: PLAZO_PAGO_DIAS_DEFECTO,
         lineas: lineasValidas,
       })
@@ -157,7 +173,7 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
     }
   }
 
-  if (!usuario?.sucursalId) {
+  if (!usuario || (!esAdmin && !usuario.sucursalId)) {
     return null
   }
 
@@ -165,6 +181,24 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
     <form className="venta-form venta-form--fija" onSubmit={handleSubmit}>
       <div className="venta-form-seccion venta-form-seccion--fija">
         <h3 className="venta-form-seccion-titulo">Información general</h3>
+
+        {esAdmin && (
+          <div className="form-row">
+            <label htmlFor="oc-sucursal">Sucursal a la que se compra</label>
+            <select
+              id="oc-sucursal"
+              value={sucursalId ?? ''}
+              onChange={(e) => setSucursalId(Number(e.target.value))}
+            >
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="form-row-inline">
           <div className="form-row">
             <label htmlFor="oc-proveedor">Proveedor</label>

@@ -53,11 +53,9 @@ export function VentasPage() {
     return Promise.all([getInventarioPorSucursal(usuario.sucursalId), getVentas(), getProductos()])
       .then(([inv, vts, prods]) => {
         setInventario(inv)
-        setVentas(
-          vts
-            .filter((v) => v.sucursalId === usuario.sucursalId)
-            .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
-        )
+        // El backend ya devuelve solo las ventas de la sucursal del usuario
+        // (Gerente/Operador); no hace falta filtrar de nuevo en el cliente.
+        setVentas([...vts].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
         setProductos(prods)
       })
       .catch((err) => {

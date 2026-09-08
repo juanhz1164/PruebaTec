@@ -10,6 +10,10 @@ import type { EstadoOrdenCompra, OrdenCompra } from '../types/ordenCompra'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
 
+// Confirmar (Pendiente -> Confirmada) lo hace el Admin, que aprueba la compra
+// a nivel de red. Marcar recibida (Confirmada -> Recibida) lo hace el Gerente
+// de la sucursal a la que llega la orden, porque es quien ve llegar la
+// mercancía de verdad — el Admin no tiene forma de saberlo.
 const SIGUIENTE_ESTADO: Partial<Record<number, { estado: EstadoOrdenCompra; label: string }>> = {
   [ESTADO_ORDEN_COMPRA.Pendiente]: {
     estado: ESTADO_ORDEN_COMPRA.Confirmada,
@@ -23,10 +27,10 @@ const SIGUIENTE_ESTADO: Partial<Record<number, { estado: EstadoOrdenCompra; labe
 
 const FILTROS_ESTADO: { value: string; label: string }[] = [
   { value: '', label: 'Todos los estados' },
-  { value: String(ESTADO_ORDEN_COMPRA.Pendiente), label: 'Pendiente' },
-  { value: String(ESTADO_ORDEN_COMPRA.Confirmada), label: 'Confirmada' },
-  { value: String(ESTADO_ORDEN_COMPRA.Recibida), label: 'Recibida' },
-  { value: String(ESTADO_ORDEN_COMPRA.Cancelada), label: 'Cancelada' },
+  { value: String(ESTADO_ORDEN_COMPRA.Pendiente), label: ESTADO_ORDEN_COMPRA_LABEL[ESTADO_ORDEN_COMPRA.Pendiente] },
+  { value: String(ESTADO_ORDEN_COMPRA.Confirmada), label: ESTADO_ORDEN_COMPRA_LABEL[ESTADO_ORDEN_COMPRA.Confirmada] },
+  { value: String(ESTADO_ORDEN_COMPRA.Recibida), label: ESTADO_ORDEN_COMPRA_LABEL[ESTADO_ORDEN_COMPRA.Recibida] },
+  { value: String(ESTADO_ORDEN_COMPRA.Cancelada), label: ESTADO_ORDEN_COMPRA_LABEL[ESTADO_ORDEN_COMPRA.Cancelada] },
 ]
 
 function formatearFecha(fechaIso: string): string {
@@ -36,6 +40,7 @@ function formatearFecha(fechaIso: string): string {
 export function ComprasPage() {
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
+  const esGerente = usuario?.rol === 'GerenteSucursal'
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,28 +80,41 @@ export function ComprasPage() {
     }
   }
 
+  // El backend no filtra por sucursal en GET /api/OrdenesCompra (trae todas
+  // las órdenes de la red); el Admin necesita verlas todas para aprobar
+  // compras de cualquier sucursal, pero Gerente/Operador solo deben ver (y
+  // contar en sus KPIs) las órdenes de su propia sucursal, igual que ya
+  // ocurre en Ventas e Inventario.
+  const ordenesVisibles = useMemo(
+    () => (esAdmin ? ordenes : ordenes.filter((o) => o.sucursalId === usuario?.sucursalId)),
+    [ordenes, esAdmin, usuario?.sucursalId],
+  )
+
   const ordenesPendientes = useMemo(
-    () => ordenes.filter((o) => o.estado === ESTADO_ORDEN_COMPRA.Pendiente).length,
-    [ordenes],
+    () => ordenesVisibles.filter((o) => o.estado === ESTADO_ORDEN_COMPRA.Pendiente).length,
+    [ordenesVisibles],
   )
   const ordenesRecibidas = useMemo(
-    () => ordenes.filter((o) => o.estado === ESTADO_ORDEN_COMPRA.Recibida).length,
-    [ordenes],
+    () => ordenesVisibles.filter((o) => o.estado === ESTADO_ORDEN_COMPRA.Recibida).length,
+    [ordenesVisibles],
   )
   const totalComprado = useMemo(
-    () => ordenes.filter((o) => o.estado !== ESTADO_ORDEN_COMPRA.Cancelada).reduce((acc, o) => acc + o.total, 0),
-    [ordenes],
+    () =>
+      ordenesVisibles
+        .filter((o) => o.estado !== ESTADO_ORDEN_COMPRA.Cancelada)
+        .reduce((acc, o) => acc + o.total, 0),
+    [ordenesVisibles],
   )
 
   const ordenesFiltradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    return ordenes.filter((o) => {
+    return ordenesVisibles.filter((o) => {
       const coincideBusqueda =
         !q || o.proveedorNombre.toLowerCase().includes(q) || `#${o.id}`.includes(q) || String(o.id).includes(q)
       const coincideEstado = filtroEstado === '' || String(o.estado) === filtroEstado
       return coincideBusqueda && coincideEstado
     })
-  }, [ordenes, busqueda, filtroEstado])
+  }, [ordenesVisibles, busqueda, filtroEstado])
 
   const handleOrdenCreada = (orden: OrdenCompra) => {
     setMostrarModalOrden(false)
@@ -104,21 +122,27 @@ export function ComprasPage() {
     setOrdenSeleccionada(orden)
   }
 
+  // Puede recibir esta orden puntual: es Gerente Y su sucursal coincide con
+  // la sucursal destino de la orden (es quien físicamente la recibe).
+  const puedeRecibir = (orden: OrdenCompra) => esGerente && usuario?.sucursalId === orden.sucursalId
+
   const accionesDisponibles = (orden: OrdenCompra): AccionMenu[] => {
     const acciones: AccionMenu[] = [{ label: 'Ver detalle', onSelect: () => setOrdenSeleccionada(orden) }]
-    if (!esAdmin) return acciones
 
     const siguiente = SIGUIENTE_ESTADO[orden.estado]
-    if (siguiente) {
+    const puedeEjecutarSiguiente = siguiente?.estado === ESTADO_ORDEN_COMPRA.Recibida ? puedeRecibir(orden) : esAdmin
+    if (siguiente && puedeEjecutarSiguiente) {
       acciones.push({
         label: siguiente.label,
+        tone: 'success',
         disabled: actualizandoId === orden.id,
         onSelect: () => cambiarEstado(orden.id, siguiente.estado),
       })
     }
 
     const puedeCancelar =
-      orden.estado === ESTADO_ORDEN_COMPRA.Pendiente || orden.estado === ESTADO_ORDEN_COMPRA.Confirmada
+      esAdmin &&
+      (orden.estado === ESTADO_ORDEN_COMPRA.Pendiente || orden.estado === ESTADO_ORDEN_COMPRA.Confirmada)
     if (puedeCancelar) {
       acciones.push({
         label: 'Cancelar orden',
@@ -194,6 +218,7 @@ export function ComprasPage() {
                   <tr>
                     <th>Orden</th>
                     <th>Proveedor</th>
+                    <th>Sucursal</th>
                     <th>Fecha</th>
                     <th>Estado</th>
                     <th>Productos</th>
@@ -204,13 +229,14 @@ export function ComprasPage() {
                 <tbody>
                   {ordenesFiltradas.length === 0 && (
                     <tr>
-                      <td colSpan={7}>No hay órdenes que coincidan con la búsqueda.</td>
+                      <td colSpan={8}>No hay órdenes que coincidan con la búsqueda.</td>
                     </tr>
                   )}
                   {ordenesFiltradas.map((orden) => (
                     <tr key={orden.id}>
                       <td className="celda-mono">#{String(orden.id).padStart(4, '0')}</td>
                       <td className="celda-principal">{orden.proveedorNombre}</td>
+                      <td>{orden.sucursalNombre}</td>
                       <td>{formatearFecha(orden.fecha)}</td>
                       <td>
                         <span className={`estado-badge estado-${orden.estado}`}>
@@ -249,12 +275,12 @@ export function ComprasPage() {
               <p className="modal-producto-nombre">{ordenSeleccionada.proveedorNombre}</p>
             </div>
             <div>
-              <span className="modal-producto-meta">Fecha</span>
-              <p className="modal-producto-nombre">{formatearFecha(ordenSeleccionada.fecha)}</p>
+              <span className="modal-producto-meta">Sucursal</span>
+              <p className="modal-producto-nombre">{ordenSeleccionada.sucursalNombre}</p>
             </div>
             <div>
-              <span className="modal-producto-meta">Plazo de pago</span>
-              <p className="modal-producto-nombre">{ordenSeleccionada.plazoPagoDias} días</p>
+              <span className="modal-producto-meta">Fecha</span>
+              <p className="modal-producto-nombre">{formatearFecha(ordenSeleccionada.fecha)}</p>
             </div>
             <div>
               <span className="modal-producto-meta">Estado</span>
@@ -313,32 +339,45 @@ export function ComprasPage() {
             </div>
           </div>
 
-          {esAdmin && (
-            <div className="modal-actions">
-              {SIGUIENTE_ESTADO[ordenSeleccionada.estado] && (
-                <button
-                  type="button"
-                  disabled={actualizandoId === ordenSeleccionada.id}
-                  onClick={() =>
-                    cambiarEstado(ordenSeleccionada.id, SIGUIENTE_ESTADO[ordenSeleccionada.estado]!.estado)
-                  }
-                >
-                  {SIGUIENTE_ESTADO[ordenSeleccionada.estado]!.label}
-                </button>
-              )}
-              {(ordenSeleccionada.estado === ESTADO_ORDEN_COMPRA.Pendiente ||
-                ordenSeleccionada.estado === ESTADO_ORDEN_COMPRA.Confirmada) && (
-                <button
-                  type="button"
-                  className="danger-button"
-                  disabled={actualizandoId === ordenSeleccionada.id}
-                  onClick={() => cambiarEstado(ordenSeleccionada.id, ESTADO_ORDEN_COMPRA.Cancelada)}
-                >
-                  Cancelar orden
-                </button>
-              )}
-            </div>
-          )}
+          {(() => {
+            const siguiente = SIGUIENTE_ESTADO[ordenSeleccionada.estado]
+            const puedeEjecutarSiguiente = siguiente
+              ? siguiente.estado === ESTADO_ORDEN_COMPRA.Recibida
+                ? puedeRecibir(ordenSeleccionada)
+                : esAdmin
+              : false
+            const puedeCancelar =
+              esAdmin &&
+              (ordenSeleccionada.estado === ESTADO_ORDEN_COMPRA.Pendiente ||
+                ordenSeleccionada.estado === ESTADO_ORDEN_COMPRA.Confirmada)
+
+            if (!puedeEjecutarSiguiente && !puedeCancelar) return null
+
+            return (
+              <div className="modal-actions">
+                {siguiente && puedeEjecutarSiguiente && (
+                  <button
+                    type="button"
+                    className="success-button"
+                    disabled={actualizandoId === ordenSeleccionada.id}
+                    onClick={() => cambiarEstado(ordenSeleccionada.id, siguiente.estado)}
+                  >
+                    {siguiente.label}
+                  </button>
+                )}
+                {puedeCancelar && (
+                  <button
+                    type="button"
+                    className="danger-button"
+                    disabled={actualizandoId === ordenSeleccionada.id}
+                    onClick={() => cambiarEstado(ordenSeleccionada.id, ESTADO_ORDEN_COMPRA.Cancelada)}
+                  >
+                    Cancelar orden
+                  </button>
+                )}
+              </div>
+            )
+          })()}
         </Modal>
       )}
     </div>

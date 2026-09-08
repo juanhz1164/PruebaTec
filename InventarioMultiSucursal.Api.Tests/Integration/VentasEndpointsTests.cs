@@ -96,4 +96,61 @@ public class VentasEndpointsTests : IntegrationTestBase
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Create_OperadorConSucursalAjena_DevuelveForbidden()
+    {
+        // El Operador de la sucursal Origen intenta registrar una venta en la
+        // sucursal Destino (cambiando solo el SucursalId del body): debe
+        // rechazarse, no confiar en el valor que envía el cliente.
+        var client = CrearClienteComoOperador();
+        var dto = new CrearVentaDto
+        {
+            SucursalId = SucursalDestinoId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Lineas = new List<CrearVentaLineaDto> { new() { ProductoId = ProductoId, Cantidad = 1m } }
+        };
+
+        var response = await client.PostAsJsonAsync("/api/Ventas", dto);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_ComoGerente_SoloDevuelveVentasDeSuPropiaSucursal()
+    {
+        var clienteOrigen = CrearClienteComoOperador();
+        await clienteOrigen.PostAsJsonAsync("/api/Ventas", new CrearVentaDto
+        {
+            SucursalId = SucursalOrigenId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Lineas = new List<CrearVentaLineaDto> { new() { ProductoId = ProductoId, Cantidad = 1m } }
+        });
+
+        var clienteGerenteDestino = CrearClienteComoGerente(SucursalDestinoId);
+        var response = await clienteGerenteDestino.GetAsync("/api/Ventas");
+
+        response.EnsureSuccessStatusCode();
+        var ventas = await response.Content.ReadFromJsonAsync<List<VentaDto>>();
+        Assert.Empty(ventas!);
+    }
+
+    [Fact]
+    public async Task GetAll_ComoAdmin_DevuelveVentasDeTodasLasSucursales()
+    {
+        var clienteOrigen = CrearClienteComoOperador();
+        await clienteOrigen.PostAsJsonAsync("/api/Ventas", new CrearVentaDto
+        {
+            SucursalId = SucursalOrigenId,
+            UsuarioId = OperadorOrigenUsuarioId,
+            Lineas = new List<CrearVentaLineaDto> { new() { ProductoId = ProductoId, Cantidad = 1m } }
+        });
+
+        var clienteAdmin = CrearClienteComoAdmin();
+        var response = await clienteAdmin.GetAsync("/api/Ventas");
+
+        response.EnsureSuccessStatusCode();
+        var ventas = await response.Content.ReadFromJsonAsync<List<VentaDto>>();
+        Assert.Single(ventas!);
+    }
 }

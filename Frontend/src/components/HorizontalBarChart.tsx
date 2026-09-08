@@ -26,11 +26,16 @@ export function HorizontalBarChart({
   data,
   valueFormatter = (v: number) => v.toFixed(0),
   height,
+  fill = false,
   colorVar = '--rol-accent',
 }: {
   data: HBarDatum[]
   valueFormatter?: (value: number) => string
   height?: number
+  // Cuando el contenedor padre ya reserva el alto disponible (flex:1), el
+  // chart debe llenarlo (height:100%) en vez de calcular su propia altura
+  // fija en píxeles según la cantidad de barras.
+  fill?: boolean
   colorVar?: string
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -123,7 +128,10 @@ export function HorizontalBarChart({
   const resolvedHeight = height ?? Math.max(ordenados.length * 40, 100)
 
   return (
-    <div className="hbar-chart" style={{ height: resolvedHeight }}>
+    <div
+      className={`hbar-chart ${fill ? 'hbar-chart--fill' : ''}`}
+      style={fill ? undefined : { height: resolvedHeight }}
+    >
       <canvas ref={canvasRef} />
     </div>
   )

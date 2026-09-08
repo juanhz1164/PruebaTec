@@ -83,15 +83,24 @@ export function DashboardPage() {
   }, [usuario?.sucursalId, esAdmin, esGerente])
 
   useEffect(() => {
+    let cancelled = false
     const sucursalId = usuario?.sucursalId ?? undefined
     const anio = Number(mesVentasSeleccionado.slice(0, 4))
     const mes = Number(mesVentasSeleccionado.slice(5, 7))
 
     getVentasPorMes(sucursalId, anio, mes)
-      .then(setVentasPorMes)
-      .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'No se pudo cargar las ventas por mes')
+      .then((data) => {
+        if (!cancelled) setVentasPorMes(data)
       })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : 'No se pudo cargar las ventas por mes')
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [usuario?.sucursalId, mesVentasSeleccionado])
 
   if (isLoading) {
@@ -251,10 +260,12 @@ export function DashboardPage() {
             </section>
           )}
 
-          {masVendidos.length > 0 && (
-            <section className="dash-card">
-              <h2>Productos más vendidos</h2>
-              <p className="dash-card-hint">Últimos 30 días</p>
+          <section className="dash-card">
+            <h2>Productos más vendidos</h2>
+            <p className="dash-card-hint">Últimos 30 días</p>
+            {masVendidos.length === 0 ? (
+              <p className="chart-empty">Todavía no se ha vendido nada en este período.</p>
+            ) : (
               <ul className="dash-ranking-list">
                 {masVendidos.map((p, i) => (
                   <li key={p.productoId} className="dash-ranking-item">
@@ -274,8 +285,8 @@ export function DashboardPage() {
                   </li>
                 ))}
               </ul>
-            </section>
-          )}
+            )}
+          </section>
         </div>
       </div>
     </div>

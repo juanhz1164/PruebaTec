@@ -230,10 +230,11 @@
   flex-shrink: 0;
 }
 
-/* Cabecera comprimida para "Flujo de personas": ese contenido de pestaña ya
-   necesita bastante alto propio (KPIs + 2 gráficas), así que aquí se reduce
-   al mínimo el subtítulo/KPIs superiores/título/tabs para que todo quepa
-   en la pantalla sin scroll. */
+/* Cabecera comprimida: se aplica a las 5 pestañas de "Análisis por sucursal"
+   por igual (no solo a "Flujo de personas") para que todas ocupen el mismo
+   alto de tarjeta y cambiar de pestaña no "salte" el layout. Reduce al
+   mínimo el subtítulo/KPIs superiores/título/tabs para dejarle más espacio
+   vertical al gráfico de la pestaña activa. */
 .page-header-sticky--compacto .page-subtitle {
   margin-top: 0;
   font-size: 12px;
@@ -288,9 +289,10 @@
   display: none;
 }
 
-/* "Flujo de personas" está pensado para caber entero sin scroll; si por un
-   viewport muy bajo algo se pasa por unos px, se recorta en vez de mostrar
-   scroll (la cabecera ya se comprime al máximo para evitar llegar aquí). */
+/* Las 5 pestañas de "Análisis por sucursal" están pensadas para caber enteras
+   sin scroll, llenando el alto disponible; si por un viewport muy bajo algo
+   se pasa por unos px, se recorta en vez de mostrar scroll (la cabecera ya se
+   comprime al máximo para evitar llegar aquí). */
 .page-scroll-body--clip {
   overflow-y: hidden;
   display: flex;
@@ -1510,6 +1512,15 @@
   -ms-overflow-style: none;
 }
 
+/* Cuando una línea muestra "Venta al público" bajo el precio, esa celda crece
+   más alto que las demás; con vertical-align:middle (heredado de .data-table)
+   las otras celdas quedaban centradas contra esa altura extra y se veían
+   desalineadas respecto al resto de la fila. Alineando todo arriba, cada
+   celda queda a la misma altura sin importar si tiene el hint o no. */
+.lineas-table td {
+  vertical-align: top;
+}
+
 .lineas-table::-webkit-scrollbar {
   display: none;
 }
@@ -1646,12 +1657,20 @@
   color: var(--text-h);
 }
 
-/* Usado por Órdenes de compra para el estado "Confirmada" (estado-1 del
-   enum EstadoOrdenCompra): el resto de estados ya tenían tono propio
-   (estado-badge base = Pendiente, estado-2 = Recibida, estado-3 = Cancelada). */
+/* Usado por Órdenes de compra (EstadoOrdenCompra): "Pendiente por confirmar"
+   (estado-0) y "Pendiente de recibir" (estado-1) comparten el mismo tono de
+   atención (naranja) porque ambas son estados intermedios que requieren que
+   alguien actúe — antes "Confirmada" se veía azul, un color que se confundía
+   con "ya está resuelta" cuando en realidad sigue pendiente de recepción.
+   "Recibida" (estado-2) es la única que se ve realmente cerrada, en verde. */
+.estado-badge.estado-0 {
+  color: #b5720a;
+  background: rgba(181, 114, 10, 0.14);
+}
+
 .estado-badge.estado-1 {
-  color: #2a7fc9;
-  background: rgba(42, 127, 201, 0.12);
+  color: #b5720a;
+  background: rgba(181, 114, 10, 0.14);
 }
 
 .estado-badge.estado-2 {
@@ -2041,6 +2060,12 @@
   width: 100%;
 }
 
+.hbar-chart--fill {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
 .dash-alertas-list {
   list-style: none;
   margin: 0;
@@ -2214,6 +2239,30 @@
 
 .analisis-sucursal-body--full {
   gap: 4px;
+}
+
+/* Contenido de cada pestaña de "Análisis por sucursal": título/hint fijos
+   arriba y el gráfico ocupando todo el alto restante, para que las 5
+   pestañas (Ventas/Inventario/Participación/Stock crítico/Flujo de personas)
+   se vean del mismo tamaño y no "salte" el layout al cambiar entre ellas. */
+.analisis-sucursal-tab-contenido {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 4px;
+}
+
+.analisis-sucursal-tab-contenido > h3,
+.analisis-sucursal-tab-contenido > .dash-card-hint {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.doughnut-chart-wrap--fill {
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
 }
 
 .analisis-sucursal-body--full h3,
@@ -3046,6 +3095,21 @@
   margin-top: 0;
 }
 
+/* En listas cortas que ya caben enteras (ej. Inventario del Operador, con
+   pocos productos), el padding-bottom de .table-scroll sumaba justo lo
+   suficiente para que el contenido excediera el 100% del contenedor y
+   apareciera una barra de scroll "fantasma" sin nada real que desplazar.
+   Además, un height:100% exacto puede quedar 1-2px por debajo del alto real
+   de la tabla por simple redondeo de subpíxeles del navegador — ese margen
+   mínimo ya alcanza para disparar la barra aunque no haya nada que
+   desplazar. Restar un par de píxeles al alto disponible absorbe ese
+   redondeo sin afectar el caso de listas largas (donde 2px son irrelevantes
+   frente al contenido real que sí desborda). */
+.admin-card--tabla .table-scroll.table-scroll--sin-padding-inferior {
+  height: calc(100% + 4px);
+  padding-bottom: 0;
+}
+
 .admin-card--tabla .data-table thead th:first-child {
   padding-left: 0;
 }
@@ -3186,6 +3250,14 @@ td.col-precio {
 
 .actions-menu-item--danger:hover {
   background: rgba(224, 36, 94, 0.1);
+}
+
+.actions-menu-item--success {
+  color: #1a8917;
+}
+
+.actions-menu-item--success:hover {
+  background: rgba(26, 137, 23, 0.1);
 }
 
 /* Modal ----------------------------------------------------------------- */

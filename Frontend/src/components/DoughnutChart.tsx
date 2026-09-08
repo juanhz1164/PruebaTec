@@ -18,7 +18,7 @@ export function DoughnutChart({
   valueFormatter = (v: number) => v.toFixed(0),
   centerLabel,
   centerValue,
-  height = 240,
+  height = 320,
 }: {
   data: DoughnutDatum[]
   valueFormatter?: (value: number) => string

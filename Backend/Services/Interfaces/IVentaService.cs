@@ -4,7 +4,7 @@ namespace InventarioMultiSucursal.Api.Services.Interfaces;
 
 public interface IVentaService
 {
-    Task<List<VentaDto>> GetAllAsync();
+    Task<List<VentaDto>> GetAllAsync(int? sucursalId);
     Task<VentaDto?> GetByIdAsync(int id);
     Task<ResultadoVenta> CrearAsync(CrearVentaDto dto);
 }

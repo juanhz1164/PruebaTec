@@ -5,10 +5,12 @@ using InventarioMultiSucursal.Api.Models;
 
 namespace InventarioMultiSucursal.Api.Tests.Integration;
 
-// T83: tests de integración del endpoint de Órdenes de compra, incluyendo la
-// restricción de rol (solo Admin cambia el estado) y el efecto de recibir una
-// orden sobre el inventario (costo promedio ponderado, cubierto a nivel
-// unitario en T80; aquí se verifica el flujo end-to-end vía HTTP).
+// T83: tests de integración del endpoint de Órdenes de compra. Confirmar y
+// cancelar son solo del Admin; marcar recibida es solo del Gerente de la
+// sucursal destino de la orden (el Admin no puede saber si ya llegó). También
+// cubre el efecto de recibir una orden sobre el inventario (costo promedio
+// ponderado, cubierto a nivel unitario en T80; aquí se verifica el flujo
+// end-to-end vía HTTP).
 public class ComprasEndpointsTests : IntegrationTestBase
 {
     private static CrearOrdenCompraDto CrearOrdenDto(int sucursalId, int usuarioId) => new()
@@ -51,20 +53,20 @@ public class ComprasEndpointsTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task CambiarEstado_ComoAdmin_ConfirmarYRecibir_ActualizaInventarioYCostoPromedio()
+    public async Task CambiarEstado_AdminConfirmaYGerenteDeLaSucursalRecibe_ActualizaInventarioYCostoPromedio()
     {
         var clienteOperador = CrearClienteComoOperador();
         var creada = await clienteOperador.PostAsJsonAsync("/api/OrdenesCompra", CrearOrdenDto(SucursalOrigenId, OperadorOrigenUsuarioId));
         var orden = await creada.Content.ReadFromJsonAsync<OrdenCompraDto>();
 
         var clienteAdmin = CrearClienteComoAdmin();
-
         var confirmar = await clienteAdmin.PutAsJsonAsync(
             $"/api/OrdenesCompra/{orden!.Id}/estado",
             new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Confirmada });
         confirmar.EnsureSuccessStatusCode();
 
-        var recibir = await clienteAdmin.PutAsJsonAsync(
+        var clienteGerenteOrigen = CrearClienteComoGerente(SucursalOrigenId);
+        var recibir = await clienteGerenteOrigen.PutAsJsonAsync(
             $"/api/OrdenesCompra/{orden.Id}/estado",
             new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Recibida });
         recibir.EnsureSuccessStatusCode();
@@ -84,14 +86,58 @@ public class ComprasEndpointsTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task CambiarEstado_SaltarDePendienteARecibida_DevuelveBadRequest()
+    public async Task CambiarEstado_AdminIntentaRecibir_DevuelveForbidden()
+    {
+        // El Admin aprueba/cancela, pero no puede marcar "Recibida": no está en
+        // la sucursal para saber si la mercancía llegó de verdad.
+        var clienteOperador = CrearClienteComoOperador();
+        var creada = await clienteOperador.PostAsJsonAsync("/api/OrdenesCompra", CrearOrdenDto(SucursalOrigenId, OperadorOrigenUsuarioId));
+        var orden = await creada.Content.ReadFromJsonAsync<OrdenCompraDto>();
+
+        var clienteAdmin = CrearClienteComoAdmin();
+        await clienteAdmin.PutAsJsonAsync(
+            $"/api/OrdenesCompra/{orden!.Id}/estado",
+            new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Confirmada });
+
+        var response = await clienteAdmin.PutAsJsonAsync(
+            $"/api/OrdenesCompra/{orden.Id}/estado",
+            new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Recibida });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CambiarEstado_GerenteDeOtraSucursalIntentaRecibir_DevuelveForbidden()
     {
         var clienteOperador = CrearClienteComoOperador();
         var creada = await clienteOperador.PostAsJsonAsync("/api/OrdenesCompra", CrearOrdenDto(SucursalOrigenId, OperadorOrigenUsuarioId));
         var orden = await creada.Content.ReadFromJsonAsync<OrdenCompraDto>();
 
         var clienteAdmin = CrearClienteComoAdmin();
-        var response = await clienteAdmin.PutAsJsonAsync(
+        await clienteAdmin.PutAsJsonAsync(
+            $"/api/OrdenesCompra/{orden!.Id}/estado",
+            new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Confirmada });
+
+        // La orden es para SucursalOrigenId; el Gerente de destino no tiene por qué recibirla.
+        var clienteGerenteDestino = CrearClienteComoGerente(SucursalDestinoId);
+        var response = await clienteGerenteDestino.PutAsJsonAsync(
+            $"/api/OrdenesCompra/{orden.Id}/estado",
+            new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Recibida });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CambiarEstado_GerenteDeLaSucursalIntentaSaltarDePendienteARecibida_DevuelveBadRequest()
+    {
+        var clienteOperador = CrearClienteComoOperador();
+        var creada = await clienteOperador.PostAsJsonAsync("/api/OrdenesCompra", CrearOrdenDto(SucursalOrigenId, OperadorOrigenUsuarioId));
+        var orden = await creada.Content.ReadFromJsonAsync<OrdenCompraDto>();
+
+        // Todavía está Pendiente (nadie la confirmó): el Gerente correcto puede
+        // intentar recibirla, pero la transición sigue siendo inválida.
+        var clienteGerenteOrigen = CrearClienteComoGerente(SucursalOrigenId);
+        var response = await clienteGerenteOrigen.PutAsJsonAsync(
             $"/api/OrdenesCompra/{orden!.Id}/estado",
             new CambiarEstadoOrdenCompraDto { Estado = EstadoOrdenCompra.Recibida });
 
