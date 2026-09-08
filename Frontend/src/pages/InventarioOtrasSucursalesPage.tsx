@@ -74,45 +74,47 @@ export function InventarioOtrasSucursalesPage() {
         {error && <p className="error-text">{error}</p>}
       </div>
 
-      <div className="page-scroll-body">
+      <div className="page-scroll-body page-scroll-body--tabla-fija">
         {isLoading && <p>Cargando...</p>}
 
         {!isLoading && !error && sucursalId && (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Producto</th>
-                  <th>Cantidad</th>
-                  <th>Unidad</th>
-                  <th>Stock mínimo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 && (
+          <div className="admin-card admin-card--tabla">
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={5}>No hay productos en el inventario de esta sucursal.</td>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Stock mínimo</th>
                   </tr>
-                )}
-                {items.map((item) => {
-                  const stockBajo = !item.agotado && item.cantidad <= item.stockMinimo
-                  return (
-                    <tr key={`${item.productoId}-${item.id}`} className={item.agotado || stockBajo ? 'row-alert' : undefined}>
-                      <td>{item.productoSku}</td>
-                      <td>{item.productoNombre}</td>
-                      <td>
-                        {item.cantidad}
-                        {item.agotado && <span className="badge-alert">agotado</span>}
-                        {stockBajo && <span className="badge-alert">stock bajo</span>}
-                      </td>
-                      <td>{item.unidadMedidaAbreviatura}</td>
-                      <td>{item.stockMinimo}</td>
+                </thead>
+                <tbody>
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={5}>No hay productos en el inventario de esta sucursal.</td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {items.map((item) => {
+                    const stockBajo = !item.agotado && item.cantidad <= item.stockMinimo
+                    return (
+                      <tr key={`${item.productoId}-${item.id}`} className={item.agotado || stockBajo ? 'row-alert' : undefined}>
+                        <td>{item.productoSku}</td>
+                        <td>{item.productoNombre}</td>
+                        <td>
+                          {item.cantidad}
+                          {item.agotado && <span className="badge-alert">agotado</span>}
+                          {stockBajo && <span className="badge-alert">stock bajo</span>}
+                        </td>
+                        <td>{item.unidadMedidaAbreviatura}</td>
+                        <td>{item.stockMinimo}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

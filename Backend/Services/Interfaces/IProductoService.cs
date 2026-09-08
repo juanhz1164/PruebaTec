@@ -8,7 +8,7 @@ public interface IProductoService
     Task<ProductoDto?> GetByIdAsync(int id);
     Task<ProductoDto> CrearAsync(CrearProductoDto dto);
     Task<bool> ActualizarAsync(int id, ActualizarProductoDto dto);
-    Task<bool> EliminarAsync(int id);
+    Task<ResultadoEliminacion> EliminarAsync(int id);
 
     // T35: unidades de medida alternativas por producto.
     Task<ResultadoUnidadAlternativa> AgregarUnidadAlternativaAsync(int productoId, CrearUnidadAlternativaDto dto);

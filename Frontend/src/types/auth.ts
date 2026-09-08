@@ -18,6 +18,12 @@ export function normalizarRol(valor: Rol | number): Rol {
   return valor
 }
 
+// Inverso de normalizarRol: el backend espera el índice numérico del enum
+// RolUsuario al crear/actualizar un usuario, no el nombre del rol.
+export function rolAIndice(rol: Rol): number {
+  return ROL_POR_INDICE.indexOf(rol)
+}
+
 export interface Usuario {
   id: number
   sucursalId: number | null
@@ -27,6 +33,22 @@ export interface Usuario {
   rol: Rol
   activo: boolean
   createdAt: string
+}
+
+export interface CrearUsuarioRequest {
+  sucursalId: number | null
+  nombre: string
+  email: string
+  password: string
+  rol: Rol
+}
+
+export interface ActualizarUsuarioRequest {
+  sucursalId: number | null
+  nombre: string
+  email: string
+  rol: Rol
+  activo: boolean
 }
 
 export interface LoginRequest {

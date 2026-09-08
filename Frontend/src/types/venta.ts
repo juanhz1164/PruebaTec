@@ -17,6 +17,9 @@ export interface Venta {
   usuarioId: number
   usuarioNombre: string
   numeroComprobante: string
+  clienteNombre: string | null
+  clienteEmail: string | null
+  clienteTelefono: string | null
   subtotal: number
   descuentoTotal: number
   total: number
@@ -34,5 +37,8 @@ export interface CrearVentaLinea {
 export interface CrearVenta {
   sucursalId: number
   usuarioId: number
+  clienteNombre?: string | null
+  clienteEmail?: string | null
+  clienteTelefono?: string | null
   lineas: CrearVentaLinea[]
 }

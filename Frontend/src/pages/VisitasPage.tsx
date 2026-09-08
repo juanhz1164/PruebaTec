@@ -8,6 +8,7 @@ import {
   eliminarVisita,
 } from '../api/visitas'
 import { KpiTile } from '../components/KpiTile'
+import { Modal } from '../components/Modal'
 import type { ResumenVisitas, Visita, VisitasPorSucursal } from '../types/visita'
 import { ApiError } from '../api/client'
 
@@ -32,6 +33,157 @@ function formatearFecha(fechaIso: string): string {
   return new Date(fechaIso).toLocaleDateString('es-CO')
 }
 
+function formatearFechaLarga(fechaIso: string): string {
+  // fechaIso viene como "YYYY-MM-DD" (del input date); construir la fecha
+  // manualmente evita que new Date("YYYY-MM-DD") la interprete como UTC
+  // medianoche y muestre el día anterior en zonas horarias negativas.
+  const [anio, mes, dia] = fechaIso.split('-').map(Number)
+  return new Date(anio, mes - 1, dia).toLocaleDateString('es-CO', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+function VisitaCard({ visita, numero, onEliminar }: { visita: Visita; numero: number; onEliminar?: (id: number) => void }) {
+  return (
+    <div className="visita-card">
+      {onEliminar && (
+        <button
+          type="button"
+          className="visita-card-eliminar"
+          onClick={() => onEliminar(visita.id)}
+          aria-label="Eliminar visita"
+          title="Eliminar visita"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+        </button>
+      )}
+
+      <div className="visita-card-personas">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="9" cy="8" r="3" />
+          <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+          {visita.cantidadPersonas > 1 && (
+            <>
+              <circle cx="17" cy="7" r="2.4" />
+              <path d="M15.5 13.2c2.4.5 4.5 2.5 4.5 5.8" />
+            </>
+          )}
+        </svg>
+        <span>
+          {visita.cantidadPersonas} persona{visita.cantidadPersonas === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <div className="visita-card-meta">
+        <span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          {formatearFecha(visita.fechaHora)}
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 3" />
+          </svg>
+          {formatearHora(visita.fechaHora)}
+        </span>
+      </div>
+
+      <div className="visita-card-footer">
+        <span className="visita-card-numero">Visita #{numero}</span>
+        <span className="visita-card-usuario">{visita.usuarioNombre}</span>
+      </div>
+    </div>
+  )
+}
+
+function EstadoVacioVisitas({ titulo, hint }: { titulo: string; hint: string }) {
+  return (
+    <div className="visitas-vacio">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+        <circle cx="17" cy="7" r="2.4" />
+        <path d="M15.5 13.2c2.4.5 4.5 2.5 4.5 5.8" />
+      </svg>
+      <p>{titulo}</p>
+      <span>{hint}</span>
+    </div>
+  )
+}
+
+function HistorialVisitasModal({ onClose }: { onClose: () => void }) {
+  const [fecha, setFecha] = useState(hoyIso())
+  const [visitas, setVisitas] = useState<Visita[]>([])
+  const [resumen, setResumen] = useState<ResumenVisitas | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setIsLoading(true)
+    setError(null)
+    Promise.all([getVisitas(fecha).then(setVisitas), getResumenVisitas(fecha).then(setResumen)])
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : 'No se pudo cargar el historial de visitas')
+      })
+      .finally(() => setIsLoading(false))
+  }, [fecha])
+
+  return (
+    <Modal title="Historial de visitas" onClose={onClose} size="lg">
+      <div className="visitas-historial">
+        <p className="admin-section-subtitle">Consulta las visitas registradas en días anteriores.</p>
+
+        <div className="visitas-historial-selector">
+          <label htmlFor="visitas-historial-fecha">Fecha</label>
+          <input
+            id="visitas-historial-fecha"
+            type="date"
+            value={fecha}
+            max={hoyIso()}
+            onChange={(e) => setFecha(e.target.value)}
+          />
+        </div>
+
+        <p className="visitas-historial-fecha-larga">{formatearFechaLarga(fecha)}</p>
+
+        {error && <p className="error-text">{error}</p>}
+
+        <div className="kpi-row kpi-row--compacta">
+          <KpiTile icon="visitas" label="Visitas" value={resumen ? String(resumen.totalVisitas) : '0'} />
+          <KpiTile icon="ventas" label="Personas" value={resumen ? String(resumen.totalPersonas) : '0'} />
+        </div>
+
+        <div className="visitas-historial-listado">
+          {isLoading ? (
+            <p>Cargando...</p>
+          ) : visitas.length === 0 ? (
+            <EstadoVacioVisitas
+              titulo="No hay visitas registradas"
+              hint="En esta fecha no se registraron visitantes."
+            />
+          ) : (
+            <div className="visitas-grid">
+              {visitas.map((v, i) => (
+                <VisitaCard key={v.id} visita={v} numero={visitas.length - i} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 export function VisitasPage() {
   const { usuario } = useAuth()
   const esGerente = usuario?.rol === 'GerenteSucursal'
@@ -48,9 +200,12 @@ export function VisitasPage() {
 
   const [confirmandoId, setConfirmandoId] = useState<number | null>(null)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
-  // La pantalla siempre opera sobre "hoy": el usuario no elige fecha, y el
-  // backend ya fija fecha/hora/sucursal/usuario automáticamente al registrar.
+  // La pantalla principal siempre opera sobre "hoy": el "reinicio" de cada
+  // nuevo día es solo visual (una nueva consulta con la fecha de hoy), nunca
+  // un borrado — el historial completo sigue intacto en la base de datos y
+  // es accesible desde el modal de historial.
   const cargar = useCallback(() => {
     setIsLoading(true)
     setError(null)
@@ -117,7 +272,10 @@ export function VisitasPage() {
   return (
     <div className="page page-fixed-header">
       <div className="page-header-sticky">
-        <p className="page-subtitle">Control de ingreso de visitantes</p>
+        <div className="admin-section-heading">
+          <h1>Control de ingreso de visitantes</h1>
+          <p className="admin-section-subtitle">{formatearFechaLarga(hoyIso())}</p>
+        </div>
 
         {error && <p className="error-text">{error}</p>}
 
@@ -194,81 +352,33 @@ export function VisitasPage() {
 
             <section className="visitas-listado">
               <div className="visitas-listado-header">
-                <h2>Visitas registradas</h2>
-                {totalVisitasHoy > 0 && (
-                  <span className="tr-productos-contador">
-                    {totalVisitasHoy} visita{totalVisitasHoy === 1 ? '' : 's'}
-                  </span>
-                )}
+                <h2>Visitas de hoy</h2>
+                <div className="visitas-listado-header-acciones">
+                  {totalVisitasHoy > 0 && (
+                    <span className="tr-productos-contador">
+                      {totalVisitasHoy} visita{totalVisitasHoy === 1 ? '' : 's'}
+                    </span>
+                  )}
+                  <button type="button" className="secondary-button" onClick={() => setMostrarHistorial(true)}>
+                    📅 Ver historial
+                  </button>
+                </div>
               </div>
 
               {visitas.length === 0 ? (
-                <div className="visitas-vacio">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="9" cy="8" r="3" />
-                    <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                    <circle cx="17" cy="7" r="2.4" />
-                    <path d="M15.5 13.2c2.4.5 4.5 2.5 4.5 5.8" />
-                  </svg>
-                  <p>No hay visitas registradas todavía</p>
-                  <span>Registra la primera visita del día desde el panel de la izquierda</span>
-                </div>
+                <EstadoVacioVisitas
+                  titulo="No hay visitas registradas todavía"
+                  hint="Registra la primera visita del día desde el panel de la izquierda"
+                />
               ) : (
                 <div className="visitas-grid">
                   {visitas.map((v, i) => (
-                    <div key={v.id} className="visita-card">
-                      <button
-                        type="button"
-                        className="visita-card-eliminar"
-                        onClick={() => setConfirmandoId(v.id)}
-                        aria-label="Eliminar visita"
-                        title="Eliminar visita"
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        </svg>
-                      </button>
-
-                      <div className="visita-card-personas">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="9" cy="8" r="3" />
-                          <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                          {v.cantidadPersonas > 1 && (
-                            <>
-                              <circle cx="17" cy="7" r="2.4" />
-                              <path d="M15.5 13.2c2.4.5 4.5 2.5 4.5 5.8" />
-                            </>
-                          )}
-                        </svg>
-                        <span>
-                          {v.cantidadPersonas} persona{v.cantidadPersonas === 1 ? '' : 's'}
-                        </span>
-                      </div>
-
-                      <div className="visita-card-meta">
-                        <span>
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" />
-                            <path d="M16 2v4M8 2v4M3 10h18" />
-                          </svg>
-                          {formatearFecha(v.fechaHora)}
-                        </span>
-                        <span>
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="9" />
-                            <path d="M12 7v5l3 3" />
-                          </svg>
-                          {formatearHora(v.fechaHora)}
-                        </span>
-                      </div>
-
-                      <div className="visita-card-footer">
-                        <span className="visita-card-numero">Visita #{visitas.length - i}</span>
-                        <span className="visita-card-usuario">{v.usuarioNombre}</span>
-                      </div>
-                    </div>
+                    <VisitaCard
+                      key={v.id}
+                      visita={v}
+                      numero={visitas.length - i}
+                      onEliminar={setConfirmandoId}
+                    />
                   ))}
                 </div>
               )}
@@ -276,6 +386,8 @@ export function VisitasPage() {
           </div>
         )}
       </div>
+
+      {mostrarHistorial && <HistorialVisitasModal onClose={() => setMostrarHistorial(false)} />}
 
       {visitaAEliminar && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">

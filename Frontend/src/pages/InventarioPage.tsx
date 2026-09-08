@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getInventarioPorSucursal } from '../api/inventario'
-import { MovimientoForm } from '../components/MovimientoForm'
 import type { InventarioItem } from '../types/inventario'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
@@ -43,54 +42,59 @@ export function InventarioPage() {
   }
 
   return (
-    <div className="page">
-      <h1>Inventario — {usuario.sucursalNombre}</h1>
+    <div className="page page-fixed-header">
+      <div className="page-header-sticky">
+        <h1>Inventario</h1>
 
-      <MovimientoForm onRegistrado={cargarInventario} />
+        {error && <p className="error-text">{error}</p>}
+      </div>
 
-      {isLoading && <p>Cargando...</p>}
-      {error && <p className="error-text">{error}</p>}
+      <div className="page-scroll-body page-scroll-body--tabla-fija">
+        {isLoading && <p>Cargando...</p>}
 
-      {!isLoading && !error && (
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Unidad</th>
-                <th>Stock mínimo</th>
-                <th>Costo promedio</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={6}>No hay productos en el inventario de esta sucursal.</td>
-                </tr>
-              )}
-              {items.map((item) => {
-                const stockBajo = !item.agotado && item.cantidad <= item.stockMinimo
-                return (
-                  <tr key={`${item.productoId}-${item.id}`} className={item.agotado || stockBajo ? 'row-alert' : undefined}>
-                    <td>{item.productoSku}</td>
-                    <td>{item.productoNombre}</td>
-                    <td>
-                      {item.cantidad}
-                      {item.agotado && <span className="badge-alert">agotado</span>}
-                      {stockBajo && <span className="badge-alert">stock bajo</span>}
-                    </td>
-                    <td>{item.unidadMedidaAbreviatura}</td>
-                    <td>{item.stockMinimo}</td>
-                    <td>{formatearMoneda(item.costoPromedio)}</td>
+        {!isLoading && !error && (
+          <div className="admin-card admin-card--tabla">
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Stock mínimo</th>
+                    <th>Costo promedio</th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={6}>No hay productos en el inventario de esta sucursal.</td>
+                    </tr>
+                  )}
+                  {items.map((item) => {
+                    const stockBajo = !item.agotado && item.cantidad <= item.stockMinimo
+                    return (
+                      <tr key={`${item.productoId}-${item.id}`} className={item.agotado || stockBajo ? 'row-alert' : undefined}>
+                        <td>{item.productoSku}</td>
+                        <td>{item.productoNombre}</td>
+                        <td>
+                          {item.cantidad}
+                          {item.agotado && <span className="badge-alert">agotado</span>}
+                          {stockBajo && <span className="badge-alert">stock bajo</span>}
+                        </td>
+                        <td>{item.unidadMedidaAbreviatura}</td>
+                        <td>{item.stockMinimo}</td>
+                        <td>{formatearMoneda(item.costoPromedio)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

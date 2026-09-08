@@ -6,6 +6,9 @@ public class Venta
     public int SucursalId { get; set; }
     public int UsuarioId { get; set; }
     public string NumeroComprobante { get; set; } = string.Empty;
+    public string? ClienteNombre { get; set; }
+    public string? ClienteEmail { get; set; }
+    public string? ClienteTelefono { get; set; }
     public decimal Subtotal { get; set; }
     public decimal DescuentoTotal { get; set; }
     public decimal Total { get; set; }

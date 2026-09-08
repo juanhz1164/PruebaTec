@@ -8,6 +8,9 @@ public class VentaDto
     public int UsuarioId { get; set; }
     public string UsuarioNombre { get; set; } = string.Empty;
     public string NumeroComprobante { get; set; } = string.Empty;
+    public string? ClienteNombre { get; set; }
+    public string? ClienteEmail { get; set; }
+    public string? ClienteTelefono { get; set; }
     public decimal Subtotal { get; set; }
     public decimal DescuentoTotal { get; set; }
     public decimal Total { get; set; }
@@ -32,6 +35,11 @@ public class CrearVentaDto
 {
     public int SucursalId { get; set; }
     public int UsuarioId { get; set; }
+    // Datos del cliente para el comprobante/factura. Opcionales a nivel de base
+    // de datos, pero el frontend exige al menos el nombre antes de enviar.
+    public string? ClienteNombre { get; set; }
+    public string? ClienteEmail { get; set; }
+    public string? ClienteTelefono { get; set; }
     public List<CrearVentaLineaDto> Lineas { get; set; } = new();
 }
 

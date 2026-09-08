@@ -30,6 +30,8 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
+builder.Services.AddScoped<IUnidadMedidaRepository, UnidadMedidaRepository>();
+builder.Services.AddScoped<IUnidadMedidaService, UnidadMedidaService>();
 builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
 builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
@@ -140,3 +142,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Expuesta para que WebApplicationFactory<Program> (tests de integración) pueda
+// referenciar el entry point del top-level statement.
+public partial class Program { }

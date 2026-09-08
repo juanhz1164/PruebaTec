@@ -53,7 +53,9 @@ public class UsuariosController : ControllerBase
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
-        var eliminado = await _service.EliminarAsync(id);
-        return eliminado ? NoContent() : NotFound();
+        var resultado = await _service.EliminarAsync(id);
+        if (resultado.NoEncontrado) return NotFound();
+        if (!resultado.Exitoso) return Conflict(new { mensaje = resultado.Error });
+        return NoContent();
     }
 }

@@ -4,6 +4,7 @@ import { getProductos } from '../api/productos'
 import { getSucursales } from '../api/sucursales'
 import { getInventarioPorSucursal } from '../api/inventario'
 import { crearTransferencia } from '../api/transferencias'
+import { Modal } from './Modal'
 import type { Producto } from '../types/producto'
 import type { Sucursal } from '../types/sucursal'
 import type { CrearTransferenciaLinea } from '../types/transferencia'
@@ -14,8 +15,82 @@ interface LineaForm {
   cantidadSolicitada: string
 }
 
-function nuevaLinea(): LineaForm {
-  return { productoId: null, cantidadSolicitada: '' }
+function AgregarProductoModal({
+  productos,
+  stockOrigen,
+  onAgregar,
+  onClose,
+}: {
+  productos: Producto[]
+  stockOrigen: Record<number, number>
+  onAgregar: (linea: LineaForm) => void
+  onClose: () => void
+}) {
+  const [productoId, setProductoId] = useState<number | null>(null)
+  const [cantidadSolicitada, setCantidadSolicitada] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const stock = productoId !== null ? stockOrigen[productoId] : undefined
+
+  const handleAgregar = () => {
+    if (!productoId) {
+      setError('Selecciona un producto')
+      return
+    }
+    const cantidad = Number(cantidadSolicitada)
+    if (!Number.isFinite(cantidad) || cantidad <= 0) {
+      setError('Ingresa una cantidad mayor a cero')
+      return
+    }
+    onAgregar({ productoId, cantidadSolicitada })
+    onClose()
+  }
+
+  return (
+    <Modal title="Agregar producto" onClose={onClose}>
+      <div className="tr-agregar-form">
+        <div className="form-row">
+          <label htmlFor="tr-agregar-producto">Producto</label>
+          <select
+            id="tr-agregar-producto"
+            value={productoId ?? ''}
+            onChange={(e) => setProductoId(Number(e.target.value))}
+          >
+            <option value="">Selecciona un producto</option>
+            {productos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.sku} — {p.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {productoId !== null && (
+          <span className="tr-linea-stock">Stock disponible: {stock !== undefined ? stock : '—'}</span>
+        )}
+
+        <div className="form-row">
+          <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
+          <input
+            id="tr-agregar-cantidad"
+            type="number"
+            min="0"
+            step="any"
+            value={cantidadSolicitada}
+            onChange={(e) => setCantidadSolicitada(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="error-text">{error}</p>}
+
+        <div className="modal-actions">
+          <button type="button" onClick={handleAgregar}>
+            Agregar
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
 }
 
 export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
@@ -25,10 +100,11 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [sucursalOrigenId, setSucursalOrigenId] = useState<number | null>(null)
   const [sucursalDestinoId, setSucursalDestinoId] = useState<number | null>(null)
-  const [lineas, setLineas] = useState<LineaForm[]>([nuevaLinea()])
+  const [lineas, setLineas] = useState<LineaForm[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stockOrigen, setStockOrigen] = useState<Record<number, number>>({})
+  const [mostrarAgregar, setMostrarAgregar] = useState(false)
 
   useEffect(() => {
     getProductos()
@@ -72,11 +148,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
 
   const sucursalOrigen = sucursales.find((s) => s.id === sucursalOrigenId) ?? null
 
-  const actualizarLinea = (index: number, cambios: Partial<LineaForm>) => {
-    setLineas((prev) => prev.map((l, i) => (i === index ? { ...l, ...cambios } : l)))
-  }
-
-  const agregarLinea = () => setLineas((prev) => [...prev, nuevaLinea()])
+  const agregarLinea = (linea: LineaForm) => setLineas((prev) => [...prev, linea])
 
   const quitarLinea = (index: number) =>
     setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
@@ -112,7 +184,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         usuarioSolicitanteId: usuario!.id,
         lineas: lineasValidas,
       })
-      setLineas([nuevaLinea()])
+      setLineas([])
       onCreada()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo crear la solicitud')
@@ -187,54 +259,38 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
       <section className="tr-productos-card">
         <div className="tr-productos-header">
           <h2>Productos a transferir</h2>
-          {lineasConProducto.length > 0 && (
-            <span className="tr-productos-contador">
-              {lineasConProducto.length} producto{lineasConProducto.length === 1 ? '' : 's'}
-            </span>
-          )}
+          <div className="tr-productos-header-acciones">
+            {lineasConProducto.length > 0 && (
+              <span className="tr-productos-contador">
+                {lineasConProducto.length} producto{lineasConProducto.length === 1 ? '' : 's'}
+              </span>
+            )}
+            <button
+              type="button"
+              className="secondary-button tr-agregar-btn"
+              onClick={() => setMostrarAgregar(true)}
+            >
+              + Agregar producto
+            </button>
+          </div>
         </div>
 
-        <div className="tr-productos-builder">
-          <button type="button" className="secondary-button tr-agregar-btn" onClick={agregarLinea}>
-            + Agregar producto
-          </button>
-
+        {lineas.length === 0 ? (
+          <p className="tr-productos-vacio">Aún no has agregado productos a esta solicitud.</p>
+        ) : (
           <div className="tr-lineas-scroll">
             {lineas.map((linea, index) => {
+              const producto = productos.find((p) => p.id === linea.productoId)
               const stock = linea.productoId !== null ? stockOrigen[linea.productoId] : undefined
               return (
-                <div key={index} className="tr-linea-row">
-                  <div className="form-row">
-                    <label>Producto</label>
-                    <select
-                      value={linea.productoId ?? ''}
-                      onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
-                    >
-                      <option value="">Selecciona un producto</option>
-                      {productos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.sku} — {p.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {linea.productoId !== null && (
-                    <span className="tr-linea-stock">
-                      Stock: {stock !== undefined ? stock : '—'}
+                <div key={index} className="tr-linea-row tr-linea-row--lectura">
+                  <div className="tr-linea-info">
+                    <span className="tr-linea-producto">
+                      {producto ? `${producto.sku} — ${producto.nombre}` : '—'}
                     </span>
-                  )}
-                  <div className="form-row form-row--compacto">
-                    <label>Cantidad solicitada</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={linea.cantidadSolicitada}
-                      onChange={(e) =>
-                        actualizarLinea(index, { cantidadSolicitada: e.target.value })
-                      }
-                    />
+                    <span className="tr-linea-stock">Stock: {stock !== undefined ? stock : '—'}</span>
                   </div>
+                  <span className="tr-linea-cantidad">{linea.cantidadSolicitada} un.</span>
                   <button
                     type="button"
                     className="danger-button tr-linea-quitar"
@@ -253,8 +309,17 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
               )
             })}
           </div>
-        </div>
+        )}
       </section>
+
+      {mostrarAgregar && (
+        <AgregarProductoModal
+          productos={productos}
+          stockOrigen={stockOrigen}
+          onAgregar={agregarLinea}
+          onClose={() => setMostrarAgregar(false)}
+        />
+      )}
     </form>
   )
 }

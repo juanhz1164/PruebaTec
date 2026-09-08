@@ -52,7 +52,9 @@ public class SucursalesController : ControllerBase
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
-        var eliminada = await _service.EliminarAsync(id);
-        return eliminada ? NoContent() : NotFound();
+        var resultado = await _service.EliminarAsync(id);
+        if (resultado.NoEncontrado) return NotFound();
+        if (!resultado.Exitoso) return Conflict(new { mensaje = resultado.Error });
+        return NoContent();
     }
 }

@@ -204,6 +204,15 @@
   overflow-y: auto;
 }
 
+/* Cuando la página trae su propio header fijo + cuerpo con scroll interno
+   (.page-fixed-header / .page-scroll-body), .app-content NO debe scrollear
+   también: ese doble scroll es lo que hacía que, al desplazarse, el header
+   y los encabezados de tabla "se movieran" junto con las filas en vez de
+   quedarse fijos (el navegador prioriza el scroll del contenedor externo). */
+.app-content:has(> .page-fixed-header) {
+  overflow-y: hidden;
+}
+
 /* Páginas con encabezado fijo: el título/filtros quedan pegados arriba
    mientras la ventana entera hace scroll, y el cuerpo (tabla) tiene su
    propia barra de scroll interna en vez de crecer con el resto de la página. */
@@ -906,66 +915,6 @@
   border-radius: 4px;
 }
 
-.movimiento-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-  margin: 20px 0;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.movimiento-form h2 {
-  width: 100%;
-  font-size: 16px;
-  margin: 0;
-}
-
-.movimiento-form .form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.movimiento-form label {
-  font-size: 14px;
-  color: var(--text-h);
-}
-
-.movimiento-form select,
-.movimiento-form input {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-  background: var(--bg);
-  color: var(--text-h);
-}
-
-.movimiento-form button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background: var(--rol-accent);
-  color: #fff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  height: fit-content;
-}
-
-.movimiento-form button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.movimiento-form .error-text {
-  width: 100%;
-  margin: 0;
-}
-
 .orden-form {
   display: flex;
   flex-direction: column;
@@ -1276,6 +1225,23 @@
   font-weight: 700;
 }
 
+.tr-productos-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.tr-productos-vacio {
+  margin: 0;
+  padding: 24px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--text);
+  font-size: 13px;
+}
+
 .tr-productos-builder {
   display: flex;
   flex-direction: column;
@@ -1309,8 +1275,8 @@
 }
 
 .tr-linea-row .form-row--compacto {
-  flex: 0 1 140px;
-  min-width: 110px;
+  flex: 0 1 160px;
+  min-width: 140px;
 }
 
 .tr-linea-row .form-row select,
@@ -1323,6 +1289,45 @@
   color: var(--text-h);
   width: 100%;
   box-sizing: border-box;
+}
+
+.tr-linea-row--lectura {
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.tr-linea-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.tr-linea-producto {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.tr-linea-cantidad {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--rol-accent-bg);
+  color: var(--rol-accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tr-agregar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .tr-linea-stock {
@@ -1581,6 +1586,16 @@
   cursor: not-allowed;
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-tab-activo {
+  background: var(--rol-accent);
+  color: var(--rol-accent-contrast, #fff);
+}
+
 .secondary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1629,6 +1644,14 @@
   font-weight: 600;
   background: var(--code-bg);
   color: var(--text-h);
+}
+
+/* Usado por Órdenes de compra para el estado "Confirmada" (estado-1 del
+   enum EstadoOrdenCompra): el resto de estados ya tenían tono propio
+   (estado-badge base = Pendiente, estado-2 = Recibida, estado-3 = Cancelada). */
+.estado-badge.estado-1 {
+  color: #2a7fc9;
+  background: rgba(42, 127, 201, 0.12);
 }
 
 .estado-badge.estado-2 {
@@ -2444,6 +2467,61 @@
   font-size: 16px;
 }
 
+.visitas-listado-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.visitas-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+
+.visitas-historial > *:not(.visitas-historial-listado) {
+  flex-shrink: 0;
+}
+
+.visitas-historial-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.visitas-historial-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.visitas-historial-selector input[type='date'] {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.visitas-historial-fecha-larga {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: var(--text);
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.visitas-historial-listado {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
 .visitas-vacio {
   display: flex;
   flex-direction: column;
@@ -2883,4 +2961,670 @@
 .flujo-columna-header .flujo-periodo-tipo button {
   padding: 2px 8px;
   font-size: 11px;
+}
+
+/* ============================================================
+   Administración: cards, badges neutrales, menú de acciones (⋮)
+   y modales. Reutiliza tokens de tema existentes (--border,
+   --code-bg, --text, --rol-accent, etc.), sin definir colores propios.
+   ============================================================ */
+
+.admin-page .page-header-sticky {
+  padding-top: 4px;
+}
+
+/* La ventana de Administración no debe scrollear como un todo: solo las
+   filas de la tabla activa deben moverse, con KPIs/título/CTA/buscador
+   fijos arriba (ver .page-header-sticky) y los encabezados de columna
+   fijos dentro de la tabla (ver .admin-card--tabla .table-scroll). */
+.admin-page .page-scroll-body {
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.admin-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  padding: 18px 20px;
+  margin-top: 16px;
+}
+
+.admin-card-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+/* La tabla es lo único que vive dentro de .page-scroll-body en cada
+   pestaña: KPIs, título/CTA y buscador quedan fijos en .page-header-sticky
+   (ver AdminPage.tsx), así que aquí solo hace falta que la card ocupe todo
+   el alto disponible y que el <thead> sticky combine con su propio fondo. */
+.admin-card--tabla {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.admin-card--tabla .table-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 20px 12px;
+  box-sizing: border-box;
+  /* Aquí sí hay scroll real (a diferencia del resto de la página, que ya
+     queda fijo), así que se muestra la barra en vez de ocultarla como
+     hace .table-scroll por defecto. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.admin-card--tabla .table-scroll::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.admin-card--tabla .table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-card--tabla .table-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.admin-card--tabla .table-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--rol-accent-border);
+}
+
+.admin-card--tabla .data-table {
+  margin-top: 0;
+}
+
+.admin-card--tabla .data-table thead th:first-child {
+  padding-left: 0;
+}
+
+.admin-card--tabla .data-table td:first-child {
+  padding-left: 0;
+}
+
+.admin-card--tabla .data-table thead th {
+  background: var(--code-bg);
+}
+
+/* ============================================================
+   Patrón genérico "tabla con scroll fijo": el mismo comportamiento de
+   Administración (KPIs/filtros fijos arriba, solo la tabla scrollea, con
+   su <thead> pegado y su propia barra de scroll visible), reutilizable en
+   cualquier página con .page-fixed-header que tenga una única tabla larga
+   como contenido principal. La tabla en sí se envuelve en
+   .admin-card.admin-card--tabla (mismo markup que Administración, ver
+   InventarioOtrasSucursalesPage) para heredar exactamente sus reglas de
+   sticky/scroll en vez de duplicarlas aquí.
+   ============================================================ */
+
+.page-scroll-body--tabla-fija {
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.celda-principal {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.celda-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.col-precio {
+  text-align: right;
+}
+
+td.col-precio {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-neutral {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.table-actions-col {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.table-actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Menú de acciones "⋮" ------------------------------------------------ */
+
+.actions-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.actions-menu-trigger {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.actions-menu-trigger:hover {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-h);
+}
+
+.actions-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.actions-menu-item {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.actions-menu-item:hover {
+  background: var(--code-bg);
+}
+
+.actions-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actions-menu-item--danger {
+  color: #e0245e;
+}
+
+.actions-menu-item--danger:hover {
+  background: rgba(224, 36, 94, 0.1);
+}
+
+/* Modal ----------------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 16px;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.modal-close {
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.modal-close:hover {
+  background: var(--code-bg);
+  color: var(--text-h);
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-body p {
+  margin: 0;
+  color: var(--text);
+}
+
+/* Pie fijo del modal (prop `footer` de Modal.tsx): vive fuera de .modal-body,
+   así que nunca añade altura al contenido con scroll ni causa una barra de
+   desplazamiento innecesaria cuando el formulario es corto. */
+.modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.modal-producto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.modal-producto-nombre {
+  font-weight: 700;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.modal-producto-meta {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.modal-warning {
+  font-size: 13px;
+  color: var(--status-warning);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.modal-panel--ancho {
+  max-width: 720px;
+}
+
+.modal-panel--ancho .form-row-inline {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 16px;
+}
+
+/* Cabecera de sección: título + descripción a la izquierda, CTA a la derecha */
+
+.admin-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-section-heading h2,
+.admin-section-heading h1 {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.admin-section-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.admin-cta-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--rol-accent);
+  color: var(--bg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-cta-button:hover {
+  filter: brightness(1.08);
+}
+
+.admin-cta-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Buscador ---------------------------------------------------------------- */
+
+.admin-search {
+  width: 100%;
+  max-width: 340px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.admin-search::placeholder {
+  color: var(--text);
+}
+
+/* Fila de búsqueda + filtro de estado (Órdenes de compra): mismo aspecto que
+   .admin-search suelto, pero conviviendo con un <select> al lado. */
+.admin-filtros-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.admin-filtros-row .admin-search {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.admin-filtro-select {
+  min-width: 170px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+/* Estado vacío elegante cuando no hay ninguna orden todavía. */
+.admin-estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 60px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .admin-filtros-row {
+    flex-direction: column;
+  }
+
+  .admin-filtro-select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-card {
+    padding: 14px 16px;
+  }
+
+  .modal-panel {
+    max-width: 100%;
+  }
+
+  .modal-panel--ancho .form-row-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-section-header {
+    flex-direction: column;
+  }
+
+  .admin-cta-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-search {
+    max-width: 100%;
+  }
+}
+
+/* ============================================================
+   Ventas: modal de nueva venta (VentaForm) y modal de detalle.
+   Reutiliza tokens y clases ya existentes (admin-*, data-table,
+   lineas-table, descuento-badge, modal-*); esto es solo lo específico
+   de la estructura de secciones dentro del modal grande.
+   ============================================================ */
+
+.venta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Estructura label-arriba/campo-abajo para cada campo suelto dentro de
+   .venta-form (ej. Proveedor / Plazo de pago en OrdenCompraForm, o
+   Nombre/Correo/Teléfono en VentaForm): sin esto, el <select> de
+   Proveedor no tenía ancho definido y se estiraba según el nombre más
+   largo de la lista, chocando visualmente con el campo de al lado. */
+.venta-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.venta-form .form-row select,
+.venta-form .form-row input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.venta-form-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.venta-form-seccion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* El formulario ocupa todo el alto de .modal-body y reparte ese espacio
+   él mismo: "Datos del cliente", el encabezado de "Productos", el error
+   y el botón de enviar NUNCA se comprimen ni scrollean (venta-form--fija /
+   venta-form-seccion--fija); solo la tabla de líneas puede achicarse y
+   scrollear internamente (venta-form-seccion--productos +
+   venta-form-productos-scroll). Así el cliente/resumen/botón quedan
+   siempre visibles sin importar cuántos productos se agreguen. */
+.venta-form--fija {
+  height: 100%;
+  min-height: 0;
+}
+
+.venta-form-seccion--fija {
+  flex-shrink: 0;
+}
+
+.venta-form-seccion--productos {
+  flex: 1;
+  min-height: 0;
+}
+
+.venta-form-productos-scroll {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.venta-form-productos-scroll::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.venta-form-productos-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.venta-form-productos-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.venta-form-seccion-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.venta-form-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.venta-form-resumen-fila {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.venta-form-resumen-total {
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+/* Variante compacta: vive como una columna más dentro del form-row-inline
+   de "Datos del cliente" (junto al Teléfono), aprovechando el espacio que
+   antes quedaba vacío, en vez de un bloque aparte debajo del carrito que
+   obligaba a hacer scroll para ver el total. */
+.venta-form-resumen--compacto {
+  flex: 1;
+  min-width: 180px;
+  gap: 2px;
+  padding: 10px 14px;
+  justify-content: center;
+}
+
+.venta-form-resumen--compacto .venta-form-resumen-fila {
+  font-size: 12.5px;
+}
+
+.venta-form-resumen--compacto .venta-form-resumen-total {
+  padding-top: 4px;
+  margin-top: 2px;
+  font-size: 15px;
+}
+
+.venta-detalle-cliente {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.venta-detalle-cliente .modal-producto-nombre {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+}
+
+@media (max-width: 640px) {
+  .venta-detalle-cliente {
+    grid-template-columns: 1fr 1fr;
+  }
 }

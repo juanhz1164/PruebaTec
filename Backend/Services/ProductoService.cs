@@ -2,6 +2,7 @@ using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Models;
 using InventarioMultiSucursal.Api.Repositories.Interfaces;
 using InventarioMultiSucursal.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventarioMultiSucursal.Api.Services;
 
@@ -31,10 +32,13 @@ public class ProductoService : IProductoService
         var producto = new Producto
         {
             UnidadMedidaId = dto.UnidadMedidaId,
+            ProveedorId = dto.ProveedorId,
             Sku = dto.Sku,
             Nombre = dto.Nombre,
             Descripcion = dto.Descripcion,
             Categoria = dto.Categoria,
+            PrecioVenta = dto.PrecioVenta,
+            PrecioProveedor = dto.PrecioProveedor,
             Activo = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -55,27 +59,39 @@ public class ProductoService : IProductoService
         }
 
         existente.UnidadMedidaId = dto.UnidadMedidaId;
+        existente.ProveedorId = dto.ProveedorId;
         existente.Sku = dto.Sku;
         existente.Nombre = dto.Nombre;
         existente.Descripcion = dto.Descripcion;
         existente.Categoria = dto.Categoria;
         existente.Activo = dto.Activo;
+        existente.PrecioVenta = dto.PrecioVenta;
+        existente.PrecioProveedor = dto.PrecioProveedor;
 
         await _repository.SaveChangesAsync();
         return true;
     }
 
-    public async Task<bool> EliminarAsync(int id)
+    public async Task<ResultadoEliminacion> EliminarAsync(int id)
     {
         var existente = await _repository.GetByIdAsync(id);
         if (existente is null)
         {
-            return false;
+            return ResultadoEliminacion.NoExiste();
         }
 
         _repository.Remove(existente);
-        await _repository.SaveChangesAsync();
-        return true;
+        try
+        {
+            await _repository.SaveChangesAsync();
+            return ResultadoEliminacion.Ok();
+        }
+        catch (DbUpdateException)
+        {
+            return ResultadoEliminacion.Falla(
+                "No se puede eliminar este producto porque tiene ventas, compras, movimientos de inventario " +
+                "u otros registros asociados. Usa \"Desactivar\" en su lugar.");
+        }
     }
 
     public async Task<ResultadoUnidadAlternativa> AgregarUnidadAlternativaAsync(int productoId, CrearUnidadAlternativaDto dto)

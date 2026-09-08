@@ -13,6 +13,7 @@ import { LogisticaPage } from './pages/LogisticaPage'
 import { ReportesPage } from './pages/ReportesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ComparativaSucursalesPage } from './pages/ComparativaSucursalesPage'
+import { AdminPage } from './pages/AdminPage'
 import { NoAutorizadoPage } from './pages/NoAutorizadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -34,6 +35,7 @@ function App() {
 
           <Route element={<ProtectedRoute roles={['AdministradorGeneral']} />}>
             <Route path="/comparativa-sucursales" element={<ComparativaSucursalesPage />} />
+            <Route path="/administracion" element={<AdminPage />} />
           </Route>
 
           <Route

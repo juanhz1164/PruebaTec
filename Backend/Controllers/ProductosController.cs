@@ -1,3 +1,4 @@
+using InventarioMultiSucursal.Api.Auth;
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -5,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InventarioMultiSucursal.Api.Controllers;
 
-// Cualquier rol autenticado puede operar este módulo.
+// Consulta abierta a cualquier rol autenticado; alta, edición y baja del
+// catálogo (incluyendo precio) son responsabilidad exclusiva del Administrador (PDF §6.2).
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -32,6 +34,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<ProductoDto>> Create(CrearProductoDto dto)
     {
         var creado = await _service.CrearAsync(dto);
@@ -39,6 +42,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Update(int id, ActualizarProductoDto dto)
     {
         var actualizado = await _service.ActualizarAsync(id, dto);
@@ -46,10 +50,13 @@ public class ProductosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
-        var eliminado = await _service.EliminarAsync(id);
-        return eliminado ? NoContent() : NotFound();
+        var resultado = await _service.EliminarAsync(id);
+        if (resultado.NoEncontrado) return NotFound();
+        if (!resultado.Exitoso) return Conflict(new { mensaje = resultado.Error });
+        return NoContent();
     }
 
     // POST api/Productos/5/unidades-alternativas

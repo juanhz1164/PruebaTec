@@ -182,6 +182,9 @@ public class AppDbContext : DbContext
             entity.Property(v => v.SucursalId).HasColumnName("sucursal_id");
             entity.Property(v => v.UsuarioId).HasColumnName("usuario_id");
             entity.Property(v => v.NumeroComprobante).HasColumnName("numero_comprobante");
+            entity.Property(v => v.ClienteNombre).HasColumnName("cliente_nombre");
+            entity.Property(v => v.ClienteEmail).HasColumnName("cliente_email");
+            entity.Property(v => v.ClienteTelefono).HasColumnName("cliente_telefono");
             entity.Property(v => v.Subtotal).HasColumnName("subtotal");
             entity.Property(v => v.DescuentoTotal).HasColumnName("descuento_total");
             entity.Property(v => v.Total).HasColumnName("total");

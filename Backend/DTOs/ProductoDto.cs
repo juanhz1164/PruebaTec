@@ -33,20 +33,26 @@ public class UnidadAlternativaDto
 public class CrearProductoDto
 {
     public int UnidadMedidaId { get; set; }
+    public int? ProveedorId { get; set; }
     public string Sku { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
     public string? Categoria { get; set; }
+    public decimal PrecioVenta { get; set; }
+    public decimal PrecioProveedor { get; set; }
 }
 
 public class ActualizarProductoDto
 {
     public int UnidadMedidaId { get; set; }
+    public int? ProveedorId { get; set; }
     public string Sku { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
     public string? Categoria { get; set; }
     public bool Activo { get; set; }
+    public decimal PrecioVenta { get; set; }
+    public decimal PrecioProveedor { get; set; }
 }
 
 // Alta o edición de una unidad de medida alternativa para un producto (T35).

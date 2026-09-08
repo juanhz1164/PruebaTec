@@ -2,6 +2,7 @@ using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Models;
 using InventarioMultiSucursal.Api.Repositories.Interfaces;
 using InventarioMultiSucursal.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventarioMultiSucursal.Api.Services;
 
@@ -63,17 +64,26 @@ public class UsuarioService : IUsuarioService
         return true;
     }
 
-    public async Task<bool> EliminarAsync(int id)
+    public async Task<ResultadoEliminacion> EliminarAsync(int id)
     {
         var existente = await _repository.GetByIdAsync(id);
         if (existente is null)
         {
-            return false;
+            return ResultadoEliminacion.NoExiste();
         }
 
         _repository.Remove(existente);
-        await _repository.SaveChangesAsync();
-        return true;
+        try
+        {
+            await _repository.SaveChangesAsync();
+            return ResultadoEliminacion.Ok();
+        }
+        catch (DbUpdateException)
+        {
+            return ResultadoEliminacion.Falla(
+                "No se puede eliminar este usuario porque tiene ventas, compras, movimientos de inventario " +
+                "u otros registros asociados. Usa \"Desactivar\" en su lugar.");
+        }
     }
 
     private static UsuarioDto MapToDto(Usuario u) => new()
