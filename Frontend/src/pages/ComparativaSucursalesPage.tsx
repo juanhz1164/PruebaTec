@@ -6,6 +6,7 @@ import { DoughnutChart } from '../components/DoughnutChart'
 import { LineChart } from '../components/LineChart'
 import { KpiTile } from '../components/KpiTile'
 import { MonthPicker } from '../components/MonthPicker'
+import { DatePicker } from '../components/DatePicker'
 import type { ComparativaSucursal } from '../types/dashboard'
 import type { FlujoPersonasResumen } from '../types/visita'
 import { ApiError } from '../api/client'
@@ -280,12 +281,7 @@ export function ComparativaSucursalesPage() {
                     </div>
 
                     {tipoPeriodo === 'dia' ? (
-                      <input
-                        type="date"
-                        value={fechaDia}
-                        max={hoyIso()}
-                        onChange={(e) => setFechaDia(e.target.value)}
-                      />
+                      <DatePicker value={fechaDia} max={hoyIso()} onChange={setFechaDia} />
                     ) : (
                       <MonthPicker value={fechaMes} max={mesActualIso()} onChange={setFechaMes} />
                     )}

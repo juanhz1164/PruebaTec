@@ -2602,6 +2602,58 @@ button {
   }
 }
 
+/* DatePicker: mismo patrón que MonthPicker (.month-picker-trigger,
+   .month-picker-anio se reutilizan tal cual), pero con grilla de 7 columnas
+   (días de la semana) en vez de 3 (meses). */
+.date-picker-dias-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.date-picker-dia {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.date-picker-dia:hover:not(:disabled) {
+  border-color: var(--rol-accent-border);
+}
+
+.date-picker-dia:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.date-picker-dia--activo {
+  background: var(--rol-accent);
+  border-color: var(--rol-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
 .line-chart,
 .hbar-chart {
   position: relative;
