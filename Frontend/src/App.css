@@ -2481,6 +2481,124 @@ button {
   font-size: 12px;
 }
 
+/* MonthPicker: reemplazo propio de <input type="month"> — su popup nativo
+   lo dibuja el navegador fuera del DOM de la página, así que ningún CSS de
+   overflow/posicionamiento nuestro puede evitar que se corte contra el
+   borde de la ventana. Este popup es HTML propio, con posición calculada en
+   JS (position:fixed, ver MonthPicker.tsx) para no depender del overflow de
+   ningún contenedor padre. */
+.month-picker {
+  display: inline-flex;
+}
+
+.month-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.month-picker-trigger:hover {
+  border-color: var(--rol-accent-border);
+}
+
+.month-picker-popup {
+  position: fixed;
+  z-index: 200;
+  width: 280px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.month-picker-anio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.month-picker-anio button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.month-picker-anio button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.month-picker-mes {
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.month-picker-mes:hover:not(:disabled) {
+  border-color: var(--rol-accent-border);
+}
+
+.month-picker-mes:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.month-picker-mes--activo {
+  background: var(--rol-accent);
+  border-color: var(--rol-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Pantallas angostas: 3 columnas en vez de 4 y popup más angosto — nunca
+   scroll horizontal de página, el popup solo se hace más alto (4 filas). */
+@media (max-width: 480px) {
+  .month-picker-popup {
+    width: 240px;
+  }
+
+  .month-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .line-chart,
 .hbar-chart {
   position: relative;

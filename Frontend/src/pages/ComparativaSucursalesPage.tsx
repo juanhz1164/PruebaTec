@@ -5,6 +5,7 @@ import { HorizontalBarChart } from '../components/HorizontalBarChart'
 import { DoughnutChart } from '../components/DoughnutChart'
 import { LineChart } from '../components/LineChart'
 import { KpiTile } from '../components/KpiTile'
+import { MonthPicker } from '../components/MonthPicker'
 import type { ComparativaSucursal } from '../types/dashboard'
 import type { FlujoPersonasResumen } from '../types/visita'
 import { ApiError } from '../api/client'
@@ -286,12 +287,7 @@ export function ComparativaSucursalesPage() {
                         onChange={(e) => setFechaDia(e.target.value)}
                       />
                     ) : (
-                      <input
-                        type="month"
-                        value={fechaMes}
-                        max={mesActualIso()}
-                        onChange={(e) => setFechaMes(e.target.value)}
-                      />
+                      <MonthPicker value={fechaMes} max={mesActualIso()} onChange={setFechaMes} />
                     )}
                   </div>
 

@@ -8,6 +8,7 @@ import {
 } from '../api/dashboard'
 import { getFlujoPersonasPorDia, getFlujoPersonasPorMes } from '../api/visitas'
 import { VentasPorMesChart } from '../components/VentasPorMesChart'
+import { MonthPicker } from '../components/MonthPicker'
 import { KpiTile } from '../components/KpiTile'
 import type {
   ProductoProximoAgotarse,
@@ -225,12 +226,11 @@ export function DashboardPage() {
           <section className="dash-card dash-card--secundaria">
             <div className="dash-card-header-row">
               <h2>Ventas por mes</h2>
-              <input
-                type="month"
+              <MonthPicker
                 className="dash-mes-selector"
                 value={mesVentasSeleccionado}
                 max={mesActualIso()}
-                onChange={(e) => setMesVentasSeleccionado(e.target.value)}
+                onChange={setMesVentasSeleccionado}
               />
             </div>
             <VentasPorMesChart

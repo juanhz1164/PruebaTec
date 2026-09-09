@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { getVentas } from '../api/ventas'
 import { getSucursales } from '../api/sucursales'
 import { KpiTile } from '../components/KpiTile'
+import { MonthPicker } from '../components/MonthPicker'
 import { Pagination } from '../components/Pagination'
 import { usePaginacion } from '../hooks/usePaginacion'
 import type { Venta } from '../types/venta'
@@ -186,12 +187,11 @@ export function ReportesPage() {
         <div className="page-header-sticky">
           <div className="dash-card-header-row">
             <h2>Reportes del mes</h2>
-            <input
-              type="month"
+            <MonthPicker
               className="dash-mes-selector"
               value={mesSeleccionado}
               max={mesActualIso()}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
+              onChange={setMesSeleccionado}
             />
           </div>
           <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
@@ -251,12 +251,11 @@ export function ReportesPage() {
           </div>
 
           <div className="reporte-header-acciones">
-            <input
-              type="month"
+            <MonthPicker
               className="dash-mes-selector"
               value={mesSeleccionado}
               max={mesActualIso()}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
+              onChange={setMesSeleccionado}
             />
 
             {!isLoading && !error && resumenPorSucursal.length > 0 && (
