@@ -32,34 +32,102 @@
 .app-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  width: 240px;
+  gap: 16px;
+  width: 176px;
   flex-shrink: 0;
-  padding: 20px 16px;
+  padding: 14px 10px;
   border-right: 1px solid var(--border);
+  font-size: 13px;
+  /* El contenido (.app-main) es flex:1 con min-width:0, así que se expande
+     solo cuando este ancho se reduce — no hace falta tocar nada más para
+     que el área principal aproveche el espacio liberado. */
+  transition: width 0.2s ease, padding 0.2s ease;
+  overflow: hidden;
+}
+
+.app-sidebar--colapsado {
+  width: 56px;
+  padding: 14px 8px;
+}
+
+.app-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-sidebar--colapsado .app-sidebar-header {
+  justify-content: center;
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-toggle:hover {
+  color: var(--text-h);
+  border-color: var(--rol-accent-border);
+}
+
+.sidebar-toggle svg {
+  transition: transform 0.2s ease;
 }
 
 .app-title {
   font-weight: 600;
+  font-size: 14px;
   color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sidebar--colapsado .app-title,
+.app-sidebar--colapsado .app-nav-label {
+  display: none;
 }
 
 .app-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
 }
 
 .app-nav a {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--text);
   text-decoration: none;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.app-sidebar--colapsado .app-nav a {
+  justify-content: center;
+  padding: 6px;
+}
+
+.nav-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .app-nav a:hover {
@@ -89,16 +157,16 @@
 .app-user {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  padding-top: 16px;
+  gap: 4px;
+  font-size: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
 .app-user-name {
   display: inline-block;
   width: fit-content;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -122,15 +190,22 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid rgba(224, 36, 94, 0.4);
   border-radius: 8px;
   background: rgba(224, 36, 94, 0.08);
   color: #e0245e;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.app-sidebar--colapsado .logout-button {
+  justify-content: center;
+  padding: 6px;
 }
 
 .logout-button:hover {
@@ -278,6 +353,22 @@
   padding-right: 4px;
 }
 
+/* Panel general: sin scroll vertical — las 3 gráficas deben caber en una
+   sola pantalla de escritorio (pedido explícito). El body pasa a ser un
+   contenedor flex que da toda su altura disponible a .dash-grid en vez de
+   dejar que el contenido crezca y active overflow-y. */
+.page-scroll-body--sin-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .page-scroll-body--sin-scroll {
+    overflow-y: auto;
+  }
+}
+
 /* Oculta visualmente la barra de scroll cuando el contenido desborda apenas
    unos píxeles (scroll "fantasma"), sin dejar de permitir el desplazamiento. */
 .page-scroll-body--sin-barra {
@@ -305,7 +396,11 @@
     flex-direction: column;
   }
 
-  .app-sidebar {
+  /* El colapso solo tiene sentido en el layout vertical de escritorio; en
+     mobile el sidebar ya es una barra horizontal compacta por sí misma, así
+     que se ignora el estado --colapsado y se oculta el botón de toggle. */
+  .app-sidebar,
+  .app-sidebar--colapsado {
     width: auto;
     flex-direction: row;
     flex-wrap: wrap;
@@ -316,13 +411,25 @@
     padding: 12px 16px;
   }
 
-  .app-nav {
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .app-sidebar--colapsado .app-title,
+  .app-sidebar--colapsado .app-nav-label {
+    display: inline;
+  }
+
+  .app-nav,
+  .app-sidebar--colapsado .app-nav {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 4px 16px;
   }
 
-  .app-nav a {
+  .app-nav a,
+  .app-sidebar--colapsado .app-nav a {
+    justify-content: flex-start;
     padding: 6px 4px;
     border-left: none;
     border-bottom: 2px solid transparent;
@@ -819,19 +926,24 @@
 }
 
 .reporte-sucursal {
-  margin-top: 32px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
 }
 
-.reporte-sucursal h2 {
-  margin: 0 0 4px;
+.reporte-sucursal-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.reporte-sucursal-header h2 {
+  margin: 0;
   font-size: 17px;
 }
 
@@ -839,6 +951,35 @@
   font-size: 13px;
   font-weight: 400;
   color: var(--text);
+}
+
+.reporte-sucursal .admin-card--tabla {
+  flex: 1;
+  min-height: 0;
+}
+
+.reporte-selector-sucursal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reporte-selector-sucursal label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.reporte-selector-sucursal select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
 }
 
 .page label {
@@ -870,16 +1011,17 @@
   margin-top: 16px;
 }
 
+/* El scroll horizontal debe quedar SIEMPRE dentro del contenedor de la
+   tabla, no solo en mobile: una tabla con muchas columnas en desktop debía
+   desbordarse de su contenedor (o de toda la página) porque overflow-x solo
+   se activaba bajo 640px. Con esto, el contenedor de la tabla scrollea
+   internamente en cualquier tamaño de pantalla y el resto de la página
+   permanece estable. */
 .table-scroll {
   width: 100%;
+  overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-}
-
-@media (max-width: 640px) {
-  .table-scroll {
-    overflow-x: auto;
-  }
 }
 
 .table-scroll::-webkit-scrollbar {
@@ -890,22 +1032,37 @@
 .data-table td {
   text-align: left;
   vertical-align: middle;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
+  font-size: 13px;
 }
 
 .data-table thead th {
   color: var(--text);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   position: sticky;
   top: 0;
   z-index: 1;
   background: var(--bg);
 }
 
+.data-table tbody tr {
+  transition: background 0.1s ease;
+}
+
+.data-table tbody tr:hover {
+  background: var(--code-bg);
+}
+
 .data-table tr.row-alert td {
   background: rgba(224, 36, 94, 0.08);
+}
+
+.data-table tr.row-alert:hover td {
+  background: rgba(224, 36, 94, 0.14);
 }
 
 .badge-alert {
@@ -1014,13 +1171,13 @@
 }
 
 .tab-button {
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid transparent;
-  border-radius: 8px 8px 0 0;
+  border-radius: 7px 7px 0 0;
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   margin-bottom: -1px;
@@ -1036,6 +1193,58 @@
   background: var(--rol-accent-bg);
   border-color: var(--border);
   border-bottom-color: var(--rol-accent-bg);
+}
+
+/* Paginación client-side, reutilizada por cualquier tabla/listado largo
+   (Compras, Ventas, Reportes, Inventario de sucursales). */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 12px 0 2px;
+}
+
+.pagination-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  color: var(--text-h);
+  border-color: var(--rol-accent-border);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn--activo {
+  color: var(--rol-accent);
+  background: var(--rol-accent-bg);
+  border-color: var(--rol-accent-border);
+}
+
+.pagination-btn--siguiente {
+  padding: 0 12px;
+}
+
+.pagination-ellipsis {
+  color: var(--text);
+  padding: 0 2px;
+  font-size: 13px;
 }
 
 .transferencias-bloque {
@@ -1329,7 +1538,40 @@
 .tr-agregar-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+
+.tr-agregar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.tr-agregar-stock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  height: 38px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.tr-agregar-stock strong {
+  color: var(--text-h);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .tr-linea-stock {
@@ -1376,17 +1618,26 @@
 }
 
 .tr-submit-btn {
-  padding: 10px 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
   border: none;
   border-radius: 8px;
-  background: var(--rol-accent);
+  background: #b08d57;
   color: #fff;
   font: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.tr-submit-btn:hover {
+  background: #c19f68;
 }
 
 .tr-submit-btn:disabled {
@@ -1538,63 +1789,173 @@
   box-sizing: border-box;
 }
 
-.orden-form > button[type='submit'] {
-  align-self: flex-start;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background: var(--rol-accent);
-  color: #fff;
+/* ============================================================
+   Sistema global de botones
+   ------------------------------------------------------------
+   Semántica de color de acción (pedida explícitamente):
+   - dorado/ocre apagado #b08d57 (.primary-button): Crear / Nueva.../
+     Solicitar / Agregar (antes azul, luego violeta — se cambió de azul
+     para no confundirse con la temática visual del rol Gerente, y de
+     violeta a este tono porque se veía demasiado saturado en dark mode)
+   - verde   (.success-button): Guardar / Confirmar / Registrar venta
+   - rojo    (.danger-button):  Cancelar / Eliminar
+   - gris    (.secondary-button): Cerrar / acciones neutrales
+   Sin esto, cualquier <button> sin clase cae en el estilo nativo
+   del navegador, inconsistente con el resto de la UI.
+   ============================================================ */
+button {
   font: inherit;
-  font-weight: 600;
-  cursor: pointer;
 }
 
-.orden-form > button[type='submit']:disabled {
-  opacity: 0.6;
+.orden-form > button[type='submit'],
+.primary-button,
+.secondary-button,
+.danger-button,
+.success-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-start;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.orden-form > button[type='submit']:active,
+.primary-button:active,
+.secondary-button:active,
+.danger-button:active,
+.success-button:active {
+  transform: translateY(1px);
+}
+
+.orden-form > button[type='submit'],
+.primary-button {
+  border: none;
+  background: #b08d57;
+  color: #fff;
+  font-weight: 700;
+}
+
+.orden-form > button[type='submit']:hover,
+.primary-button:hover {
+  background: #c19f68;
+}
+
+.orden-form > button[type='submit']:disabled,
+.primary-button:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
+  filter: none;
+}
+
+.success-button {
+  border: none;
+  background: #1a8917;
+  color: #fff;
+  font-weight: 700;
+}
+
+.success-button:hover {
+  background: #219a1e;
 }
 
 .secondary-button {
-  align-self: flex-start;
-  padding: 6px 12px;
-  border: 1px solid var(--rol-accent-border);
-  border-radius: 4px;
-  background: var(--rol-accent-bg);
-  color: var(--rol-accent);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+.secondary-button:hover {
+  border-color: var(--text);
+  color: var(--text-h);
 }
 
 .danger-button {
   flex-shrink: 0;
-  padding: 6px 12px;
-  border: 1px solid rgba(224, 36, 94, 0.5);
-  border-radius: 4px;
+  border: 1px solid rgba(224, 36, 94, 0.45);
   background: rgba(224, 36, 94, 0.1);
   color: #e0245e;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
 }
 
-.success-button {
-  flex-shrink: 0;
-  padding: 6px 12px;
-  border: 1px solid rgba(26, 137, 23, 0.5);
-  border-radius: 4px;
-  background: rgba(26, 137, 23, 0.12);
-  color: #1a8917;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+.danger-button:hover {
+  background: rgba(224, 36, 94, 0.2);
+  border-color: rgba(224, 36, 94, 0.7);
 }
 
 .success-button:disabled,
-.danger-button:disabled {
+.danger-button:disabled,
+.secondary-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Variante sólida de peligro: para la acción de "Eliminar" definitiva
+   dentro de un modal de confirmación, más severa visualmente que el
+   Cancelar (que también es rojo pero en outline) del mismo footer. */
+.danger-button--solido {
+  border: none;
+  background: #e0245e;
+  color: #fff;
+  font-weight: 700;
+}
+
+.danger-button--solido:hover {
+  background: #ef2d6b;
+}
+
+.btn-icon-only {
+  padding: 0;
+  width: 34px;
+}
+
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  border-radius: 6px;
+}
+
+/* Input de contraseña con botón mostrar/ocultar (mismo patrón visual que
+   LoginPage.tsx), pero con variables del tema de la app en vez de las
+   --login-* propias de esa pantalla, para poder usarse en modales. */
+.password-field {
+  position: relative;
+  display: flex;
+}
+
+.password-field input {
+  flex: 1;
+  padding-right: 38px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: var(--text-h);
 }
 
 .admin-tabs {
@@ -1648,13 +2009,24 @@
 }
 
 .estado-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
   background: var(--code-bg);
   color: var(--text-h);
+}
+
+.estado-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* Usado por Órdenes de compra (EstadoOrdenCompra): "Pendiente por confirmar"
@@ -1845,22 +2217,41 @@
   white-space: nowrap;
 }
 
-.kpi-row {
+/* ============================================================
+   Tarjetas estadísticas (KpiTile) — sistema único
+   ------------------------------------------------------------
+   Toda card estadística del sistema comparte: misma altura,
+   mismo padding, misma tipografía, mismo radio, mismo tamaño de
+   icono. `.kpi-row--compacta` ya no es una escala distinta: es
+   el único tamaño que existe (se mantiene el nombre de clase
+   para no tocar cada page que ya la usa).
+   ============================================================ */
+.kpi-row,
+.kpi-row--compacta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 20px 0;
+  gap: 10px;
+  margin: 12px 0;
 }
 
 .kpi-tile {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
+  justify-content: center;
+  gap: 3px;
+  min-width: 150px;
+  height: 66px;
   flex: 1;
-  padding: 14px 16px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
+  background: var(--bg);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.kpi-tile:hover {
+  border-color: var(--rol-accent-border);
 }
 
 .kpi-tile-warning {
@@ -1880,9 +2271,10 @@
 }
 
 .kpi-header .nav-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   color: var(--rol-accent);
+  flex-shrink: 0;
 }
 
 .kpi-tile-warning .kpi-header .nav-icon {
@@ -1894,49 +2286,26 @@
 }
 
 .kpi-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-value {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--text-h);
+  line-height: 1.15;
 }
 
 .kpi-sublabel {
-  font-size: 12px;
-  color: var(--text);
-}
-
-/* Variante compacta: Panel general y Comparación de sucursales, donde los
-   KPIs conviven con gráficas grandes y no necesitan tanto protagonismo. */
-.kpi-row--compacta {
-  margin: 10px 0;
-  gap: 10px;
-}
-
-.kpi-row--compacta .kpi-tile {
-  min-width: 140px;
-  padding: 10px 12px;
-  gap: 2px;
-}
-
-.kpi-row--compacta .kpi-value {
-  font-size: 19px;
-}
-
-.kpi-row--compacta .kpi-label {
-  font-size: 12px;
-}
-
-.kpi-row--compacta .kpi-sublabel {
   font-size: 11px;
-}
-
-.kpi-row--compacta .kpi-header .nav-icon {
-  width: 14px;
-  height: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chart-empty {
@@ -1989,22 +2358,65 @@
   gap: 12px;
 }
 
+/* Grid del Panel general: debe caber en el viewport sin scroll vertical
+   (pedido explícito). Jerarquía visual pedida: "Productos más vendidos" es
+   la sección PRINCIPAL (fila 1, todo el ancho, más alto) — "Ventas por mes"
+   y "Alertas de inventario"/"Flujo de personas" son dos cajas SIMÉTRICAS
+   (mismo ancho, misma altura, fila 2 dividida 50/50). */
 .dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-  margin: 20px 0;
+  grid-template-columns: 1fr 1fr;
+  /* 0.9fr/1.1fr (antes 1.15fr/0.85fr): con "Productos más vendidos" ya
+     compactada (menos padding/gap, ver .dash-card--principal), la fila 1
+     necesita bastante menos alto real — dárselo igual dejaba muy poco
+     espacio a la fila 2, cortando el contenido de "Flujo de personas". */
+  grid-template-rows: 0.9fr 1.1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.dash-card--principal {
+  grid-column: 1 / -1;
+  /* Menos padding vertical y gap que el resto de las .dash-card: esta
+     tarjeta solo necesita mostrar 4 filas de ranking — con el padding
+     estándar sobraba mucho aire y le quitaba espacio a la fila de abajo
+     (Ventas por mes / Flujo de personas) en pantallas de laptop. */
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 4px;
+  /* Red de seguridad: en viewports muy bajos (~700px o menos, notebooks
+     chicos o con barra de tareas/pestañas ocupando espacio) puede seguir
+     sin caber la fila 4 exacta — con overflow-y:auto esa fila queda
+     accesible con scroll interno en vez de perderse silenciosamente
+     detrás del overflow:hidden heredado de .dash-card. */
+  overflow-y: auto;
+}
+
+.dash-card--secundaria {
+  grid-column: 1;
+}
+
+.dash-card--lateral {
+  grid-column: 2;
+  /* Ocupa toda la altura de la fila (igual que "Ventas por mes" a su lado):
+     pocas alertas -> el contenido queda arriba con la card llena hasta
+     abajo; muchas -> el listado interno scrollea (ver .dash-alertas-list),
+     sin que la card se salga de su fila del grid. */
+  overflow-y: auto;
 }
 
 .dash-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px 20px;
+  gap: 8px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--code-bg);
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   transition: border-color 0.15s ease;
 }
 
@@ -2012,13 +2424,21 @@
   border-color: var(--rol-accent-border);
 }
 
-.dash-card--wide {
-  grid-column: 1 / -1;
-}
+@media (max-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    overflow-y: auto;
+  }
 
-@media (min-width: 1100px) {
-  .dash-card--wide {
-    grid-column: span 2;
+  .dash-card {
+    min-height: 220px;
+  }
+
+  .dash-card--principal,
+  .dash-card--secundaria,
+  .dash-card--lateral {
+    grid-column: 1;
   }
 }
 
@@ -2028,7 +2448,7 @@
 }
 
 .dash-card-hint {
-  margin: -6px 0 0;
+  margin: -6px 0 4px;
   font-size: 12px;
   color: var(--text);
 }
@@ -2060,10 +2480,79 @@
   width: 100%;
 }
 
-.hbar-chart--fill {
+.hbar-chart--fill,
+.line-chart--fill {
   flex: 1;
   min-height: 0;
   height: auto;
+}
+
+/* Donut de "Ventas por mes" + leyenda propia en HTML, lado a lado. El
+   contenedor exterior (.ventas-mes-donut) usa flex:1 para ocupar TODO el
+   espacio restante de la card — igual altura real que "Alertas de
+   inventario" a su lado, ambas en la misma fila del grid — en vez de un
+   tamaño fijo que dejaba aire vacío alrededor del donut. */
+.ventas-mes-donut {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  /* center (no "stretch"): igual que .doughnut-chart-wrap en "Comparación
+     de sucursales" — el donut mantiene un tamaño de círculo razonable en
+     vez de estirarse/encogerse a la altura completa de la card, así la
+     leyenda al lado siempre tiene su alto natural disponible sin competir
+     por espacio con el círculo. */
+  align-items: center;
+  gap: 20px;
+}
+
+.ventas-mes-chart {
+  /* El tamaño real (siempre un cuadrado exacto) lo calcula y aplica JS
+     como estilo inline (ver VentasPorMesChart.tsx) — aspect-ratio por sí
+     solo competía con el layout flex del contenedor y el donut terminaba
+     estirado de forma elíptica en vez de un círculo perfecto. */
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ventas-mes-leyenda {
+  flex: 1;
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ventas-mes-leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.ventas-mes-leyenda-punto {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ventas-mes-leyenda-mes {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+
+.ventas-mes-leyenda-pct {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-h);
 }
 
 .dash-alertas-list {
@@ -2072,7 +2561,9 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dash-alerta-item {
@@ -2121,7 +2612,10 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
 }
 
 .dash-ranking-item {
@@ -2144,7 +2638,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .dash-ranking-nombre {
@@ -2364,8 +2858,14 @@
 .visitas-layout {
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
-  align-items: start;
+  align-items: stretch;
   gap: 20px;
+  /* Sin esto, el grid mide solo la altura de su contenido (la fila toma la
+     altura del ítem más alto) y no llena el espacio real disponible en
+     .page-scroll-body — con pocas o ninguna visita, "Visitas de hoy" quedaba
+     corta con una franja vacía debajo en vez de extenderse hasta el fondo
+     de la página. */
+  min-height: 100%;
 }
 
 @media (max-width: 900px) {
@@ -2378,12 +2878,18 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* align-items:stretch del grid padre (.visitas-layout) estira esta card
+     al alto completo de la fila — el fondo/borde gris llega hasta abajo
+     de la página en vez de terminar justo después del botón, dejando un
+     hueco negro sin tarjeta debajo. El contenido (stepper + botón) queda
+     arriba por el flex-direction:column normal; el resto del alto de la
+     card queda vacío pero SIGUE siendo parte de la tarjeta (mismo fondo,
+     mismo borde), no un hueco fuera de ella. */
   padding: 18px 20px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--code-bg);
-  position: sticky;
-  top: 0;
+  box-sizing: border-box;
 }
 
 .visitas-registro-card h2 {
@@ -2500,6 +3006,8 @@
 }
 
 .visitas-listado {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
@@ -2509,6 +3017,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .visitas-listado-header h2 {
@@ -2573,6 +3082,7 @@
 
 .visitas-vacio {
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -2761,14 +3271,14 @@
 .dash-flujo-personas {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .dash-flujo-personas-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -3190,14 +3700,15 @@ td.col-precio {
 }
 
 .actions-menu-trigger {
-  width: 30px;
-  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
   color: var(--text);
-  font-size: 18px;
-  line-height: 1;
   cursor: pointer;
 }
 
@@ -3223,7 +3734,10 @@ td.col-precio {
 }
 
 .actions-menu-item {
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
   border: none;
   border-radius: 5px;
   background: none;
@@ -3233,6 +3747,10 @@ td.col-precio {
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.actions-menu-item svg {
+  flex-shrink: 0;
 }
 
 .actions-menu-item:hover {
@@ -3269,58 +3787,91 @@ td.col-precio {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(8, 9, 13, 0.6);
+  backdrop-filter: blur(2px);
   padding: 16px;
+  animation: modal-overlay-in 0.15s ease;
+}
+
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-panel {
   width: 100%;
-  max-width: 420px;
-  max-height: 92vh;
+  max-width: 440px;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--bg);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  animation: modal-panel-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
-  padding: 16px 20px;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--border);
+}
+
+.modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text-h);
+}
+
+.modal-description {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text);
 }
 
 .modal-close {
-  border: none;
-  background: none;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
   color: var(--text);
-  font-size: 20px;
-  line-height: 1;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .modal-close:hover {
-  background: var(--code-bg);
-  color: var(--text-h);
+  background: rgba(224, 36, 94, 0.1);
+  border-color: rgba(224, 36, 94, 0.5);
+  color: #e0245e;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -3338,10 +3889,29 @@ td.col-precio {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 20px;
+  gap: 8px;
+  padding: 14px 18px;
   border-top: 1px solid var(--border);
   background: var(--bg);
+}
+
+.modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+}
+
+.modal-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 .modal-producto-info {
@@ -3373,12 +3943,12 @@ td.col-precio {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .modal-panel--ancho {
-  max-width: 720px;
+  max-width: 760px;
 }
 
 .modal-panel--ancho .form-row-inline {
@@ -3387,28 +3957,39 @@ td.col-precio {
   gap: 14px 16px;
 }
 
+/* Modal extra-ancho: usado por formularios "de trabajo" con tabla de
+   líneas + panel de resumen lateral (Nueva venta, Nueva orden de compra).
+   Suficiente ancho para que ambas columnas respiren sin llegar a ocupar
+   toda la pantalla. */
+.modal-panel--extra-ancho {
+  max-width: 1040px;
+  height: 88vh;
+}
+
 /* Cabecera de sección: título + descripción a la izquierda, CTA a la derecha */
 
 .admin-section-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
 }
 
 .admin-section-heading h2,
 .admin-section-heading h1 {
-  margin: 0 0 2px;
-  font-size: 18px;
+  margin: 0 0 1px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-h);
 }
 
 .admin-section-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
 }
 
@@ -3416,26 +3997,72 @@ td.col-precio {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 9px 16px;
+  height: 32px;
+  padding: 0 14px;
   border: none;
-  border-radius: 8px;
-  background: var(--rol-accent);
-  color: var(--bg);
+  border-radius: 7px;
+  background: #b08d57;
+  color: #fff;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  transition: background 0.15s ease;
 }
 
 .admin-cta-button:hover {
-  filter: brightness(1.08);
+  background: #c19f68;
 }
 
 .admin-cta-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.reporte-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.inv-sucursal-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+/* El <select> nativo debe declarar su propio background/color (no "none"):
+   el navegador pinta el panel desplegable de opciones usando esos valores
+   junto con color-scheme, no los del contenedor que lo envuelve. Con
+   background:none aquí, el dropdown abierto caía al blanco por defecto del
+   sistema incluso en tema oscuro — ilegible. Mismo fix para cualquier
+   <select> de la app (ver regla genérica más abajo). */
+.inv-sucursal-selector select {
+  border: none;
+  background: var(--code-bg);
+  padding: 0;
+  height: auto;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inv-sucursal-selector select option {
+  background: var(--code-bg);
+  color: var(--text-h);
 }
 
 /* Buscador ---------------------------------------------------------------- */
@@ -3582,12 +4209,13 @@ td.col-precio {
 }
 
 /* El formulario ocupa todo el alto de .modal-body y reparte ese espacio
-   él mismo: "Datos del cliente", el encabezado de "Productos", el error
-   y el botón de enviar NUNCA se comprimen ni scrollean (venta-form--fija /
-   venta-form-seccion--fija); solo la tabla de líneas puede achicarse y
-   scrollear internamente (venta-form-seccion--productos +
-   venta-form-productos-scroll). Así el cliente/resumen/botón quedan
-   siempre visibles sin importar cuántos productos se agreguen. */
+   él mismo: "Datos del cliente"/"Información general" y el pie
+   (error + acciones) NUNCA se comprimen ni scrollean (venta-form--fija /
+   venta-form-seccion--fija); solo el CUERPO PRINCIPAL (productos + resumen
+   lateral, venta-form-cuerpo) ocupa el espacio restante, y dentro de él
+   solo la tabla de líneas scrollea internamente (venta-form-productos-scroll).
+   Así el resumen y las acciones quedan siempre visibles sin importar
+   cuántos productos se agreguen. */
 .venta-form--fija {
   height: 100%;
   min-height: 0;
@@ -3597,13 +4225,34 @@ td.col-precio {
   flex-shrink: 0;
 }
 
-.venta-form-seccion--productos {
+/* Cuerpo principal: productos (columna ancha) + resumen (panel lateral),
+   uno junto al otro para que el total nunca quede lejos de la lista. */
+.venta-form-cuerpo {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
 }
 
+@media (max-width: 800px) {
+  .venta-form-cuerpo {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
+
+.venta-form-seccion--productos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+
 .venta-form-productos-scroll {
-  height: 100%;
+  flex: 1;
+  min-height: 160px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
@@ -3632,52 +4281,84 @@ td.col-precio {
   color: var(--text);
 }
 
+/* Panel de resumen lateral: siempre visible junto a la tabla de productos,
+   nunca debajo de ella (ver estructura pedida). */
+.venta-form-resumen-panel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .venta-form-resumen {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--code-bg);
+  position: sticky;
+  top: 0;
+}
+
+.venta-form-resumen-titulo {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+/* Botón de quitar línea: icono discreto en la última columna de la tabla
+   en vez del texto "Quitar", para no competir visualmente con el resto de
+   la fila (pedido explícito: icono/acción discreta). */
+.lineas-quitar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lineas-quitar-btn:hover:not(:disabled) {
+  background: rgba(224, 36, 94, 0.12);
+  color: #e0245e;
+}
+
+.lineas-quitar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .venta-form-resumen-fila {
   display: flex;
   justify-content: space-between;
-  font-size: 13.5px;
+  gap: 8px;
+  font-size: 13px;
   color: var(--text);
 }
 
 .venta-form-resumen-total {
-  padding-top: 6px;
-  margin-top: 4px;
+  padding-top: 10px;
+  margin-top: 6px;
   border-top: 1px solid var(--border);
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text-h);
 }
 
-/* Variante compacta: vive como una columna más dentro del form-row-inline
-   de "Datos del cliente" (junto al Teléfono), aprovechando el espacio que
-   antes quedaba vacío, en vez de un bloque aparte debajo del carrito que
-   obligaba a hacer scroll para ver el total. */
-.venta-form-resumen--compacto {
-  flex: 1;
-  min-width: 180px;
-  gap: 2px;
-  padding: 10px 14px;
-  justify-content: center;
-}
-
-.venta-form-resumen--compacto .venta-form-resumen-fila {
-  font-size: 12.5px;
-}
-
-.venta-form-resumen--compacto .venta-form-resumen-total {
-  padding-top: 4px;
-  margin-top: 2px;
-  font-size: 15px;
+@media (max-width: 800px) {
+  .venta-form-resumen-panel {
+    order: -1;
+  }
 }
 
 .venta-detalle-cliente {

@@ -7,7 +7,7 @@ import {
   getRotacionInventario,
 } from '../api/dashboard'
 import { getFlujoPersonasPorDia, getFlujoPersonasPorMes } from '../api/visitas'
-import { LineChart } from '../components/LineChart'
+import { VentasPorMesChart } from '../components/VentasPorMesChart'
 import { KpiTile } from '../components/KpiTile'
 import type {
   ProductoProximoAgotarse,
@@ -32,6 +32,14 @@ function hoyIso(): string {
 
 function mesActualIso(): string {
   return hoyIso().slice(0, 7)
+}
+
+// "2026-06" -> "jun. 2026": la etiqueta original ("YYYY-MM") se veía
+// demasiado larga en el eje X del gráfico de Ventas por mes.
+function formatearMesCorto(etiquetaIso: string): string {
+  const [anio, mes] = etiquetaIso.split('-')
+  const fecha = new Date(Number(anio), Number(mes) - 1, 1)
+  return fecha.toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })
 }
 
 function variacionPorcentual(actual: number, anterior: number): number | null {
@@ -137,7 +145,7 @@ export function DashboardPage() {
   const masVendidos = [...rotacion]
     .sort((a, b) => b.cantidadVendidaUltimos30Dias - a.cantidadVendidaUltimos30Dias)
     .filter((r) => r.cantidadVendidaUltimos30Dias > 0)
-    .slice(0, 5)
+    .slice(0, 3)
   const maxVendido = masVendidos[0]?.cantidadVendidaUltimos30Dias ?? 1
 
   const alertasInventario = [...proximosAgotarse]
@@ -184,9 +192,37 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="page-scroll-body">
+      <div className="page-scroll-body page-scroll-body--sin-scroll">
         <div className="dash-grid">
-          <section className="dash-card dash-card--wide">
+          <section className="dash-card dash-card--principal">
+            <h2>Productos más vendidos</h2>
+            <p className="dash-card-hint">Últimos 30 días</p>
+            {masVendidos.length === 0 ? (
+              <p className="chart-empty">Todavía no se ha vendido nada en este período.</p>
+            ) : (
+              <ul className="dash-ranking-list">
+                {masVendidos.map((p, i) => (
+                  <li key={p.productoId} className="dash-ranking-item">
+                    <span className="dash-ranking-pos">{i + 1}</span>
+                    <div className="dash-ranking-bar-wrap">
+                      <span className="dash-ranking-nombre">{p.productoNombre}</span>
+                      <div className="dash-ranking-bar-track">
+                        <div
+                          className="dash-ranking-bar-fill"
+                          style={{ width: `${(p.cantidadVendidaUltimos30Dias / maxVendido) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="dash-ranking-valor">
+                      {p.cantidadVendidaUltimos30Dias.toFixed(0)} u.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="dash-card dash-card--secundaria">
             <div className="dash-card-header-row">
               <h2>Ventas por mes</h2>
               <input
@@ -197,16 +233,14 @@ export function DashboardPage() {
                 onChange={(e) => setMesVentasSeleccionado(e.target.value)}
               />
             </div>
-            <p className="dash-card-hint">Ventas del mes elegido y los 3 meses anteriores</p>
-            <LineChart
-              data={ventasPorMes.map((v) => ({ label: v.etiquetaMes, value: v.totalVendido }))}
+            <VentasPorMesChart
+              data={ventasPorMes.map((v) => ({ label: formatearMesCorto(v.etiquetaMes), value: v.totalVendido }))}
               valueFormatter={(v) => formatearMoneda(v)}
-              colorVar="--chart-3"
             />
           </section>
 
           {esGerente ? (
-            <section className="dash-card">
+            <section className="dash-card dash-card--lateral">
               <h2>Flujo de personas</h2>
               {!flujoHoy && !flujoMes ? (
                 <p className="chart-empty">No hay datos disponibles para este período.</p>
@@ -235,7 +269,7 @@ export function DashboardPage() {
               )}
             </section>
           ) : (
-            <section className="dash-card">
+            <section className="dash-card dash-card--lateral">
               <h2>Alertas de inventario</h2>
               {alertasInventario.length === 0 ? (
                 <p className="chart-empty">No hay productos próximos a agotarse.</p>
@@ -259,34 +293,6 @@ export function DashboardPage() {
               )}
             </section>
           )}
-
-          <section className="dash-card">
-            <h2>Productos más vendidos</h2>
-            <p className="dash-card-hint">Últimos 30 días</p>
-            {masVendidos.length === 0 ? (
-              <p className="chart-empty">Todavía no se ha vendido nada en este período.</p>
-            ) : (
-              <ul className="dash-ranking-list">
-                {masVendidos.map((p, i) => (
-                  <li key={p.productoId} className="dash-ranking-item">
-                    <span className="dash-ranking-pos">{i + 1}</span>
-                    <div className="dash-ranking-bar-wrap">
-                      <span className="dash-ranking-nombre">{p.productoNombre}</span>
-                      <div className="dash-ranking-bar-track">
-                        <div
-                          className="dash-ranking-bar-fill"
-                          style={{ width: `${(p.cantidadVendidaUltimos30Dias / maxVendido) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="dash-ranking-valor">
-                      {p.cantidadVendidaUltimos30Dias.toFixed(0)} u.
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </div>
       </div>
     </div>
