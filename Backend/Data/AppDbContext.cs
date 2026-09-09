@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<VentaLinea> VentasLineas => Set<VentaLinea>();
     public DbSet<Transferencia> Transferencias => Set<Transferencia>();
     public DbSet<TransferenciaLinea> TransferenciasLineas => Set<TransferenciaLinea>();
+    public DbSet<RutaLogistica> RutasLogisticas => Set<RutaLogistica>();
     public DbSet<Visita> Visitas => Set<Visita>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -288,6 +289,30 @@ public class AppDbContext : DbContext
             entity.HasOne(l => l.Producto)
                 .WithMany()
                 .HasForeignKey(l => l.ProductoId);
+        });
+
+        modelBuilder.Entity<RutaLogistica>(entity =>
+        {
+            entity.ToTable("rutas_logisticas");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Id).HasColumnName("id");
+            entity.Property(r => r.SucursalOrigenId).HasColumnName("sucursal_origen_id");
+            entity.Property(r => r.SucursalDestinoId).HasColumnName("sucursal_destino_id");
+            entity.Property(r => r.Transportista).HasColumnName("transportista");
+            entity.Property(r => r.CostoEnvio).HasColumnName("costo_envio");
+            entity.Property(r => r.TiempoEstimadoDias).HasColumnName("tiempo_estimado_dias");
+
+            entity.HasIndex(r => new { r.SucursalOrigenId, r.SucursalDestinoId }).IsUnique();
+
+            entity.HasOne(r => r.SucursalOrigen)
+                .WithMany()
+                .HasForeignKey(r => r.SucursalOrigenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.SucursalDestino)
+                .WithMany()
+                .HasForeignKey(r => r.SucursalDestinoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Proveedor>(entity =>

@@ -74,6 +74,7 @@ public class TransferenciaRepository : ITransferenciaRepository
     {
         return await ConsultaBase()
             .Where(t => t.FechaEnvio != null)
+            .OrderByDescending(t => t.FechaEnvio)
             .ToListAsync();
     }
 
@@ -89,6 +90,21 @@ public class TransferenciaRepository : ITransferenciaRepository
     {
         return await ConsultaBase()
             .Where(t => t.Estado == EstadoTransferencia.RecibidaCompleta || t.Estado == EstadoTransferencia.RecibidaParcial)
+            .OrderByDescending(t => t.FechaRecepcion)
+            .ToListAsync();
+    }
+
+    public async Task<RutaLogistica?> GetRutaLogisticaAsync(int sucursalOrigenId, int sucursalDestinoId)
+    {
+        return await _context.RutasLogisticas
+            .FirstOrDefaultAsync(r => r.SucursalOrigenId == sucursalOrigenId && r.SucursalDestinoId == sucursalDestinoId);
+    }
+
+    public async Task<List<RutaLogistica>> GetRutasLogisticasAsync()
+    {
+        return await _context.RutasLogisticas
+            .Include(r => r.SucursalOrigen)
+            .Include(r => r.SucursalDestino)
             .ToListAsync();
     }
 }

@@ -109,6 +109,14 @@ public class TransferenciaService : ITransferenciaService
             return ResultadoTransferencia.Falla("Debe indicar la cantidad enviada de al menos una línea.");
         }
 
+        // La fecha estimada de llegada nunca puede quedar en el pasado — se
+        // compara contra la fecha (sin hora) de hoy para no rechazar "hoy
+        // mismo" solo porque la hora exacta del envío ya pasó.
+        if (dto.FechaEstimadaLlegada is not null && dto.FechaEstimadaLlegada.Value.Date < DateTime.UtcNow.Date)
+        {
+            return ResultadoTransferencia.Falla("La fecha estimada de llegada no puede ser anterior a hoy.");
+        }
+
         // Valida stock disponible en el origen de TODAS las líneas antes de tocar nada.
         var inventariosOrigen = new Dictionary<int, Inventario>();
         foreach (var lineaEnvio in dto.Lineas)
@@ -134,13 +142,20 @@ public class TransferenciaService : ITransferenciaService
             inventariosOrigen[linea.Id] = inventario;
         }
 
+        // Si la ruta origen→destino tiene configuración de logística, se usa como
+        // respaldo para cualquier campo que no llegue en el DTO (el frontend ya
+        // prellena el formulario con estos mismos valores, pero el backend no
+        // debe confiar únicamente en eso — es la fuente de verdad real).
+        var rutaConfigurada = await _repository.GetRutaLogisticaAsync(transferencia.SucursalOrigenId, transferencia.SucursalDestinoId);
+
         await using var transaction = await _repository.BeginTransactionAsync();
 
-        transferencia.Transportista = dto.Transportista;
+        transferencia.Transportista = dto.Transportista ?? rutaConfigurada?.Transportista;
         transferencia.Ruta = dto.Ruta;
-        transferencia.CostoEnvio = dto.CostoEnvio;
-        transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada;
+        transferencia.CostoEnvio = dto.CostoEnvio ?? rutaConfigurada?.CostoEnvio;
         transferencia.FechaEnvio = DateTime.UtcNow;
+        transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada
+            ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : null);
         transferencia.Estado = EstadoTransferencia.EnTransito;
 
         foreach (var lineaEnvio in dto.Lineas)
@@ -290,6 +305,30 @@ public class TransferenciaService : ITransferenciaService
         var actualizada = await _repository.GetByIdAsync(id);
         return ResultadoTransferencia.Ok(MapToDto(actualizada!));
     }
+
+    public async Task<List<RutaLogisticaDto>> GetRutasLogisticasAsync()
+    {
+        var rutas = await _repository.GetRutasLogisticasAsync();
+        return rutas.Select(MapRutaToDto).ToList();
+    }
+
+    public async Task<RutaLogisticaDto?> GetRutaLogisticaAsync(int sucursalOrigenId, int sucursalDestinoId)
+    {
+        var ruta = await _repository.GetRutaLogisticaAsync(sucursalOrigenId, sucursalDestinoId);
+        return ruta is null ? null : MapRutaToDto(ruta);
+    }
+
+    private static RutaLogisticaDto MapRutaToDto(RutaLogistica r) => new()
+    {
+        Id = r.Id,
+        SucursalOrigenId = r.SucursalOrigenId,
+        SucursalOrigenNombre = r.SucursalOrigen?.Nombre ?? string.Empty,
+        SucursalDestinoId = r.SucursalDestinoId,
+        SucursalDestinoNombre = r.SucursalDestino?.Nombre ?? string.Empty,
+        Transportista = r.Transportista,
+        CostoEnvio = r.CostoEnvio,
+        TiempoEstimadoDias = r.TiempoEstimadoDias
+    };
 
     private static TransferenciaDto MapToDto(Transferencia t) => new()
     {

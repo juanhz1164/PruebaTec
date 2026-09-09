@@ -86,3 +86,19 @@ public class LineaRecepcionDto
     public int TransferenciaLineaId { get; set; }
     public decimal CantidadRecibida { get; set; }
 }
+
+// Configuración de logística de una ruta (origen→destino): fuente de verdad
+// para autocompletar transportista/costo/tiempo estimado al registrar un
+// envío. Es solo de referencia — el valor REAL usado en una transferencia se
+// guarda en la transferencia misma (TransferenciaDto.CostoEnvio/FechaEstimadaLlegada).
+public class RutaLogisticaDto
+{
+    public int Id { get; set; }
+    public int SucursalOrigenId { get; set; }
+    public string SucursalOrigenNombre { get; set; } = string.Empty;
+    public int SucursalDestinoId { get; set; }
+    public string SucursalDestinoNombre { get; set; } = string.Empty;
+    public string Transportista { get; set; } = string.Empty;
+    public decimal CostoEnvio { get; set; }
+    public int TiempoEstimadoDias { get; set; }
+}

@@ -260,6 +260,23 @@ CREATE TABLE transferencias_lineas (
         FOREIGN KEY (producto_id) REFERENCES productos(id)
 ) ENGINE=InnoDB;
 
+-- Configuración de logística por ruta (origen→destino): de aquí se
+-- autocompletan transportista/costo/tiempo estimado al registrar el envío
+-- de una transferencia, en vez de que el Gerente los teclee cada vez.
+CREATE TABLE rutas_logisticas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_origen_id INT NOT NULL,
+    sucursal_destino_id INT NOT NULL,
+    transportista VARCHAR(150) NOT NULL DEFAULT 'Coordinadora',
+    costo_envio DECIMAL(12,2) NOT NULL,
+    tiempo_estimado_dias INT NOT NULL,
+    UNIQUE (sucursal_origen_id, sucursal_destino_id),
+    CONSTRAINT fk_rutas_logisticas_origen
+        FOREIGN KEY (sucursal_origen_id) REFERENCES sucursales(id),
+    CONSTRAINT fk_rutas_logisticas_destino
+        FOREIGN KEY (sucursal_destino_id) REFERENCES sucursales(id)
+) ENGINE=InnoDB;
+
 -- ============================================================
 -- Visitas: control de ingreso de visitantes por sucursal
 -- ============================================================

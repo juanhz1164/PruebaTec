@@ -1,11 +1,23 @@
-import { useState, type FormEvent } from 'react'
-import { Truck } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Truck, Pencil } from 'lucide-react'
 import { Modal } from './Modal'
 import { DatePicker } from './DatePicker'
 import { PRIORIDAD_TRANSFERENCIA_LABEL } from '../types/transferencia'
-import type { RegistrarEnvio, Transferencia } from '../types/transferencia'
-import { registrarEnvioTransferencia } from '../api/transferencias'
+import type { RegistrarEnvio, RutaLogistica, Transferencia } from '../types/transferencia'
+import { registrarEnvioTransferencia, getRutaLogistica } from '../api/transferencias'
 import { ApiError } from '../api/client'
+
+function hoyIso(): string {
+  const hoy = new Date()
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+}
+
+function sumarDiasIso(fechaIso: string, dias: number): string {
+  const [anio, mes, dia] = fechaIso.split('-').map(Number)
+  const fecha = new Date(anio, mes - 1, dia)
+  fecha.setDate(fecha.getDate() + dias)
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
+}
 
 // Modal "Enviar transferencia": distinto del modal "Agregar producto" (ese
 // solo maneja producto+cantidad) y distinto de la solicitud (ahí se define
@@ -13,6 +25,12 @@ import { ApiError } from '../api/client'
 // logístico: transportista, ruta, costo, fecha estimada de llegada — la
 // prioridad ya quedó fija desde la solicitud y aquí solo se muestra como
 // información de solo lectura, nunca se vuelve a pedir.
+//
+// Transportista, costo y tiempo estimado se prellenan desde la configuración
+// de la ruta (GET rutas-logisticas/origen/{}/destino/{}) en vez de que el
+// Gerente los invente cada vez; el costo puede ajustarse manualmente para
+// casos excepcionales ("Modificar costo"), pero el valor inicial siempre
+// viene de la ruta configurada.
 export function EnvioForm({
   transferencia,
   onEnviada,
@@ -22,18 +40,45 @@ export function EnvioForm({
   onEnviada: () => void
   onCerrar: () => void
 }) {
+  const hoy = hoyIso()
+  const [ruta, setRuta] = useState<RutaLogistica | null>(null)
+  const [cargandoRuta, setCargandoRuta] = useState(true)
   const [transportista, setTransportista] = useState('')
-  const [ruta, setRuta] = useState(
+  const [rutaTexto, setRutaTexto] = useState(
     `${transferencia.sucursalOrigenNombre} → ${transferencia.sucursalDestinoNombre}`,
   )
   const [costoEnvio, setCostoEnvio] = useState('')
-  const [fechaEstimada, setFechaEstimada] = useState(() => {
-    const manana = new Date()
-    manana.setDate(manana.getDate() + 1)
-    return manana.toISOString().slice(0, 10)
-  })
+  const [editarCosto, setEditarCosto] = useState(false)
+  const [fechaEstimada, setFechaEstimada] = useState(() => sumarDiasIso(hoy, 1))
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    let cancelado = false
+    setCargandoRuta(true)
+    getRutaLogistica(transferencia.sucursalOrigenId, transferencia.sucursalDestinoId)
+      .then((r) => {
+        if (cancelado) return
+        setRuta(r)
+        if (r) {
+          setTransportista(r.transportista)
+          setCostoEnvio(String(r.costoEnvio))
+          setFechaEstimada(sumarDiasIso(hoy, r.tiempoEstimadoDias))
+        } else {
+          setTransportista('Coordinadora')
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setTransportista('Coordinadora')
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoRuta(false)
+      })
+    return () => {
+      cancelado = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transferencia.sucursalOrigenId, transferencia.sucursalDestinoId])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -45,9 +90,14 @@ export function EnvioForm({
       return
     }
 
+    if (fechaEstimada < hoy) {
+      setError('La fecha estimada de llegada no puede ser anterior a hoy.')
+      return
+    }
+
     const dto: RegistrarEnvio = {
       transportista: transportista.trim() || null,
-      ruta: ruta.trim() || null,
+      ruta: rutaTexto.trim() || null,
       costoEnvio: costo,
       fechaEstimadaLlegada: fechaEstimada ? `${fechaEstimada}T00:00:00` : null,
       lineas: transferencia.lineas.map((l) => ({
@@ -83,12 +133,19 @@ export function EnvioForm({
           </div>
         )}
 
+        {!cargandoRuta && ruta === null && (
+          <p className="tr-envio-sin-ruta">
+            No hay una ruta configurada para {transferencia.sucursalOrigenNombre} → {transferencia.sucursalDestinoNombre}.
+            Completa los datos manualmente.
+          </p>
+        )}
+
         <div className="form-row">
           <label htmlFor="envio-transportista">Transportista</label>
           <input
             id="envio-transportista"
             type="text"
-            placeholder="Ej. Transportes XYZ"
+            placeholder="Ej. Coordinadora"
             value={transportista}
             onChange={(e) => setTransportista(e.target.value)}
             autoFocus
@@ -100,14 +157,26 @@ export function EnvioForm({
           <input
             id="envio-ruta"
             type="text"
-            value={ruta}
-            onChange={(e) => setRuta(e.target.value)}
+            value={rutaTexto}
+            onChange={(e) => setRutaTexto(e.target.value)}
           />
         </div>
 
         <div className="form-row-inline">
           <div className="form-row">
-            <label htmlFor="envio-costo">Costo de transporte</label>
+            <label htmlFor="envio-costo">
+              Costo de transporte
+              {ruta !== null && !editarCosto && (
+                <button
+                  type="button"
+                  className="tr-envio-modificar-costo"
+                  onClick={() => setEditarCosto(true)}
+                >
+                  <Pencil size={11} strokeWidth={2.3} />
+                  Modificar costo
+                </button>
+              )}
+            </label>
             <input
               id="envio-costo"
               type="number"
@@ -116,13 +185,19 @@ export function EnvioForm({
               inputMode="decimal"
               placeholder="0"
               value={costoEnvio}
+              disabled={ruta !== null && !editarCosto}
               onChange={(e) => setCostoEnvio(e.target.value)}
             />
+            {ruta !== null && (
+              <span className="tr-envio-fuente">
+                {editarCosto ? 'Costo ajustado manualmente' : `Costo de la ruta configurada (${ruta.tiempoEstimadoDias} día${ruta.tiempoEstimadoDias === 1 ? '' : 's'} estimado${ruta.tiempoEstimadoDias === 1 ? '' : 's'})`}
+              </span>
+            )}
           </div>
 
           <div className="form-row">
             <label htmlFor="envio-fecha">Fecha estimada de llegada</label>
-            <DatePicker value={fechaEstimada} onChange={setFechaEstimada} className="tr-envio-fecha" />
+            <DatePicker value={fechaEstimada} onChange={setFechaEstimada} min={hoy} className="tr-envio-fecha" />
           </div>
         </div>
 

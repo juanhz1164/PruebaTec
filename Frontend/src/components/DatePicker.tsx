@@ -33,11 +33,13 @@ function pad(n: number): string {
 export function DatePicker({
   value,
   onChange,
+  min,
   max,
   className,
 }: {
   value: string
   onChange: (valor: string) => void
+  min?: string
   max?: string
   className?: string
 }) {
@@ -47,6 +49,7 @@ export function DatePicker({
 
   const [anioSel, mesSel, diaSel] = value.split('-').map(Number)
   const maxFecha = max ? new Date(`${max}T23:59:59`) : null
+  const minFecha = min ? new Date(`${min}T00:00:00`) : null
 
   useEffect(() => {
     if (!abierto) return
@@ -73,13 +76,20 @@ export function DatePicker({
   ]
 
   const diaDeshabilitado = (dia: number) => {
-    if (!maxFecha) return false
-    return new Date(anioMostrado, mesMostrado, dia) > maxFecha
+    const fecha = new Date(anioMostrado, mesMostrado, dia)
+    if (maxFecha && fecha > maxFecha) return true
+    if (minFecha && fecha < minFecha) return true
+    return false
   }
 
   const siguienteMesDeshabilitado = maxFecha
     ? anioMostrado > maxFecha.getFullYear() ||
       (anioMostrado === maxFecha.getFullYear() && mesMostrado >= maxFecha.getMonth())
+    : false
+
+  const mesAnteriorDeshabilitado = minFecha
+    ? anioMostrado < minFecha.getFullYear() ||
+      (anioMostrado === minFecha.getFullYear() && mesMostrado <= minFecha.getMonth())
     : false
 
   return (
@@ -97,7 +107,12 @@ export function DatePicker({
       {abierto && (
         <Modal title="Seleccionar día" onClose={() => setAbierto(false)}>
           <div className="month-picker-anio">
-            <button type="button" onClick={() => cambiarMes(-1)} aria-label="Mes anterior">
+            <button
+              type="button"
+              onClick={() => cambiarMes(-1)}
+              disabled={mesAnteriorDeshabilitado}
+              aria-label="Mes anterior"
+            >
               ‹
             </button>
             <span>

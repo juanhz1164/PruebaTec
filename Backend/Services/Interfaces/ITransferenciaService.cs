@@ -19,6 +19,11 @@ public interface ITransferenciaService
     Task<ResultadoTransferencia> ConfirmarRecepcionAsync(int id, ConfirmarRecepcionDto dto);
 
     Task<ResultadoTransferencia> CancelarAsync(int id);
+
+    // Configuración de logística por ruta: de aquí el frontend prellena
+    // transportista/costo/tiempo estimado al registrar un envío.
+    Task<List<RutaLogisticaDto>> GetRutasLogisticasAsync();
+    Task<RutaLogisticaDto?> GetRutaLogisticaAsync(int sucursalOrigenId, int sucursalDestinoId);
 }
 
 public class ResultadoTransferencia

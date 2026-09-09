@@ -19,4 +19,9 @@ public interface ITransferenciaRepository
     Task<List<Transferencia>> GetEnviadasAsync();
     Task<List<Transferencia>> GetEnCursoAsync();
     Task<List<Transferencia>> GetCerradasAsync();
+
+    // Configuración de logística por ruta: de aquí se autocompletan
+    // transportista/costo/tiempo estimado al registrar un envío.
+    Task<RutaLogistica?> GetRutaLogisticaAsync(int sucursalOrigenId, int sucursalDestinoId);
+    Task<List<RutaLogistica>> GetRutasLogisticasAsync();
 }

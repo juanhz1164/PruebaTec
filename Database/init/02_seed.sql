@@ -138,3 +138,17 @@ INSERT INTO visitas (sucursal_id, usuario_id, cantidad_personas, fecha_hora) VAL
     (2, 6, 2, '2026-08-25 13:55:00'),
     (2, 4, 1, '2026-08-25 22:00:00'),
     (2, 6, 3, '2026-08-29 15:00:00');
+
+-- ============================================================
+-- Rutas logísticas: configuración de transportista/costo/tiempo por par de
+-- sucursales. Valores DEMO para que Logística tenga datos reales desde el
+-- primer arranque; ajustar a costos/tiempos reales en un entorno productivo.
+-- ============================================================
+
+INSERT INTO rutas_logisticas (sucursal_origen_id, sucursal_destino_id, transportista, costo_envio, tiempo_estimado_dias) VALUES
+    (1, 2, 'Coordinadora', 20000.00, 1),
+    (2, 1, 'Coordinadora', 20000.00, 1),
+    (1, 3, 'Coordinadora', 35000.00, 2),
+    (3, 1, 'Coordinadora', 35000.00, 2),
+    (2, 3, 'Coordinadora', 40000.00, 2),
+    (3, 2, 'Coordinadora', 40000.00, 2);

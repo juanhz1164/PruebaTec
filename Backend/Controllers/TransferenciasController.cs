@@ -131,4 +131,22 @@ public class TransferenciasController : ControllerBase
         var resultado = await _service.CancelarAsync(id);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
+
+    // GET api/Transferencias/rutas-logisticas
+    // Configuración de logística por ruta (transportista/costo/tiempo estimado
+    // por defecto): el frontend la consulta para prellenar el modal de envío
+    // en vez de que el Gerente invente esos valores cada vez.
+    [HttpGet("rutas-logisticas")]
+    public async Task<ActionResult<IEnumerable<RutaLogisticaDto>>> GetRutasLogisticas()
+    {
+        return Ok(await _service.GetRutasLogisticasAsync());
+    }
+
+    // GET api/Transferencias/rutas-logisticas/origen/5/destino/2
+    [HttpGet("rutas-logisticas/origen/{sucursalOrigenId}/destino/{sucursalDestinoId}")]
+    public async Task<ActionResult<RutaLogisticaDto>> GetRutaLogistica(int sucursalOrigenId, int sucursalDestinoId)
+    {
+        var ruta = await _service.GetRutaLogisticaAsync(sucursalOrigenId, sucursalDestinoId);
+        return ruta is null ? NotFound() : Ok(ruta);
+    }
 }

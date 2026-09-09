@@ -101,3 +101,16 @@ export interface LineaRecepcion {
 export interface ConfirmarRecepcion {
   lineas: LineaRecepcion[]
 }
+
+// Configuración de logística por ruta (origen→destino): fuente de verdad
+// para prellenar transportista/costo/tiempo estimado al registrar un envío.
+export interface RutaLogistica {
+  id: number
+  sucursalOrigenId: number
+  sucursalOrigenNombre: string
+  sucursalDestinoId: number
+  sucursalDestinoNombre: string
+  transportista: string
+  costoEnvio: number
+  tiempoEstimadoDias: number
+}
