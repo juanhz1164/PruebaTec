@@ -14,10 +14,24 @@ import { exportarReporteVentasPdf } from '../utils/exportarReportePdf'
 
 const VENTAS_POR_PAGINA = 15
 
-function esMesActual(fechaIso: string) {
-  const fecha = new Date(fechaIso)
+// "2026-09" (valor de <input type="month">) -> límite de meses hacia el futuro.
+function mesActualIso(): string {
   const ahora = new Date()
-  return fecha.getFullYear() === ahora.getFullYear() && fecha.getMonth() === ahora.getMonth()
+  return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`
+}
+
+function esDelMesSeleccionado(fechaIso: string, mesSeleccionado: string) {
+  const fecha = new Date(fechaIso)
+  const [anio, mes] = mesSeleccionado.split('-').map(Number)
+  return fecha.getFullYear() === anio && fecha.getMonth() + 1 === mes
+}
+
+// "2026-09" -> "septiembre de 2026": construye la fecha manualmente (no
+// new Date("2026-09")) para no interpretarla como UTC medianoche, que en
+// zonas horarias negativas puede mostrar el mes anterior.
+function nombreDeMes(mesIso: string): string {
+  const [anio, mes] = mesIso.split('-').map(Number)
+  return new Date(anio, mes - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
 }
 
 interface ResumenSucursal {
@@ -116,20 +130,21 @@ export function ReportesPage() {
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
 
-  const [ventas, setVentas] = useState<Venta[]>([])
+  const [todasLasVentas, setTodasLasVentas] = useState<Venta[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState<number | typeof TODAS_LAS_SUCURSALES>(
     TODAS_LAS_SUCURSALES,
   )
+  const [mesSeleccionado, setMesSeleccionado] = useState(mesActualIso())
 
   const cargar = useCallback(() => {
     setIsLoading(true)
     setError(null)
     return Promise.all([getVentas(), getSucursales()])
       .then(([data, sucs]) => {
-        setVentas(data.filter((v) => esMesActual(v.fecha)))
+        setTodasLasVentas(data)
         setSucursales(sucs.filter((s) => s.activa))
       })
       .catch((err) => {
@@ -141,6 +156,11 @@ export function ReportesPage() {
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  const ventas = useMemo(
+    () => todasLasVentas.filter((v) => esDelMesSeleccionado(v.fecha, mesSeleccionado)),
+    [todasLasVentas, mesSeleccionado],
+  )
 
   const ventasSucursalPropia = useMemo(
     () => ventas.filter((v) => v.sucursalId === usuario?.sucursalId),
@@ -157,14 +177,23 @@ export function ReportesPage() {
       ? null
       : resumenPorSucursal.find((r) => r.sucursalId === sucursalSeleccionada)
 
-  const nombreMes = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+  const nombreMes = nombreDeMes(mesSeleccionado)
 
   if (!esAdmin) {
     const totalMes = ventasSucursalPropia.reduce((sum, v) => sum + v.total, 0)
     return (
       <div className="page page-fixed-header">
         <div className="page-header-sticky">
-          <h2>Reportes del mes</h2>
+          <div className="dash-card-header-row">
+            <h2>Reportes del mes</h2>
+            <input
+              type="month"
+              className="dash-mes-selector"
+              value={mesSeleccionado}
+              max={mesActualIso()}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+            />
+          </div>
           <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
 
           <div className="kpi-row kpi-row--compacta">
@@ -221,33 +250,43 @@ export function ReportesPage() {
             <p className="admin-section-subtitle">Historial de ventas de {nombreMes}</p>
           </div>
 
-          {!isLoading && !error && resumenPorSucursal.length > 0 && (
-            <div className="reporte-header-acciones">
-              <div className="inv-sucursal-selector">
-                <Building2 size={15} strokeWidth={2} />
-                <select
-                  id="reporte-sucursal"
-                  value={sucursalSeleccionada}
-                  onChange={(e) =>
-                    setSucursalSeleccionada(
-                      e.target.value === TODAS_LAS_SUCURSALES ? TODAS_LAS_SUCURSALES : Number(e.target.value),
-                    )
-                  }
-                >
-                  <option value={TODAS_LAS_SUCURSALES}>Todas las sucursales</option>
-                  {resumenPorSucursal.map((resumen) => (
-                    <option key={resumen.sucursalId} value={resumen.sucursalId}>
-                      {resumen.sucursalNombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button type="button" className="secondary-button btn-sm" onClick={handleExportarPdf}>
-                <FileDown size={14} strokeWidth={2.2} />
-                Exportar PDF
-              </button>
-            </div>
-          )}
+          <div className="reporte-header-acciones">
+            <input
+              type="month"
+              className="dash-mes-selector"
+              value={mesSeleccionado}
+              max={mesActualIso()}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+            />
+
+            {!isLoading && !error && resumenPorSucursal.length > 0 && (
+              <>
+                <div className="inv-sucursal-selector">
+                  <Building2 size={15} strokeWidth={2} />
+                  <select
+                    id="reporte-sucursal"
+                    value={sucursalSeleccionada}
+                    onChange={(e) =>
+                      setSucursalSeleccionada(
+                        e.target.value === TODAS_LAS_SUCURSALES ? TODAS_LAS_SUCURSALES : Number(e.target.value),
+                      )
+                    }
+                  >
+                    <option value={TODAS_LAS_SUCURSALES}>Todas las sucursales</option>
+                    {resumenPorSucursal.map((resumen) => (
+                      <option key={resumen.sucursalId} value={resumen.sucursalId}>
+                        {resumen.sucursalNombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button type="button" className="secondary-button btn-sm" onClick={handleExportarPdf}>
+                  <FileDown size={14} strokeWidth={2.2} />
+                  Exportar PDF
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="kpi-row kpi-row--compacta">
