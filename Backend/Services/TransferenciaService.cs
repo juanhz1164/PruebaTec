@@ -50,6 +50,7 @@ public class TransferenciaService : ITransferenciaService
             SucursalDestinoId = dto.SucursalDestinoId,
             UsuarioSolicitanteId = dto.UsuarioSolicitanteId,
             Estado = EstadoTransferencia.Solicitada,
+            Prioridad = dto.Prioridad ?? PrioridadTransferencia.Media,
             FechaSolicitud = DateTime.UtcNow,
             Lineas = dto.Lineas.Select(l => new TransferenciaLinea
             {
@@ -137,7 +138,6 @@ public class TransferenciaService : ITransferenciaService
 
         transferencia.Transportista = dto.Transportista;
         transferencia.Ruta = dto.Ruta;
-        transferencia.Prioridad = dto.Prioridad;
         transferencia.CostoEnvio = dto.CostoEnvio;
         transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada;
         transferencia.FechaEnvio = DateTime.UtcNow;

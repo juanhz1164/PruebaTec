@@ -74,6 +74,9 @@ export interface CrearTransferencia {
   sucursalOrigenId: number
   sucursalDestinoId: number
   usuarioSolicitanteId: number
+  // La prioridad pertenece a la transferencia completa: se define aquí, al
+  // solicitar, no en el envío (ver RegistrarEnvio más abajo).
+  prioridad?: PrioridadTransferencia | null
   lineas: CrearTransferenciaLinea[]
 }
 
@@ -85,7 +88,6 @@ export interface LineaEnvio {
 export interface RegistrarEnvio {
   transportista?: string | null
   ruta?: string | null
-  prioridad?: PrioridadTransferencia | null
   costoEnvio?: number | null
   fechaEstimadaLlegada?: string | null
   lineas: LineaEnvio[]

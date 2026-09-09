@@ -1608,6 +1608,124 @@
   flex-shrink: 0;
 }
 
+.tr-agregar-nota {
+  margin: -4px 0 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+  font-size: 12px;
+}
+
+.tr-agregar-error {
+  margin: 0;
+}
+
+/* Prioridad: pertenece a la transferencia completa, no a cada producto —
+   vive junto al selector de sucursales (mismo nivel conceptual: un dato de
+   la SOLICITUD), nunca dentro del modal "Agregar producto". */
+.tr-prioridad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tr-prioridad-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.tr-prioridad-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tr-prioridad-chip {
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.tr-prioridad-chip:hover {
+  border-color: var(--rol-accent-border);
+}
+
+.tr-prioridad-chip--activa.tr-prioridad-chip--0 {
+  background: var(--bg);
+  border-color: var(--text);
+  color: var(--text-h);
+}
+
+.tr-prioridad-chip--activa.tr-prioridad-chip--1 {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.tr-prioridad-chip--activa.tr-prioridad-chip--2 {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+.tr-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.tr-resumen strong {
+  color: var(--text-h);
+}
+
+/* Modal "Enviar transferencia": datos del envío logístico (transportista,
+   ruta, costo, fecha estimada) — distinto del modal "Agregar producto" y
+   distinto de la solicitud. La prioridad ya se definió al solicitar; aquí
+   solo se muestra (.tr-envio-prioridad), nunca se vuelve a pedir. */
+.tr-envio-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tr-envio-prioridad {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.tr-envio-prioridad strong {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.tr-envio-fecha {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .tr-form-header {
   display: flex;
   flex-wrap: wrap;

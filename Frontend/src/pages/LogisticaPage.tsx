@@ -143,10 +143,10 @@ export function LogisticaPage() {
                         <td>{t.desviacionDias?.toFixed(1) ?? '—'}</td>
                         <td>
                           {t.cumplioTiempoEstimado === null
-                            ? '—'
+                            ? 'Sin datos suficientes'
                             : t.cumplioTiempoEstimado
-                              ? 'Sí'
-                              : 'No'}
+                              ? 'A tiempo'
+                              : 'Retraso'}
                         </td>
                       </tr>
                     ))}

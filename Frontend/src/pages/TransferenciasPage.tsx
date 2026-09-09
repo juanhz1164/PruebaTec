@@ -4,11 +4,11 @@ import { useAuth } from '../auth/AuthContext'
 import {
   getTransferencias,
   prepararTransferencia,
-  registrarEnvioTransferencia,
   cancelarTransferencia,
 } from '../api/transferencias'
 import { TransferenciaForm } from '../components/TransferenciaForm'
 import { RecepcionForm } from '../components/RecepcionForm'
+import { EnvioForm } from '../components/EnvioForm'
 import {
   ESTADO_TRANSFERENCIA,
   ESTADO_TRANSFERENCIA_LABEL,
@@ -28,6 +28,7 @@ export function TransferenciasPage() {
   const [error, setError] = useState<string | null>(null)
   const [actualizandoId, setActualizandoId] = useState<number | null>(null)
   const [recepcionId, setRecepcionId] = useState<number | null>(null)
+  const [envioId, setEnvioId] = useState<number | null>(null)
 
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
 
@@ -74,23 +75,6 @@ export function TransferenciasPage() {
     }
   }
 
-  const enviar = async (t: Transferencia) => {
-    setActualizandoId(t.id)
-    setError(null)
-    try {
-      await registrarEnvioTransferencia(t.id, {
-        lineas: t.lineas.map((l) => ({
-          transferenciaLineaId: l.id,
-          cantidadEnviada: l.cantidadSolicitada,
-        })),
-      })
-      await cargar()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo registrar el envío')
-    } finally {
-      setActualizandoId(null)
-    }
-  }
 
   const cancelar = async (id: number) => {
     setActualizandoId(id)
@@ -149,6 +133,22 @@ export function TransferenciasPage() {
                 cargar()
               }}
               onCerrar={() => setRecepcionId(null)}
+            />
+          )
+        })()}
+
+      {envioId &&
+        (() => {
+          const transferencia = transferencias.find((t) => t.id === envioId)
+          if (!transferencia) return null
+          return (
+            <EnvioForm
+              transferencia={transferencia}
+              onEnviada={() => {
+                setEnvioId(null)
+                cargar()
+              }}
+              onCerrar={() => setEnvioId(null)}
             />
           )
         })()}
@@ -245,8 +245,7 @@ export function TransferenciasPage() {
                               <button
                                 type="button"
                                 className="secondary-button btn-sm"
-                                disabled={actualizandoId === t.id}
-                                onClick={() => enviar(t)}
+                                onClick={() => setEnvioId(t.id)}
                               >
                                 <Truck size={13} strokeWidth={2} />
                                 Registrar envío

@@ -9,6 +9,7 @@ import { Modal } from './Modal'
 import type { Producto } from '../types/producto'
 import type { Sucursal } from '../types/sucursal'
 import type { CrearTransferenciaLinea } from '../types/transferencia'
+import { PRIORIDAD_TRANSFERENCIA, PRIORIDAD_TRANSFERENCIA_LABEL, type PrioridadTransferencia } from '../types/transferencia'
 import { ApiError } from '../api/client'
 
 interface LineaForm {
@@ -16,14 +17,21 @@ interface LineaForm {
   cantidadSolicitada: string
 }
 
+// Modal "Agregar producto": SOLO producto + stock + cantidad. La prioridad
+// pertenece a la transferencia completa (se define una vez, en el formulario
+// principal), nunca a un producto individual — por eso este modal no la
+// pide, igual que tampoco pide transportista/ruta/costo/fecha estimada
+// (esos son datos del envío logístico, un paso posterior y distinto).
 function AgregarProductoModal({
   productos,
   stockOrigen,
+  yaAgregados,
   onAgregar,
   onClose,
 }: {
   productos: Producto[]
   stockOrigen: Record<number, number>
+  yaAgregados: Record<number, number>
   onAgregar: (linea: LineaForm) => void
   onClose: () => void
 }) {
@@ -32,6 +40,8 @@ function AgregarProductoModal({
   const [error, setError] = useState<string | null>(null)
 
   const stock = productoId !== null ? stockOrigen[productoId] : undefined
+  const productoSeleccionado = productos.find((p) => p.id === productoId)
+  const cantidadYaEnLista = productoId !== null ? (yaAgregados[productoId] ?? 0) : 0
 
   const handleAgregar = () => {
     if (!productoId) {
@@ -43,8 +53,12 @@ function AgregarProductoModal({
       setError('Ingresa una cantidad mayor a cero')
       return
     }
-    if (stock !== undefined && cantidad > stock) {
-      setError(`No puedes solicitar más de lo disponible: stock actual ${stock}`)
+    if (stock !== undefined && cantidadYaEnLista + cantidad > stock) {
+      setError(
+        cantidadYaEnLista > 0
+          ? `Ese producto ya tiene ${cantidadYaEnLista} un. en la solicitud — sumando esta cantidad superarías el stock disponible (${stock}).`
+          : `La cantidad solicitada supera el stock disponible (${stock} unidades).`,
+      )
       return
     }
     onAgregar({ productoId, cantidadSolicitada })
@@ -54,7 +68,7 @@ function AgregarProductoModal({
   return (
     <Modal
       title="Agregar producto"
-      description="Selecciona el producto y la cantidad a transferir"
+      description="Selecciona el producto y la cantidad que deseas transferir."
       onClose={onClose}
     >
       <div className="tr-agregar-form">
@@ -63,7 +77,10 @@ function AgregarProductoModal({
           <select
             id="tr-agregar-producto"
             value={productoId ?? ''}
-            onChange={(e) => setProductoId(Number(e.target.value))}
+            onChange={(e) => {
+              setProductoId(Number(e.target.value))
+              setError(null)
+            }}
             autoFocus
           >
             <option value="">Selecciona un producto</option>
@@ -75,6 +92,12 @@ function AgregarProductoModal({
           </select>
         </div>
 
+        {productoSeleccionado && cantidadYaEnLista > 0 && (
+          <p className="tr-agregar-nota">
+            Este producto ya está agregado ({cantidadYaEnLista} un.) — la cantidad que ingreses aquí se sumará.
+          </p>
+        )}
+
         <div className="tr-agregar-grid">
           <div className="tr-agregar-stock">
             <span>Stock disponible</span>
@@ -82,7 +105,7 @@ function AgregarProductoModal({
           </div>
 
           <div className="form-row">
-            <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
+            <label htmlFor="tr-agregar-cantidad">Cantidad</label>
             <input
               id="tr-agregar-cantidad"
               type="number"
@@ -90,8 +113,13 @@ function AgregarProductoModal({
               max={stock}
               step="1"
               inputMode="numeric"
+              placeholder="0"
               value={cantidadSolicitada}
-              onChange={(e) => setCantidadSolicitada(e.target.value.replace(/[^0-9]/g, ''))}
+              disabled={!productoId}
+              onChange={(e) => {
+                setCantidadSolicitada(e.target.value.replace(/[^0-9]/g, ''))
+                setError(null)
+              }}
               onKeyDown={(e) => {
                 if (e.key === '.' || e.key === ',') e.preventDefault()
               }}
@@ -99,15 +127,15 @@ function AgregarProductoModal({
           </div>
         </div>
 
-        {error && <p className="error-text">{error}</p>}
+        {error && <p className="error-text tr-agregar-error">{error}</p>}
 
         <div className="modal-actions">
           <button type="button" className="danger-button" onClick={onClose}>
             Cancelar
           </button>
-          <button type="button" className="primary-button" onClick={handleAgregar}>
+          <button type="button" className="primary-button" onClick={handleAgregar} disabled={!productoId}>
             <Plus size={14} strokeWidth={2.3} />
-            Agregar
+            Agregar producto
           </button>
         </div>
       </div>
@@ -127,6 +155,10 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stockOrigen, setStockOrigen] = useState<Record<number, number>>({})
   const [mostrarAgregar, setMostrarAgregar] = useState(false)
+  // La prioridad aplica a TODA la transferencia (no a cada producto): se
+  // define una sola vez aquí, con Media como valor por defecto — coincide
+  // con lo que el backend asume si no se envía (TransferenciaService.CrearAsync).
+  const [prioridad, setPrioridad] = useState<PrioridadTransferencia>(PRIORIDAD_TRANSFERENCIA.Media)
 
   useEffect(() => {
     getProductos()
@@ -177,7 +209,32 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     ? (sucursales.find((s) => s.id === sucursalOrigenId)?.nombre ?? null)
     : (usuario?.sucursalNombre ?? null)
 
-  const agregarLinea = (linea: LineaForm) => setLineas((prev) => [...prev, linea])
+  // Si el producto ya está en la solicitud, se fusiona sumando la cantidad
+  // a la línea existente en vez de crear una línea duplicada — evita que el
+  // mismo producto aparezca dos veces por accidente.
+  const agregarLinea = (linea: LineaForm) =>
+    setLineas((prev) => {
+      const existente = prev.findIndex((l) => l.productoId === linea.productoId)
+      if (existente === -1) {
+        return [...prev, linea]
+      }
+      const actualizadas = [...prev]
+      const cantidadActual = Number(actualizadas[existente].cantidadSolicitada) || 0
+      const cantidadNueva = Number(linea.cantidadSolicitada) || 0
+      actualizadas[existente] = {
+        ...actualizadas[existente],
+        cantidadSolicitada: String(cantidadActual + cantidadNueva),
+      }
+      return actualizadas
+    })
+
+  // Cantidad ya solicitada por producto (para que el modal pueda validar
+  // contra el stock incluyendo lo que ya está en la lista).
+  const cantidadPorProductoEnLista = lineas.reduce<Record<number, number>>((acc, l) => {
+    if (l.productoId === null) return acc
+    acc[l.productoId] = (acc[l.productoId] ?? 0) + (Number(l.cantidadSolicitada) || 0)
+    return acc
+  }, {})
 
   const quitarLinea = (index: number) =>
     setLineas((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
@@ -226,9 +283,11 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         sucursalOrigenId,
         sucursalDestinoId,
         usuarioSolicitanteId: usuario!.id,
+        prioridad,
         lineas: lineasValidas,
       })
       setLineas([])
+      setPrioridad(PRIORIDAD_TRANSFERENCIA.Media)
       onCreada()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo crear la solicitud')
@@ -298,6 +357,24 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         </div>
       </div>
 
+      <div className="tr-prioridad">
+        <span className="tr-prioridad-label">Prioridad de la transferencia</span>
+        <div className="tr-prioridad-opciones" role="radiogroup" aria-label="Prioridad de la transferencia">
+          {(Object.values(PRIORIDAD_TRANSFERENCIA) as PrioridadTransferencia[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={prioridad === p}
+              className={`tr-prioridad-chip tr-prioridad-chip--${p} ${prioridad === p ? 'tr-prioridad-chip--activa' : ''}`}
+              onClick={() => setPrioridad(p)}
+            >
+              {PRIORIDAD_TRANSFERENCIA_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <section className="tr-productos-card">
         <div className="tr-productos-header">
           <h2>Productos a transferir</h2>
@@ -349,12 +426,27 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
             })}
           </div>
         )}
+
+        {lineasConProducto.length > 0 && (
+          <div className="tr-resumen">
+            <span>
+              Total de productos: <strong>{lineasConProducto.length}</strong>
+            </span>
+            <span>
+              Total de unidades:{' '}
+              <strong>
+                {lineasConProducto.reduce((sum, l) => sum + (Number(l.cantidadSolicitada) || 0), 0)}
+              </strong>
+            </span>
+          </div>
+        )}
       </section>
 
       {mostrarAgregar && (
         <AgregarProductoModal
           productos={productos}
           stockOrigen={stockOrigen}
+          yaAgregados={cantidadPorProductoEnLista}
           onAgregar={agregarLinea}
           onClose={() => setMostrarAgregar(false)}
         />
