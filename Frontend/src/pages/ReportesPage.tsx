@@ -184,21 +184,21 @@ export function ReportesPage() {
     return (
       <div className="page page-fixed-header">
         <div className="page-header-sticky">
-          <h2>Reportes del mes</h2>
+          <div className="dash-card-header-row">
+            <h2>Reportes del mes</h2>
+            <input
+              type="month"
+              className="dash-mes-selector"
+              value={mesSeleccionado}
+              max={mesActualIso()}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+            />
+          </div>
           <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
 
           <div className="kpi-row kpi-row--compacta">
             <KpiTile icon="reportes" label="Ventas registradas" value={String(ventasSucursalPropia.length)} />
             <KpiTile icon="dinero" label="Total vendido" value={formatearMoneda(totalMes)} />
-            <div className="reporte-mes-selector-wrap">
-              <input
-                type="month"
-                className="dash-mes-selector"
-                value={mesSeleccionado}
-                max={mesActualIso()}
-                onChange={(e) => setMesSeleccionado(e.target.value)}
-              />
-            </div>
           </div>
         </div>
 

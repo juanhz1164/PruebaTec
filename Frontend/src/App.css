@@ -2464,16 +2464,6 @@ button {
   flex-shrink: 0;
 }
 
-/* Contenedor del selector de mes cuando vive dentro de un .kpi-row junto a
-   KpiTile (Reportes del mes, vista Gerente/Operador): sin esto, el <input>
-   heredaba height:66px + flex:1 de sus hermanos .kpi-tile y quedaba
-   estirado a esa altura en vez de mantener su tamaño natural. */
-.reporte-mes-selector-wrap {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-}
-
 .dash-mes-selector {
   /* Sin esto, dentro de un contenedor flex con justify-content:space-between
      (.dash-card-header-row) este <input> era el elemento que se comprimía
