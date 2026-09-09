@@ -2484,13 +2484,9 @@ button {
 /* MonthPicker: reemplazo propio de <input type="month"> — su popup nativo
    lo dibuja el navegador fuera del DOM de la página, así que ningún CSS de
    overflow/posicionamiento nuestro puede evitar que se corte contra el
-   borde de la ventana. Este popup es HTML propio, con posición calculada en
-   JS (position:fixed, ver MonthPicker.tsx) para no depender del overflow de
-   ningún contenedor padre. */
-.month-picker {
-  display: inline-flex;
-}
-
+   borde de la ventana. Se abre dentro del Modal genérico de la app (mismo
+   componente que el resto de los diálogos): overlay centrado, siempre
+   completamente visible sin importar dónde esté el botón que lo abre. */
 .month-picker-trigger {
   display: inline-flex;
   align-items: center;
@@ -2512,23 +2508,12 @@ button {
   border-color: var(--rol-accent-border);
 }
 
-.month-picker-popup {
-  position: fixed;
-  z-index: 200;
-  width: 280px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--code-bg);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-}
-
 .month-picker-anio {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-h);
 }
@@ -2537,13 +2522,13 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
   color: var(--text-h);
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -2554,19 +2539,18 @@ button {
 
 .month-picker-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
 .month-picker-mes {
-  padding: 10px 4px;
+  padding: 12px 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--text-h);
   font: inherit;
-  font-size: 12px;
-  text-transform: capitalize;
+  font-size: 13px;
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
@@ -2587,15 +2571,9 @@ button {
   font-weight: 700;
 }
 
-/* Pantallas angostas: 3 columnas en vez de 4 y popup más angosto — nunca
-   scroll horizontal de página, el popup solo se hace más alto (4 filas). */
-@media (max-width: 480px) {
-  .month-picker-popup {
-    width: 240px;
-  }
-
+@media (max-width: 420px) {
   .month-picker-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
