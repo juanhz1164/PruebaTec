@@ -2465,6 +2465,13 @@ button {
 }
 
 .dash-mes-selector {
+  /* Sin esto, dentro de un contenedor flex con justify-content:space-between
+     (.dash-card-header-row) este <input> era el elemento que se comprimía
+     cuando faltaba espacio horizontal — su ancho encogido no alcanzaba para
+     mostrar el nombre del mes completo ("septiembre de 2026" quedaba
+     cortado contra el borde de la ventana). El <h2> vecino ya tenía
+     flex-shrink:0; este selector necesitaba lo mismo. */
+  flex-shrink: 0;
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
