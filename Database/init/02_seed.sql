@@ -105,3 +105,36 @@ INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_
     (5, 3, 90, 30, 1800.00),
     (9, 3, 10, 5, 8400.00),
     (10, 3, 60, 30, 2500.00);
+
+-- ============================================================
+-- Visitas (funcionalidad adicional, §4 del PDF): flujo de personas de
+-- agosto en Centro y Norte, para que el dashboard tenga datos de meses
+-- anteriores desde el primer arranque (no solo del mes en curso).
+-- fecha_hora se guarda en UTC (igual que el resto del sistema); Colombia es
+-- UTC-5 sin horario de verano, así que estas horas equivalen a horario local
+-- de Colombia 5 horas antes de lo escrito aquí (ver ZonaHorariaColombia.cs).
+-- ============================================================
+
+INSERT INTO visitas (sucursal_id, usuario_id, cantidad_personas, fecha_hora) VALUES
+    (1, 3, 2, '2026-08-03 14:15:00'),
+    (1, 3, 1, '2026-08-03 20:40:00'),
+    (1, 2, 3, '2026-08-07 15:20:00'),
+    (1, 3, 1, '2026-08-07 18:50:00'),
+    (1, 3, 2, '2026-08-07 21:10:00'),
+    (1, 2, 1, '2026-08-11 16:00:00'),
+    (1, 3, 4, '2026-08-14 14:45:00'),
+    (1, 3, 2, '2026-08-18 13:50:00'),
+    (1, 2, 1, '2026-08-18 15:30:00'),
+    (1, 3, 3, '2026-08-18 19:15:00'),
+    (1, 3, 1, '2026-08-21 21:00:00'),
+    (1, 2, 2, '2026-08-25 14:30:00'),
+    (1, 3, 1, '2026-08-28 17:10:00'),
+    (2, 6, 2, '2026-08-05 14:00:00'),
+    (2, 4, 1, '2026-08-09 16:30:00'),
+    (2, 6, 3, '2026-08-12 15:15:00'),
+    (2, 6, 1, '2026-08-12 20:20:00'),
+    (2, 4, 2, '2026-08-16 14:40:00'),
+    (2, 6, 1, '2026-08-20 18:00:00'),
+    (2, 6, 2, '2026-08-25 13:55:00'),
+    (2, 4, 1, '2026-08-25 22:00:00'),
+    (2, 6, 3, '2026-08-29 15:00:00');
