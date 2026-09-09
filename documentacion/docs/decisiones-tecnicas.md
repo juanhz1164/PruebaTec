@@ -130,3 +130,27 @@ en vez de seguir tecleando transportista/costo/fecha estimada manualmente en cad
   por el usuario (puede no coincidir exactamente con un par origen/destino configurado, p.
   ej. variantes de la misma ruta física) — la configuración se busca por
   `(sucursal_origen_id, sucursal_destino_id)`, no por el texto de la ruta.
+
+## 7. Solicitante ≠ Origen: quién pide una transferencia no es quién la despacha
+
+**Decisión:** `Transferencia.UsuarioSolicitanteId` identifica quién CREÓ la solicitud,
+sin relación automática con `SucursalOrigenId`. Se agregan además
+`UsuarioPreparadorId`/`UsuarioEnvioId`/`UsuarioRecepcionId` (nullable, poblados a medida
+que ocurre cada paso) para dejar trazabilidad de quién ejecutó físicamente cada acción.
+
+**Por qué:**
+- El negocio real tiene dos escenarios simétricos: una sucursal que TIENE un producto y
+  lo ofrece a otra (ahí sí, solicitante = origen), y una sucursal que NECESITA un producto
+  que otra tiene (ahí el solicitante es el DESTINO, no el origen). Forzar
+  `sucursalOrigenId = usuario.sucursalId` en el formulario de creación —como estaba antes—
+  hacía irrepresentable el segundo caso, y llevaba a que quien solicitaba terminara
+  obligado a preparar y enviar su propia solicitud (un absurdo operativo: nadie se envía
+  un pedido a sí mismo).
+- Los permisos de preparar/enviar/recibir ya dependían correctamente de
+  `SucursalOrigenId`/`SucursalDestinoId` en el backend (nunca de `UsuarioSolicitanteId`) —
+  el defecto estaba únicamente en cómo el frontend armaba esos dos campos al crear la
+  solicitud, no en la autorización.
+- Los tres campos de "quién ejecutó cada paso" son nullable porque no existen hasta que
+  ese paso ocurre (una transferencia recién solicitada no tiene preparador todavía), y se
+  mantienen separados de `UsuarioSolicitanteId` en vez de sobrescribirlo, para no perder
+  el dato de quién originó el pedido una vez que otra persona lo prepara/envía/recibe.

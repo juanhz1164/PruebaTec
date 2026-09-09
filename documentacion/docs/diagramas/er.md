@@ -162,7 +162,10 @@ erDiagram
         int id PK
         int sucursal_origen_id FK
         int sucursal_destino_id FK
-        int usuario_solicitante_id FK
+        int usuario_solicitante_id FK "quien pidio, no necesariamente de origen"
+        int usuario_preparador_id FK "nullable"
+        int usuario_envio_id FK "nullable"
+        int usuario_recepcion_id FK "nullable"
         enum estado "solicitada | en_preparacion | en_transito | recibida_completa | recibida_parcial | cancelada"
         string transportista
         string ruta
