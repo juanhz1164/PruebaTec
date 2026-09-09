@@ -25,13 +25,15 @@ interface LineChartDatum {
 export function LineChart({
   data,
   valueFormatter = (v: number) => v.toFixed(0),
-  height = 220,
+  height,
   colorVar = '--rol-accent',
+  llenarContenedor = false,
 }: {
   data: LineChartDatum[]
   valueFormatter?: (value: number) => string
   height?: number
   colorVar?: string
+  llenarContenedor?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<Chart | null>(null)
@@ -45,6 +47,19 @@ export function LineChart({
     const border = cssVar('--border') || '#2e303a'
     const codeBg = cssVar('--code-bg') || '#1f2028'
     const textH = cssVar('--text-h') || '#f3f4f6'
+
+    const valores = data.map((d) => d.value)
+    const maximo = Math.max(...valores)
+    const minimo = Math.min(...valores)
+    // Si ningún valor es 0, el eje puede arrancar cerca del mínimo real en
+    // vez de en 0 — evita la línea "aplastada" contra la base cuando todos
+    // los meses tienen ventas similares y altas. Si hay al menos un 0 (mes
+    // sin ventas), SÍ debe arrancar en 0: ese 0 es información real que no
+    // se debe ocultar recortando el eje.
+    const hayCeroReal = minimo <= 0
+    // Un poco de aire arriba del máximo (10%) para que el punto más alto no
+    // quede pegado al borde superior del gráfico.
+    const margenSuperior = maximo > 0 ? maximo * 0.1 : 1
 
     const config: ChartConfiguration<'line'> = {
       type: 'line',
@@ -89,7 +104,13 @@ export function LineChart({
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: text, font: { size: 12 }, autoSkip: true, maxRotation: 0 },
+            ticks: {
+              color: text,
+              font: { size: 12 },
+              autoSkip: true,
+              maxRotation: 0,
+              maxTicksLimit: 6,
+            },
             border: { color: border },
           },
           y: {
@@ -98,9 +119,16 @@ export function LineChart({
               color: text,
               font: { size: 12 },
               precision: 0,
+              maxTicksLimit: 5,
               callback: (v: string | number) => valueFormatter(Number(v)),
             },
-            beginAtZero: true,
+            beginAtZero: hayCeroReal,
+            // Sin un mínimo "bonito" propio, con beginAtZero:false Chart.js
+            // ajusta el eje casi exactamente al rango de los datos y la
+            // línea puede quedar recortada arriba/abajo — se le da un
+            // margen inferior del 10% del máximo cuando no hay ceros reales.
+            suggestedMin: hayCeroReal ? undefined : Math.max(0, minimo - margenSuperior),
+            suggestedMax: maximo + margenSuperior,
             border: { display: false },
           },
         },
@@ -124,7 +152,10 @@ export function LineChart({
   }
 
   return (
-    <div className="line-chart" style={{ height }}>
+    <div
+      className={`line-chart ${llenarContenedor ? 'line-chart--fill' : ''}`}
+      style={height ? { height } : undefined}
+    >
       <canvas ref={canvasRef} />
     </div>
   )

@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { crearVenta } from '../api/ventas'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
@@ -49,12 +50,14 @@ export function VentaForm({
   inventario,
   productos,
   onCreada,
+  onCancelar,
 }: {
   sucursalId: number
   usuarioId: number
   inventario: InventarioItem[]
   productos: Producto[]
   onCreada: (venta: Venta) => void
+  onCancelar?: () => void
 }) {
   const [clienteNombre, setClienteNombre] = useState('')
   const [clienteEmail, setClienteEmail] = useState('')
@@ -227,8 +230,108 @@ export function VentaForm({
               placeholder="3000000000"
             />
           </div>
+        </div>
+      </div>
 
-          <div className="venta-form-resumen venta-form-resumen--compacto">
+      <div className="venta-form-cuerpo">
+        <div className="venta-form-seccion venta-form-seccion--productos">
+          <div className="venta-form-seccion-header">
+            <h3 className="venta-form-seccion-titulo">Productos</h3>
+            <button type="button" className="secondary-button btn-sm" onClick={agregarLinea}>
+              <Plus size={14} strokeWidth={2.3} />
+              Agregar producto
+            </button>
+          </div>
+
+          <div className="table-scroll venta-form-productos-scroll">
+            <table className="data-table lineas-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Stock</th>
+                  <th>Cant.</th>
+                  <th>Precio</th>
+                  <th>Desc.</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineas.map((linea, index) => {
+                  const stock = linea.productoId ? stockPorProducto.get(linea.productoId) : undefined
+                  const cantidadNum = Number(linea.cantidad)
+                  const excedeStock =
+                    stock && Number.isFinite(cantidadNum) && cantidadNum > stock.cantidad
+                  const descuento = esLineaCaja(linea.productoId)
+                    ? calcularDescuentoPorCajas(cantidadNum)
+                    : descuentoGeneral
+                  const precioUnitario = linea.productoId ? precioUnitarioEstimado(linea.productoId) : 0
+                  const subtotalLinea =
+                    linea.productoId && Number.isFinite(cantidadNum) && cantidadNum > 0
+                      ? cantidadNum * precioUnitario * (1 - descuento / 100)
+                      : 0
+                  return (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          value={linea.productoId ?? ''}
+                          onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
+                        >
+                          <option value="">Selecciona un producto</option>
+                          {inventarioOrdenado.map((item) => (
+                            <option key={item.productoId} value={item.productoId}>
+                              {item.productoSku} — {item.productoNombre}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>{stock ? `${stock.cantidad} ${stock.unidadMedidaAbreviatura}` : '—'}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={linea.cantidad}
+                          onChange={(e) => {
+                            const nuevaCantidad = e.target.value.replace(/[.,].*$/, '')
+                            actualizarLinea(index, { cantidad: nuevaCantidad })
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === '.' || e.key === ',') e.preventDefault()
+                          }}
+                          className={excedeStock ? 'input-error' : undefined}
+                        />
+                      </td>
+                      <td>{linea.productoId ? formatearMoneda(precioUnitario) : '—'}</td>
+                      <td>
+                        <span className={`descuento-badge ${descuento > 0 ? 'descuento-activo' : ''}`}>
+                          {descuento}%
+                        </span>
+                      </td>
+                      <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="lineas-quitar-btn"
+                          onClick={() => quitarLinea(index)}
+                          disabled={lineas.length === 1}
+                          aria-label="Quitar producto"
+                          title="Quitar producto"
+                        >
+                          <Trash2 size={14} strokeWidth={2} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="venta-form-resumen-panel">
+          <div className="venta-form-resumen">
+            <h4 className="venta-form-resumen-titulo">Resumen de venta</h4>
             <div className="venta-form-resumen-fila">
               <span>Subtotal</span>
               <span>{formatearMoneda(resumen.subtotal)}</span>
@@ -245,103 +348,16 @@ export function VentaForm({
         </div>
       </div>
 
-      <div className="venta-form-seccion venta-form-seccion--productos">
-        <div className="venta-form-seccion-header venta-form-seccion--fija">
-          <h3 className="venta-form-seccion-titulo">Productos</h3>
-          <button type="button" className="secondary-button" onClick={agregarLinea}>
-            + Agregar producto
-          </button>
-        </div>
-
-        <div className="table-scroll venta-form-productos-scroll">
-          <table className="data-table lineas-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Stock</th>
-                <th>Cant.</th>
-                <th>Precio</th>
-                <th>Desc.</th>
-                <th>Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineas.map((linea, index) => {
-                const stock = linea.productoId ? stockPorProducto.get(linea.productoId) : undefined
-                const cantidadNum = Number(linea.cantidad)
-                const excedeStock =
-                  stock && Number.isFinite(cantidadNum) && cantidadNum > stock.cantidad
-                const descuento = esLineaCaja(linea.productoId)
-                  ? calcularDescuentoPorCajas(cantidadNum)
-                  : descuentoGeneral
-                const precioUnitario = linea.productoId ? precioUnitarioEstimado(linea.productoId) : 0
-                const subtotalLinea =
-                  linea.productoId && Number.isFinite(cantidadNum) && cantidadNum > 0
-                    ? cantidadNum * precioUnitario * (1 - descuento / 100)
-                    : 0
-                return (
-                  <tr key={index}>
-                    <td>
-                      <select
-                        value={linea.productoId ?? ''}
-                        onChange={(e) => actualizarLinea(index, { productoId: Number(e.target.value) })}
-                      >
-                        <option value="">Selecciona un producto</option>
-                        {inventarioOrdenado.map((item) => (
-                          <option key={item.productoId} value={item.productoId}>
-                            {item.productoSku} — {item.productoNombre}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>{stock ? `${stock.cantidad} ${stock.unidadMedidaAbreviatura}` : '—'}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={linea.cantidad}
-                        onChange={(e) => {
-                          const nuevaCantidad = e.target.value.replace(/[.,].*$/, '')
-                          actualizarLinea(index, { cantidad: nuevaCantidad })
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === '.' || e.key === ',') e.preventDefault()
-                        }}
-                        className={excedeStock ? 'input-error' : undefined}
-                      />
-                    </td>
-                    <td>{linea.productoId ? formatearMoneda(precioUnitario) : '—'}</td>
-                    <td>
-                      <span className={`descuento-badge ${descuento > 0 ? 'descuento-activo' : ''}`}>
-                        {descuento}%
-                      </span>
-                    </td>
-                    <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => quitarLinea(index)}
-                        disabled={lineas.length === 1}
-                      >
-                        Quitar
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div className="venta-form-seccion--fija">
         {error && <p className="error-text">{error}</p>}
 
         <div className="modal-actions venta-form-acciones">
-          <button type="submit" disabled={isSubmitting}>
+          {onCancelar && (
+            <button type="button" className="danger-button" onClick={onCancelar}>
+              Cancelar
+            </button>
+          )}
+          <button type="submit" className="success-button" disabled={isSubmitting}>
             {isSubmitting ? 'Registrando...' : 'Registrar venta'}
           </button>
         </div>

@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getOrdenesCompra, cambiarEstadoOrdenCompra } from '../api/ordenesCompra'
 import { OrdenCompraForm } from '../components/OrdenCompraForm'
 import { ActionsMenu, type AccionMenu } from '../components/ActionsMenu'
 import { Modal } from '../components/Modal'
 import { KpiTile } from '../components/KpiTile'
+import { Pagination } from '../components/Pagination'
+import { usePaginacion } from '../hooks/usePaginacion'
 import { ESTADO_ORDEN_COMPRA, ESTADO_ORDEN_COMPRA_LABEL } from '../types/ordenCompra'
 import type { EstadoOrdenCompra, OrdenCompra } from '../types/ordenCompra'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
+
+const ORDENES_POR_PAGINA = 15
 
 // Confirmar (Pendiente -> Confirmada) lo hace el Admin, que aprueba la compra
 // a nivel de red. Marcar recibida (Confirmada -> Recibida) lo hace el Gerente
@@ -116,6 +121,11 @@ export function ComprasPage() {
     })
   }, [ordenesVisibles, busqueda, filtroEstado])
 
+  const { pagina, setPagina, totalPaginas, itemsPagina: ordenesPagina } = usePaginacion(
+    ordenesFiltradas,
+    ORDENES_POR_PAGINA,
+  )
+
   const handleOrdenCreada = (orden: OrdenCompra) => {
     setMostrarModalOrden(false)
     cargarOrdenes()
@@ -170,7 +180,8 @@ export function ComprasPage() {
             <p className="admin-section-subtitle">Gestiona las órdenes de compra a proveedores</p>
           </div>
           <button type="button" className="admin-cta-button" onClick={() => setMostrarModalOrden(true)}>
-            + Nueva orden de compra
+            <Plus size={15} strokeWidth={2.3} />
+            Nueva orden de compra
           </button>
         </div>
 
@@ -205,7 +216,8 @@ export function ComprasPage() {
           <div className="admin-estado-vacio">
             <p>Aún no hay órdenes de compra.</p>
             <button type="button" className="admin-cta-button" onClick={() => setMostrarModalOrden(true)}>
-              + Nueva orden de compra
+              <Plus size={15} strokeWidth={2.3} />
+              Nueva orden de compra
             </button>
           </div>
         )}
@@ -232,7 +244,7 @@ export function ComprasPage() {
                       <td colSpan={8}>No hay órdenes que coincidan con la búsqueda.</td>
                     </tr>
                   )}
-                  {ordenesFiltradas.map((orden) => (
+                  {ordenesPagina.map((orden) => (
                     <tr key={orden.id}>
                       <td className="celda-mono">#{String(orden.id).padStart(4, '0')}</td>
                       <td className="celda-principal">{orden.proveedorNombre}</td>
@@ -253,13 +265,22 @@ export function ComprasPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiarPagina={setPagina} />
           </div>
         )}
       </div>
 
       {mostrarModalOrden && (
-        <Modal title="Nueva orden de compra" size="lg" onClose={() => setMostrarModalOrden(false)}>
-          <OrdenCompraForm onCreada={handleOrdenCreada} />
+        <Modal
+          title="Nueva orden de compra"
+          description="Registra los productos y cantidades a solicitar al proveedor"
+          size="xl"
+          onClose={() => setMostrarModalOrden(false)}
+        >
+          <OrdenCompraForm
+            onCreada={handleOrdenCreada}
+            onCancelar={() => setMostrarModalOrden(false)}
+          />
         </Modal>
       )}
 

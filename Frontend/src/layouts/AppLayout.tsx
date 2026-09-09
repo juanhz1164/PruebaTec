@@ -1,7 +1,19 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { ChevronLeft, LogOut } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { NavIcon, type NavIconName } from '../components/NavIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
+
+const SIDEBAR_COLAPSADO_KEY = 'sidebar.colapsado'
+
+function leerSidebarColapsado(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLAPSADO_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 const ROL_CLASS: Record<string, string> = {
   AdministradorGeneral: 'rol-admin',
@@ -11,11 +23,20 @@ const ROL_CLASS: Record<string, string> = {
 
 const NO_ADMIN_GENERAL = ['GerenteSucursal', 'OperadorInventario']
 
-const NAV_ITEMS: { to: string; label: string; icon: NavIconName; roles: readonly string[] | null }[] = [
+const NAV_ITEMS: {
+  to: string
+  // Puede ser un texto fijo o una función que decide el label según el rol
+  // (ej. "Inventarios" para Admin, que no tiene ítem de inventario propio,
+  // vs. "Otras sucursales" para Gerente/Operador, que sí lo tienen y
+  // "Inventarios" ahí se leía redundante junto a "Inventario").
+  label: string | ((rol: string) => string)
+  icon: NavIconName
+  roles: readonly string[] | null
+}[] = [
   { to: '/', label: 'Panel general', icon: 'panel', roles: null },
   {
     to: '/comparativa-sucursales',
-    label: 'Comparativa de sucursales',
+    label: 'Comparación',
     icon: 'tendenciaSubida',
     roles: ['AdministradorGeneral'],
   },
@@ -26,7 +47,12 @@ const NAV_ITEMS: { to: string; label: string; icon: NavIconName; roles: readonly
     roles: ['AdministradorGeneral'],
   },
   { to: '/inventario', label: 'Inventario', icon: 'inventario', roles: NO_ADMIN_GENERAL },
-  { to: '/inventario/otras-sucursales', label: 'Inventario de sucursales', icon: 'sucursales', roles: null },
+  {
+    to: '/inventario/otras-sucursales',
+    label: (rol) => (rol === 'AdministradorGeneral' ? 'Inventarios' : 'Otras sucursales'),
+    icon: 'sucursales',
+    roles: null,
+  },
   { to: '/visitas', label: 'Visitas', icon: 'visitas', roles: NO_ADMIN_GENERAL },
   { to: '/ventas', label: 'Ventas', icon: 'ventas', roles: NO_ADMIN_GENERAL },
   { to: '/compras', label: 'Compras', icon: 'compras', roles: null },
@@ -37,6 +63,16 @@ const NAV_ITEMS: { to: string; label: string; icon: NavIconName; roles: readonly
 
 export function AppLayout() {
   const { usuario, logout } = useAuth()
+  const [colapsado, setColapsado] = useState(leerSidebarColapsado)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLAPSADO_KEY, String(colapsado))
+    } catch {
+      // localStorage no disponible (modo privado, etc.): el toggle sigue
+      // funcionando en memoria durante la sesión, solo no persiste.
+    }
+  }, [colapsado])
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.roles || (usuario && item.roles.includes(usuario.rol)),
@@ -44,34 +80,46 @@ export function AppLayout() {
 
   return (
     <div className={`app-shell ${usuario ? ROL_CLASS[usuario.rol] : ''}`}>
-      <aside className="app-sidebar">
-        <span className="app-title">Inventario Multi-Sucursal</span>
+      <aside className={`app-sidebar ${colapsado ? 'app-sidebar--colapsado' : ''}`}>
+        <div className="app-sidebar-header">
+          <span className="app-title" title="Inventario Multi-Sucursal">
+            Inventario
+          </span>
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setColapsado((v) => !v)}
+            aria-label={colapsado ? 'Expandir menú' : 'Colapsar menú'}
+            title={colapsado ? 'Expandir menú' : 'Colapsar menú'}
+          >
+            <ChevronLeft
+              size={16}
+              strokeWidth={2.2}
+              style={{ transform: colapsado ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s ease' }}
+            />
+          </button>
+        </div>
         <nav className="app-nav">
-          {visibleItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end>
-              <NavIcon name={item.icon} />
-              {item.label}
-            </NavLink>
-          ))}
+          {visibleItems.map((item) => {
+            const label =
+              typeof item.label === 'function' ? item.label(usuario?.rol ?? '') : item.label
+            return (
+              <NavLink key={item.to} to={item.to} end title={colapsado ? label : undefined}>
+                <NavIcon name={item.icon} />
+                <span className="app-nav-label">{label}</span>
+              </NavLink>
+            )
+          })}
         </nav>
         <div className="app-user">
-          <button type="button" className="logout-button" onClick={logout}>
-            <svg
-              viewBox="0 0 24 24"
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <path d="M16 17l5-5-5-5" />
-              <path d="M21 12H9" />
-            </svg>
-            Cerrar sesión
+          <button
+            type="button"
+            className="logout-button"
+            onClick={logout}
+            title={colapsado ? 'Cerrar sesión' : undefined}
+          >
+            <LogOut size={17} strokeWidth={1.8} />
+            <span className="app-nav-label">Cerrar sesión</span>
           </button>
         </div>
       </aside>

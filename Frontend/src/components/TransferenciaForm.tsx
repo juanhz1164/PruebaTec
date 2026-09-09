@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Plus, ArrowRight, Trash2, Send } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getSucursales } from '../api/sucursales'
@@ -42,12 +43,20 @@ function AgregarProductoModal({
       setError('Ingresa una cantidad mayor a cero')
       return
     }
+    if (stock !== undefined && cantidad > stock) {
+      setError(`No puedes solicitar más de lo disponible: stock actual ${stock}`)
+      return
+    }
     onAgregar({ productoId, cantidadSolicitada })
     onClose()
   }
 
   return (
-    <Modal title="Agregar producto" onClose={onClose}>
+    <Modal
+      title="Agregar producto"
+      description="Selecciona el producto y la cantidad a transferir"
+      onClose={onClose}
+    >
       <div className="tr-agregar-form">
         <div className="form-row">
           <label htmlFor="tr-agregar-producto">Producto</label>
@@ -55,6 +64,7 @@ function AgregarProductoModal({
             id="tr-agregar-producto"
             value={productoId ?? ''}
             onChange={(e) => setProductoId(Number(e.target.value))}
+            autoFocus
           >
             <option value="">Selecciona un producto</option>
             {productos.map((p) => (
@@ -65,26 +75,38 @@ function AgregarProductoModal({
           </select>
         </div>
 
-        {productoId !== null && (
-          <span className="tr-linea-stock">Stock disponible: {stock !== undefined ? stock : '—'}</span>
-        )}
+        <div className="tr-agregar-grid">
+          <div className="tr-agregar-stock">
+            <span>Stock disponible</span>
+            <strong>{productoId !== null ? (stock !== undefined ? stock : '—') : '—'}</strong>
+          </div>
 
-        <div className="form-row">
-          <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
-          <input
-            id="tr-agregar-cantidad"
-            type="number"
-            min="0"
-            step="any"
-            value={cantidadSolicitada}
-            onChange={(e) => setCantidadSolicitada(e.target.value)}
-          />
+          <div className="form-row">
+            <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
+            <input
+              id="tr-agregar-cantidad"
+              type="number"
+              min="0"
+              max={stock}
+              step="1"
+              inputMode="numeric"
+              value={cantidadSolicitada}
+              onChange={(e) => setCantidadSolicitada(e.target.value.replace(/[^0-9]/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === '.' || e.key === ',') e.preventDefault()
+              }}
+            />
+          </div>
         </div>
 
         {error && <p className="error-text">{error}</p>}
 
         <div className="modal-actions">
-          <button type="button" onClick={handleAgregar}>
+          <button type="button" className="danger-button" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="primary-button" onClick={handleAgregar}>
+            <Plus size={14} strokeWidth={2.3} />
             Agregar
           </button>
         </div>
@@ -128,8 +150,9 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
       .catch(() => setError('No se pudo cargar el listado de sucursales'))
   }, [usuario?.sucursalId, esAdmin])
 
-  // Solo para mostrar el stock disponible junto a cada línea; no participa
-  // en ninguna validación ni en el payload enviado al backend.
+  // Se muestra junto a cada línea y además se usa para validar que no se
+  // solicite más de lo disponible (ver handleAgregar y handleSubmit); no
+  // participa en el payload enviado al backend.
   useEffect(() => {
     if (!sucursalOrigenId) {
       setStockOrigen({})
@@ -146,7 +169,13 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     ? sucursales.filter((s) => s.id !== sucursalOrigenId)
     : sucursales
 
-  const sucursalOrigen = sucursales.find((s) => s.id === sucursalOrigenId) ?? null
+  // Para Gerente/Operador, la sucursal de origen es siempre la propia, que
+  // queda deliberadamente excluida de la lista "sucursales" (esa lista es la
+  // de posibles destinos): buscarla ahí nunca la encontraba y el nombre
+  // quedaba en "—". El nombre ya viene en el propio usuario autenticado.
+  const sucursalOrigenNombre = esAdmin
+    ? (sucursales.find((s) => s.id === sucursalOrigenId)?.nombre ?? null)
+    : (usuario?.sucursalNombre ?? null)
 
   const agregarLinea = (linea: LineaForm) => setLineas((prev) => [...prev, linea])
 
@@ -160,6 +189,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     if (!sucursalOrigenId || !sucursalDestinoId) return
 
     const lineasValidas: CrearTransferenciaLinea[] = []
+    const cantidadPorProducto: Record<number, number> = {}
     for (const linea of lineas) {
       if (!linea.productoId) continue
       const cantidad = Number(linea.cantidadSolicitada)
@@ -167,7 +197,21 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         setError('Cada línea debe tener una cantidad solicitada mayor a cero')
         return
       }
+      cantidadPorProducto[linea.productoId] = (cantidadPorProducto[linea.productoId] ?? 0) + cantidad
       lineasValidas.push({ productoId: linea.productoId, cantidadSolicitada: cantidad })
+    }
+
+    // Si el mismo producto aparece en varias líneas, se valida la SUMA
+    // contra el stock disponible (agregar cada línea por separado no
+    // detecta que, juntas, superan lo que hay en la sucursal de origen).
+    for (const [productoIdStr, cantidadTotal] of Object.entries(cantidadPorProducto)) {
+      const productoId = Number(productoIdStr)
+      const stock = stockOrigen[productoId]
+      if (stock !== undefined && cantidadTotal > stock) {
+        const nombre = productos.find((p) => p.id === productoId)?.nombre ?? 'el producto seleccionado'
+        setError(`No puedes solicitar más de lo disponible de ${nombre}: stock actual ${stock}`)
+        return
+      }
     }
 
     if (lineasValidas.length === 0) {
@@ -204,6 +248,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         <div className="tr-form-header-actions">
           {error && <p className="error-text tr-form-header-error">{error}</p>}
           <button type="submit" className="tr-submit-btn" disabled={isSubmitting || !sucursalDestinoId}>
+            <Send size={14} strokeWidth={2.2} />
             {isSubmitting ? 'Enviando...' : 'Solicitar transferencia'}
           </button>
         </div>
@@ -211,7 +256,7 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
 
       <div className="tr-ruta">
         <div className="tr-ruta-card tr-ruta-card--origen">
-          <span className="tr-ruta-eyebrow">Origen</span>
+          <span className="tr-ruta-eyebrow">Sucursal origen</span>
           {esAdmin ? (
             <select
               className="tr-ruta-select"
@@ -226,20 +271,17 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
               ))}
             </select>
           ) : (
-            <span className="tr-ruta-nombre">{sucursalOrigen?.nombre ?? '—'}</span>
+            <span className="tr-ruta-nombre">{sucursalOrigenNombre ?? '—'}</span>
           )}
           <span className="tr-ruta-hint">Inventario de salida</span>
         </div>
 
         <div className="tr-ruta-flecha" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14" />
-            <path d="M13 6l6 6-6 6" />
-          </svg>
+          <ArrowRight size={22} strokeWidth={2} />
         </div>
 
         <div className="tr-ruta-card tr-ruta-card--destino">
-          <span className="tr-ruta-eyebrow">Destino</span>
+          <span className="tr-ruta-eyebrow">Sucursal destino</span>
           <select
             className="tr-ruta-select"
             id="tr-destino"
@@ -267,10 +309,11 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
             )}
             <button
               type="button"
-              className="secondary-button tr-agregar-btn"
+              className="primary-button btn-sm tr-agregar-btn"
               onClick={() => setMostrarAgregar(true)}
             >
-              + Agregar producto
+              <Plus size={14} strokeWidth={2.3} />
+              Agregar producto
             </button>
           </div>
         </div>
@@ -293,17 +336,13 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
                   <span className="tr-linea-cantidad">{linea.cantidadSolicitada} un.</span>
                   <button
                     type="button"
-                    className="danger-button tr-linea-quitar"
+                    className="danger-button btn-icon-only btn-sm tr-linea-quitar"
                     onClick={() => quitarLinea(index)}
                     disabled={lineas.length === 1}
                     aria-label="Quitar producto"
                     title="Quitar producto"
                   >
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    </svg>
+                    <Trash2 size={14} strokeWidth={2} />
                   </button>
                 </div>
               )

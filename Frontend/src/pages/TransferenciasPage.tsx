@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { PackageCheck, Truck, Inbox, Ban } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import {
   getTransferencias,
@@ -232,39 +233,43 @@ export function TransferenciasPage() {
                             {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.Solicitada && (
                               <button
                                 type="button"
-                                className="secondary-button"
+                                className="secondary-button btn-sm"
                                 disabled={actualizandoId === t.id}
                                 onClick={() => preparar(t.id)}
                               >
+                                <PackageCheck size={13} strokeWidth={2} />
                                 Preparar
                               </button>
                             )}
                             {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.EnPreparacion && (
                               <button
                                 type="button"
-                                className="secondary-button"
+                                className="secondary-button btn-sm"
                                 disabled={actualizandoId === t.id}
                                 onClick={() => enviar(t)}
                               >
+                                <Truck size={13} strokeWidth={2} />
                                 Registrar envío
                               </button>
                             )}
                             {esDestino && t.estado === ESTADO_TRANSFERENCIA.EnTransito && (
                               <button
                                 type="button"
-                                className="secondary-button"
+                                className="success-button btn-sm"
                                 onClick={() => setRecepcionId(t.id)}
                               >
+                                <Inbox size={13} strokeWidth={2} />
                                 Confirmar recepción
                               </button>
                             )}
                             {puedeCancelar && (
                               <button
                                 type="button"
-                                className="danger-button"
+                                className="danger-button btn-sm"
                                 disabled={actualizandoId === t.id}
                                 onClick={() => cancelar(t.id)}
                               >
+                                <Ban size={13} strokeWidth={2} />
                                 Cancelar
                               </button>
                             )}

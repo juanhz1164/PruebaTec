@@ -60,6 +60,20 @@ Ciclo completo con 5 pasos y persistencia de estado en cada uno:
 - Login con email/contraseña, devuelve un token de sesión y los datos del usuario.
 - Acceso a cada módulo restringido según el rol del usuario autenticado.
 
+### 1.8 Funcionalidad adicional — Control de flujo de personas (Visitas)
+Funcionalidad adicional elegida (§4 del PDF), variante de "Auditoría y trazabilidad"
+aplicada al control de ingreso físico a cada sucursal, no solo al inventario:
+- Registrar el ingreso de un grupo de visitantes (cantidad de personas) a la sucursal
+  propia, con fecha/hora y usuario responsable fijados automáticamente por el backend.
+- Consultar y eliminar las visitas registradas en un día dado, siempre acotado a la
+  sucursal propia del usuario (Operador y Gerente).
+- Ver un resumen del día (total de visitas, total de personas, promedio de personas por
+  visita) y su desglose por hora.
+- Ver el "Flujo de personas" (hoy y mes en curso) integrado en el Dashboard: el Gerente ve
+  solo su sucursal, el Administrador general ve el agregado de toda la red y puede
+  comparar sucursales entre sí (en "Comparación de sucursales"). El Operador no tiene
+  acceso a esta vista agregada, solo al registro/consulta del día en su propia sucursal.
+
 ## 2. Requerimientos no funcionales
 
 | Categoría | Requerimiento |
@@ -118,9 +132,9 @@ Ciclo completo con 5 pasos y persistencia de estado en cada uno:
 
 | Actor | Responsabilidades |
 |---|---|
-| **Administrador general** (`AdministradorGeneral`) | Gestiona usuarios y sucursales, tiene visibilidad total del sistema, es el único perfil con acceso a la comparativa de rendimiento entre sucursales del dashboard, y puede aprobar/enviar transferencias desde cualquier sucursal origen. |
-| **Gerente de sucursal** (`GerenteSucursal`) | Supervisa las operaciones de su sucursal, aprueba (prepara/envía) transferencias que salen de su sucursal, gestiona órdenes de compra, y consulta los reportes y el dashboard de su sucursal. |
-| **Operador de inventario** (`OperadorInventario`) | Realiza ingresos y retiros de inventario, registra ventas, solicita transferencias hacia su sucursal y confirma la recepción de las que llegan, y consulta el catálogo propio y el de otras sucursales. |
+| **Administrador general** (`AdministradorGeneral`) | Gestiona usuarios y sucursales, tiene visibilidad total del sistema, es el único perfil con acceso a la comparativa de rendimiento entre sucursales del dashboard, puede aprobar/enviar transferencias desde cualquier sucursal origen, y compara el flujo de personas entre todas las sucursales. |
+| **Gerente de sucursal** (`GerenteSucursal`) | Supervisa las operaciones de su sucursal, aprueba (prepara/envía) transferencias que salen de su sucursal, gestiona órdenes de compra, consulta los reportes y el dashboard de su sucursal, y registra/consulta el flujo de personas de su sucursal. |
+| **Operador de inventario** (`OperadorInventario`) | Realiza ingresos y retiros de inventario, registra ventas, solicita transferencias hacia su sucursal y confirma la recepción de las que llegan, consulta el catálogo propio y el de otras sucursales, y registra el ingreso de visitantes a su sucursal. |
 | **Sistema externo** (opcional, no implementado) | Podría integrarse vía la misma API REST documentada en Swagger (`/swagger`) para sincronizar con un ERP o POS externo; fuera del alcance de esta entrega. |
 
 ## 6. Historias de usuario clave
@@ -163,3 +177,9 @@ cada módulo implementado.
 - **Como** administrador general, **quiero** comparar ventas, inventario y transferencias
   activas entre todas las sucursales, **para** identificar qué sucursales necesitan más
   atención.
+- **Como** operador de inventario, **quiero** registrar cuántas personas ingresan a mi
+  sucursal en cada visita, **para** que quede un registro auditable del flujo de personas
+  del día.
+- **Como** gerente de sucursal, **quiero** ver el flujo de personas de hoy y del mes en
+  curso en el dashboard, **para** relacionar la afluencia de visitantes con el volumen de
+  ventas de mi sucursal.

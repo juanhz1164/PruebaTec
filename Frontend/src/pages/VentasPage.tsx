@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getInventarioPorSucursal } from '../api/inventario'
 import { getProductos } from '../api/productos'
@@ -7,11 +8,15 @@ import { VentaForm } from '../components/VentaForm'
 import { ActionsMenu } from '../components/ActionsMenu'
 import { Modal } from '../components/Modal'
 import { KpiTile } from '../components/KpiTile'
+import { Pagination } from '../components/Pagination'
+import { usePaginacion } from '../hooks/usePaginacion'
 import type { InventarioItem } from '../types/inventario'
 import type { Producto } from '../types/producto'
 import type { Venta } from '../types/venta'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
+
+const VENTAS_POR_PAGINA = 15
 
 function esHoy(fechaIso: string): boolean {
   const fecha = new Date(fechaIso)
@@ -85,6 +90,11 @@ export function VentasPage() {
     )
   }, [ventas, busqueda])
 
+  const { pagina, setPagina, totalPaginas, itemsPagina: ventasPagina } = usePaginacion(
+    ventasFiltradas,
+    VENTAS_POR_PAGINA,
+  )
+
   const handleVentaCreada = (venta: Venta) => {
     setMostrarModalVenta(false)
     cargar()
@@ -115,7 +125,8 @@ export function VentasPage() {
             <p className="admin-section-subtitle">Historial de ventas de la sucursal</p>
           </div>
           <button type="button" className="admin-cta-button" onClick={() => setMostrarModalVenta(true)}>
-            + Nueva venta
+            <Plus size={15} strokeWidth={2.3} />
+            Nueva venta
           </button>
         </div>
 
@@ -141,6 +152,8 @@ export function VentasPage() {
                   <tr>
                     <th>Comprobante</th>
                     <th>Cliente</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
                     <th>Fecha</th>
                     <th>Hora</th>
                     <th>Productos</th>
@@ -151,17 +164,19 @@ export function VentasPage() {
                 <tbody>
                   {ventasFiltradas.length === 0 && (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={9}>
                         {ventas.length === 0
                           ? 'No hay ventas registradas en esta sucursal.'
                           : 'No hay ventas que coincidan con la búsqueda.'}
                       </td>
                     </tr>
                   )}
-                  {ventasFiltradas.map((v) => (
+                  {ventasPagina.map((v) => (
                     <tr key={v.id}>
                       <td className="celda-mono">{v.numeroComprobante}</td>
                       <td className="celda-principal">{v.clienteNombre ?? '—'}</td>
+                      <td>{v.clienteEmail ?? '—'}</td>
+                      <td>{v.clienteTelefono ?? '—'}</td>
                       <td>{formatearFecha(v.fecha)}</td>
                       <td>{formatearHora(v.fecha)}</td>
                       <td>{v.lineas.length}</td>
@@ -176,18 +191,25 @@ export function VentasPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiarPagina={setPagina} />
           </div>
         )}
       </div>
 
       {mostrarModalVenta && (
-        <Modal title="Nueva venta" size="lg" onClose={() => setMostrarModalVenta(false)}>
+        <Modal
+          title="Nueva venta"
+          description="Registra los productos vendidos y los datos del cliente"
+          size="xl"
+          onClose={() => setMostrarModalVenta(false)}
+        >
           <VentaForm
             sucursalId={usuario.sucursalId}
             usuarioId={usuario.id}
             inventario={inventario}
             productos={productos}
             onCreada={handleVentaCreada}
+            onCancelar={() => setMostrarModalVenta(false)}
           />
         </Modal>
       )}

@@ -373,6 +373,28 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(v => v.UsuarioId);
         });
+
+        // Todas las fechas se guardan en UTC (DateTime.UtcNow), pero MySQL/
+        // Pomelo no conserva el "Kind" al leer: EF Core devuelve
+        // DateTimeKind.Unspecified aunque el valor sea UTC. Sin este
+        // conversor, System.Text.Json serializa esas fechas SIN el sufijo
+        // "Z", y el navegador las interpreta como si ya fueran hora local
+        // (sin restar el offset) — eso desfasaba varias horas la hora
+        // mostrada de ventas, transferencias, etc. en el frontend.
+        var conversorUtc = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+            v => v,
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(conversorUtc);
+                }
+            }
+        }
     }
 
     private static string EstadoOrdenCompraToDb(EstadoOrdenCompra estado) => estado switch

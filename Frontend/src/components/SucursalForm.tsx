@@ -2,7 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { crearSucursal } from '../api/sucursales'
 import { ApiError } from '../api/client'
 
-export function SucursalForm({ onCreada }: { onCreada: () => void }) {
+export function SucursalForm({
+  onCreada,
+  onCancelar,
+}: {
+  onCreada: () => void
+  onCancelar?: () => void
+}) {
   const [nombre, setNombre] = useState('')
   const [direccion, setDireccion] = useState('')
   const [ciudad, setCiudad] = useState('')
@@ -71,9 +77,16 @@ export function SucursalForm({ onCreada }: { onCreada: () => void }) {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creando...' : 'Crear sucursal'}
-      </button>
+      <div className="modal-actions">
+        {onCancelar && (
+          <button type="button" className="danger-button" onClick={onCancelar}>
+            Cancelar
+          </button>
+        )}
+        <button type="submit" className="primary-button" disabled={isSubmitting}>
+          {isSubmitting ? 'Creando...' : 'Crear sucursal'}
+        </button>
+      </div>
     </form>
   )
 }

@@ -80,8 +80,28 @@ Los 6 módulos obligatorios del PDF (§3), cada uno con backend + frontend:
    transferencias activas, productos próximos a agotarse, comparativa entre sucursales
    (solo perfil administrativo).
 
-La funcionalidad adicional (§4 del PDF) está pendiente de implementar — ver
-`Requerimientos/Tareas-Trello.md`, lista "Funcionalidad Adicional" (T70-T72).
+Más la funcionalidad adicional (§4 del PDF):
+
+7. **Control de flujo de personas (Visitas)** — variante de "Auditoría y trazabilidad"
+   aplicada al ingreso físico a cada sucursal: registro de visitas del día (cantidad de
+   personas, hora, responsable) por Operador/Gerente sobre su propia sucursal, resumen del
+   día, y "Flujo de personas" (hoy/mes) integrado en el Dashboard — el Gerente ve su
+   sucursal, el Administrador general compara todas las sucursales.
+
+## Testing
+
+Suite de pruebas del backend (`InventarioMultiSucursal.Api.Tests/`) con xUnit:
+
+- **Unitarios**: costo promedio ponderado en compras, validación de stock en ventas,
+  reglas de transferencia (completa/parcial).
+- **Integración**: endpoints principales de Inventario, Compras, Ventas, Transferencias y
+  Dashboard, contra una base de datos real levantada para las pruebas.
+
+```bash
+dotnet test InventarioMultiSucursal.Api.Tests
+```
+
+72 pruebas, todas en verde.
 
 ## Documentación
 

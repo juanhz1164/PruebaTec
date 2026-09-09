@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Check } from 'lucide-react'
 import { confirmarRecepcionTransferencia } from '../api/transferencias'
 import type { Transferencia } from '../types/transferencia'
 import { ApiError } from '../api/client'
@@ -76,11 +77,18 @@ export function RecepcionForm({
                   type="number"
                   min="0"
                   max={linea.cantidadEnviada}
-                  step="any"
+                  step="1"
+                  inputMode="numeric"
                   value={cantidades[linea.id] ?? ''}
                   onChange={(e) =>
-                    setCantidades((prev) => ({ ...prev, [linea.id]: e.target.value }))
+                    setCantidades((prev) => ({
+                      ...prev,
+                      [linea.id]: e.target.value.replace(/[^0-9]/g, ''),
+                    }))
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',') e.preventDefault()
+                  }}
                 />
               </td>
             </tr>
@@ -91,11 +99,12 @@ export function RecepcionForm({
       {error && <p className="error-text">{error}</p>}
 
       <div className="acciones-cell">
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Confirmando...' : 'Confirmar recepción'}
-        </button>
-        <button type="button" className="link-button" onClick={onCerrar}>
+        <button type="button" className="danger-button" onClick={onCerrar}>
           Cancelar
+        </button>
+        <button type="submit" className="success-button" disabled={isSubmitting}>
+          <Check size={14} strokeWidth={2.3} />
+          {isSubmitting ? 'Confirmando...' : 'Confirmar recepción'}
         </button>
       </div>
     </form>

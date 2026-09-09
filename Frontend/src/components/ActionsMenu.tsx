@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { MoreVertical } from 'lucide-react'
 
 export interface AccionMenu {
   label: string
   onSelect: () => void
   tone?: 'default' | 'danger' | 'success'
   disabled?: boolean
+  icon?: ReactNode
 }
 
 // Menú "⋮" reutilizable para filas de tabla: agrupa acciones que antes eran
@@ -36,7 +38,7 @@ export function ActionsMenu({ acciones }: { acciones: AccionMenu[] }) {
         aria-expanded={abierto}
         onClick={() => setAbierto((v) => !v)}
       >
-        ⋮
+        <MoreVertical size={16} strokeWidth={2} />
       </button>
       {abierto && (
         <div className="actions-menu-dropdown" role="menu">
@@ -58,6 +60,7 @@ export function ActionsMenu({ acciones }: { acciones: AccionMenu[] }) {
                 accion.onSelect()
               }}
             >
+              {accion.icon}
               {accion.label}
             </button>
           ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { crearUsuario } from '../api/usuarios'
 import { getSucursales } from '../api/sucursales'
+import { PasswordInput } from './PasswordInput'
 import { ApiError } from '../api/client'
 import { ROL_LABEL, type Rol } from '../types/auth'
 import type { Sucursal } from '../types/sucursal'
@@ -9,7 +10,13 @@ import type { Sucursal } from '../types/sucursal'
 // segundo Admin general no se crea por esta vía.
 const ROLES_CREABLES: Rol[] = ['GerenteSucursal', 'OperadorInventario']
 
-export function UsuarioForm({ onCreado }: { onCreado: () => void }) {
+export function UsuarioForm({
+  onCreado,
+  onCancelar,
+}: {
+  onCreado: () => void
+  onCancelar?: () => void
+}) {
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [sucursalId, setSucursalId] = useState<number | null>(null)
   const [nombre, setNombre] = useState('')
@@ -74,13 +81,13 @@ export function UsuarioForm({ onCreado }: { onCreado: () => void }) {
         </div>
         <div className="form-row">
           <label htmlFor="usr-password">Contraseña</label>
-          <input
+          <PasswordInput
             id="usr-password"
-            type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             required
             minLength={6}
+            autoComplete="new-password"
           />
         </div>
         <div className="form-row">
@@ -111,9 +118,16 @@ export function UsuarioForm({ onCreado }: { onCreado: () => void }) {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creando...' : 'Crear usuario'}
-      </button>
+      <div className="modal-actions">
+        {onCancelar && (
+          <button type="button" className="danger-button" onClick={onCancelar}>
+            Cancelar
+          </button>
+        )}
+        <button type="submit" className="primary-button" disabled={isSubmitting}>
+          {isSubmitting ? 'Creando...' : 'Crear usuario'}
+        </button>
+      </div>
     </form>
   )
 }

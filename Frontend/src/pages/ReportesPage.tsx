@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Building2, FileDown } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getVentas } from '../api/ventas'
 import { getSucursales } from '../api/sucursales'
+import { KpiTile } from '../components/KpiTile'
+import { Pagination } from '../components/Pagination'
+import { usePaginacion } from '../hooks/usePaginacion'
 import type { Venta } from '../types/venta'
 import type { Sucursal } from '../types/sucursal'
 import { ApiError } from '../api/client'
 import { formatearMoneda } from '../utils/format'
+import { exportarReporteVentasPdf } from '../utils/exportarReportePdf'
+
+const VENTAS_POR_PAGINA = 15
 
 function esMesActual(fechaIso: string) {
   const fecha = new Date(fechaIso)
@@ -54,40 +61,56 @@ function agruparPorSucursal(sucursales: Sucursal[], ventas: Venta[]): ResumenSuc
   return Array.from(map.values()).sort((a, b) => a.sucursalNombre.localeCompare(b.sucursalNombre, 'es'))
 }
 
-function TablaVentas({ ventas }: { ventas: Venta[] }) {
-  const ordenadas = [...ventas].sort(
-    (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
+function TablaVentas({ ventas, mostrarSucursal }: { ventas: Venta[]; mostrarSucursal?: boolean }) {
+  const ordenadas = useMemo(
+    () => [...ventas].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
+    [ventas],
   )
+  const { pagina, setPagina, totalPaginas, itemsPagina } = usePaginacion(ordenadas, VENTAS_POR_PAGINA)
+
   return (
-    <div className="table-scroll">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Comprobante</th>
-            <th>Fecha</th>
-            <th>Responsable</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ordenadas.length === 0 && (
+    <div className="admin-card admin-card--tabla">
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
             <tr>
-              <td colSpan={4}>No hay ventas registradas este mes.</td>
+              <th>Comprobante</th>
+              {mostrarSucursal && <th>Sucursal</th>}
+              <th>Fecha</th>
+              <th>Responsable</th>
+              <th>Cliente</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Total</th>
             </tr>
-          )}
-          {ordenadas.map((v) => (
-            <tr key={v.id}>
-              <td>{v.numeroComprobante}</td>
-              <td>{new Date(v.fecha).toLocaleString()}</td>
-              <td>{v.usuarioNombre}</td>
-              <td>{formatearMoneda(v.total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {ordenadas.length === 0 && (
+              <tr>
+                <td colSpan={mostrarSucursal ? 8 : 7}>No hay ventas registradas este mes.</td>
+              </tr>
+            )}
+            {itemsPagina.map((v) => (
+              <tr key={v.id}>
+                <td className="celda-mono">{v.numeroComprobante}</td>
+                {mostrarSucursal && <td>{v.sucursalNombre}</td>}
+                <td>{new Date(v.fecha).toLocaleString()}</td>
+                <td>{v.usuarioNombre}</td>
+                <td>{v.clienteNombre ?? '—'}</td>
+                <td>{v.clienteEmail ?? '—'}</td>
+                <td>{v.clienteTelefono ?? '—'}</td>
+                <td className="col-precio">{formatearMoneda(v.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiarPagina={setPagina} />
     </div>
   )
 }
+
+const TODAS_LAS_SUCURSALES = 'todas'
 
 export function ReportesPage() {
   const { usuario } = useAuth()
@@ -97,7 +120,9 @@ export function ReportesPage() {
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [sucursalTabId, setSucursalTabId] = useState<number | null>(null)
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<number | typeof TODAS_LAS_SUCURSALES>(
+    TODAS_LAS_SUCURSALES,
+  )
 
   const cargar = useCallback(() => {
     setIsLoading(true)
@@ -127,14 +152,10 @@ export function ReportesPage() {
     [sucursales, ventas],
   )
 
-  useEffect(() => {
-    setSucursalTabId((current) => {
-      if (current && resumenPorSucursal.some((r) => r.sucursalId === current)) return current
-      return resumenPorSucursal[0]?.sucursalId ?? null
-    })
-  }, [resumenPorSucursal])
-
-  const resumenActivo = resumenPorSucursal.find((r) => r.sucursalId === sucursalTabId)
+  const resumenActivo =
+    sucursalSeleccionada === TODAS_LAS_SUCURSALES
+      ? null
+      : resumenPorSucursal.find((r) => r.sucursalId === sucursalSeleccionada)
 
   const nombreMes = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
 
@@ -143,21 +164,16 @@ export function ReportesPage() {
     return (
       <div className="page page-fixed-header">
         <div className="page-header-sticky">
+          <h2>Reportes del mes</h2>
           <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
 
-          <div className="kpi-row">
-            <div className="kpi-tile">
-              <span className="kpi-label">Ventas registradas</span>
-              <span className="kpi-value">{ventasSucursalPropia.length}</span>
-            </div>
-            <div className="kpi-tile">
-              <span className="kpi-label">Total vendido</span>
-              <span className="kpi-value">{formatearMoneda(totalMes)}</span>
-            </div>
+          <div className="kpi-row kpi-row--compacta">
+            <KpiTile icon="reportes" label="Ventas registradas" value={String(ventasSucursalPropia.length)} />
+            <KpiTile icon="dinero" label="Total vendido" value={formatearMoneda(totalMes)} />
           </div>
         </div>
 
-        <div className="page-scroll-body">
+        <div className="page-scroll-body page-scroll-body--tabla-fija">
           {isLoading && <p>Cargando...</p>}
           {error && <p className="error-text">{error}</p>}
           {!isLoading && !error && <TablaVentas ventas={ventasSucursalPropia} />}
@@ -168,45 +184,84 @@ export function ReportesPage() {
 
   const totalGeneral = ventas.reduce((sum, v) => sum + v.total, 0)
 
+  // Usa exactamente los mismos datos ya filtrados/agregados que se muestran
+  // en pantalla para esta selección — sin volver a consultar el backend ni
+  // recalcular nada distinto.
+  const handleExportarPdf = () => {
+    if (sucursalSeleccionada === TODAS_LAS_SUCURSALES) {
+      exportarReporteVentasPdf({
+        nombreMes,
+        sucursalLabel: 'Todas',
+        ventas,
+        totalVentas: ventas.length,
+        totalVendido: totalGeneral,
+        mostrarColumnaSucursal: true,
+      })
+      return
+    }
+
+    if (resumenActivo) {
+      exportarReporteVentasPdf({
+        nombreMes,
+        sucursalLabel: resumenActivo.sucursalNombre,
+        ventas: resumenActivo.ventas,
+        totalVentas: resumenActivo.cantidadVentas,
+        totalVendido: resumenActivo.totalVendido,
+        mostrarColumnaSucursal: false,
+      })
+    }
+  }
+
   return (
     <div className="page page-fixed-header">
       <div className="page-header-sticky">
-        <p className="page-subtitle">Historial de ventas de {nombreMes}</p>
+        <div className="admin-section-header">
+          <div className="admin-section-heading">
+            <h2>Reportes del mes</h2>
+            <p className="admin-section-subtitle">Historial de ventas de {nombreMes}</p>
+          </div>
 
-        <div className="kpi-row">
-          <div className="kpi-tile">
-            <span className="kpi-label">Ventas registradas</span>
-            <span className="kpi-value">{ventas.length}</span>
-          </div>
-          <div className="kpi-tile">
-            <span className="kpi-label">Total vendido (red)</span>
-            <span className="kpi-value">{formatearMoneda(totalGeneral)}</span>
-          </div>
-          <div className="kpi-tile">
-            <span className="kpi-label">Sucursales con ventas</span>
-            <span className="kpi-value">
-              {resumenPorSucursal.filter((r) => r.cantidadVentas > 0).length}
-            </span>
-          </div>
+          {!isLoading && !error && resumenPorSucursal.length > 0 && (
+            <div className="reporte-header-acciones">
+              <div className="inv-sucursal-selector">
+                <Building2 size={15} strokeWidth={2} />
+                <select
+                  id="reporte-sucursal"
+                  value={sucursalSeleccionada}
+                  onChange={(e) =>
+                    setSucursalSeleccionada(
+                      e.target.value === TODAS_LAS_SUCURSALES ? TODAS_LAS_SUCURSALES : Number(e.target.value),
+                    )
+                  }
+                >
+                  <option value={TODAS_LAS_SUCURSALES}>Todas las sucursales</option>
+                  {resumenPorSucursal.map((resumen) => (
+                    <option key={resumen.sucursalId} value={resumen.sucursalId}>
+                      {resumen.sucursalNombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button type="button" className="secondary-button btn-sm" onClick={handleExportarPdf}>
+                <FileDown size={14} strokeWidth={2.2} />
+                Exportar PDF
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="kpi-row kpi-row--compacta">
+          <KpiTile icon="reportes" label="Ventas registradas" value={String(ventas.length)} />
+          <KpiTile icon="dinero" label="Total vendido (red)" value={formatearMoneda(totalGeneral)} />
+          <KpiTile
+            icon="sucursales"
+            label="Sucursales con ventas"
+            value={String(resumenPorSucursal.filter((r) => r.cantidadVentas > 0).length)}
+          />
         </div>
       </div>
 
-      {!isLoading && !error && resumenPorSucursal.length > 0 && (
-        <div className="tabs">
-          {resumenPorSucursal.map((resumen) => (
-            <button
-              key={resumen.sucursalId}
-              type="button"
-              className={`tab-button ${sucursalTabId === resumen.sucursalId ? 'tab-button--activo' : ''}`}
-              onClick={() => setSucursalTabId(resumen.sucursalId)}
-            >
-              {resumen.sucursalNombre}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="page-scroll-body">
+      <div className="page-scroll-body page-scroll-body--tabla-fija">
         {isLoading && <p>Cargando...</p>}
         {error && <p className="error-text">{error}</p>}
 
@@ -214,16 +269,28 @@ export function ReportesPage() {
           <p>No hay ventas registradas este mes.</p>
         )}
 
+        {!isLoading && !error && sucursalSeleccionada === TODAS_LAS_SUCURSALES && (
+          <div className="reporte-sucursal">
+            <div className="reporte-sucursal-header">
+              <h2>Todas las sucursales</h2>
+              <span className="reporte-sucursal-total">
+                {ventas.length} ventas — {formatearMoneda(totalGeneral)}
+              </span>
+            </div>
+            <TablaVentas ventas={ventas} mostrarSucursal />
+          </div>
+        )}
+
         {!isLoading && !error && resumenActivo && (
-          <section className="reporte-sucursal">
-            <h2>
-              {resumenActivo.sucursalNombre}
+          <div className="reporte-sucursal">
+            <div className="reporte-sucursal-header">
+              <h2>{resumenActivo.sucursalNombre}</h2>
               <span className="reporte-sucursal-total">
                 {resumenActivo.cantidadVentas} ventas — {formatearMoneda(resumenActivo.totalVendido)}
               </span>
-            </h2>
+            </div>
             <TablaVentas ventas={resumenActivo.ventas} />
-          </section>
+          </div>
         )}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getProveedores } from '../api/proveedores'
@@ -30,7 +31,13 @@ function calcularDescuentoVsVenta(precioVenta: number, precioUnitario: number): 
   return Math.round(Math.max(0, descuento) * 10) / 10
 }
 
-export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) => void }) {
+export function OrdenCompraForm({
+  onCreada,
+  onCancelar,
+}: {
+  onCreada: (orden: OrdenCompra) => void
+  onCancelar?: () => void
+}) {
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
   const [productos, setProductos] = useState<Producto[]>([])
@@ -182,24 +189,24 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
       <div className="venta-form-seccion venta-form-seccion--fija">
         <h3 className="venta-form-seccion-titulo">Información general</h3>
 
-        {esAdmin && (
-          <div className="form-row">
-            <label htmlFor="oc-sucursal">Sucursal a la que se compra</label>
-            <select
-              id="oc-sucursal"
-              value={sucursalId ?? ''}
-              onChange={(e) => setSucursalId(Number(e.target.value))}
-            >
-              {sucursales.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div className="form-row-inline">
+          {esAdmin && (
+            <div className="form-row">
+              <label htmlFor="oc-sucursal">Sucursal a la que se compra</label>
+              <select
+                id="oc-sucursal"
+                value={sucursalId ?? ''}
+                onChange={(e) => setSucursalId(Number(e.target.value))}
+              >
+                {sucursales.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="form-row">
             <label htmlFor="oc-proveedor">Proveedor</label>
             <select
@@ -214,8 +221,130 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
               ))}
             </select>
           </div>
+        </div>
+      </div>
 
-          <div className="venta-form-resumen venta-form-resumen--compacto">
+      <div className="venta-form-cuerpo">
+        <div className="venta-form-seccion venta-form-seccion--productos">
+          <div className="venta-form-seccion-header">
+            <h3 className="venta-form-seccion-titulo">Productos</h3>
+            <button type="button" className="secondary-button btn-sm" onClick={agregarLinea}>
+              <Plus size={14} strokeWidth={2.3} />
+              Agregar producto
+            </button>
+          </div>
+
+          <div className="table-scroll venta-form-productos-scroll">
+            <table className="data-table lineas-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Precio unitario</th>
+                  <th>Descuento</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineas.map((linea, index) => {
+                  const producto = productos.find((p) => p.id === linea.productoId)
+                  const cantidadNum = Number(linea.cantidad)
+                  const precioUnitarioNum = Number(linea.precioUnitario)
+                  const descuentoVsVenta =
+                    producto && Number.isFinite(precioUnitarioNum)
+                      ? calcularDescuentoVsVenta(producto.precioVenta, precioUnitarioNum)
+                      : 0
+                  const subtotalLinea =
+                    linea.productoId && Number.isFinite(cantidadNum) && Number.isFinite(precioUnitarioNum)
+                      ? cantidadNum * precioUnitarioNum
+                      : 0
+                  return (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          value={linea.productoId ?? ''}
+                          onChange={(e) => {
+                            const nuevoProductoId = Number(e.target.value)
+                            const nuevoProducto = productos.find((p) => p.id === nuevoProductoId)
+                            actualizarLinea(index, {
+                              productoId: nuevoProductoId,
+                              precioUnitario: nuevoProducto ? String(nuevoProducto.precioProveedor) : '',
+                            })
+                          }}
+                        >
+                          <option value="">Selecciona un producto</option>
+                          {productosDelProveedor.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.sku} — {p.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={linea.cantidad}
+                          onChange={(e) =>
+                            actualizarLinea(index, { cantidad: e.target.value.replace(/[^0-9]/g, '') })
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === '.' || e.key === ',') e.preventDefault()
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={linea.precioUnitario}
+                          onChange={(e) =>
+                            actualizarLinea(index, { precioUnitario: e.target.value.replace(/[^0-9]/g, '') })
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === '.' || e.key === ',') e.preventDefault()
+                          }}
+                        />
+                        {producto && (
+                          <span className="field-hint">Venta al público: {formatearMoneda(producto.precioVenta)}</span>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`descuento-badge ${descuentoVsVenta > 0 ? 'descuento-activo' : ''}`}
+                        >
+                          {descuentoVsVenta}%
+                        </span>
+                      </td>
+                      <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="lineas-quitar-btn"
+                          onClick={() => quitarLinea(index)}
+                          disabled={lineas.length === 1}
+                          aria-label="Quitar producto"
+                          title="Quitar producto"
+                        >
+                          <Trash2 size={14} strokeWidth={2} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="venta-form-resumen-panel">
+          <div className="venta-form-resumen">
+            <h4 className="venta-form-resumen-titulo">Resumen de compra</h4>
             <div className="venta-form-resumen-fila">
               <span>Subtotal</span>
               <span>{formatearMoneda(resumen.subtotal)}</span>
@@ -232,113 +361,16 @@ export function OrdenCompraForm({ onCreada }: { onCreada: (orden: OrdenCompra) =
         </div>
       </div>
 
-      <div className="venta-form-seccion venta-form-seccion--productos">
-        <div className="venta-form-seccion-header venta-form-seccion--fija">
-          <h3 className="venta-form-seccion-titulo">Productos</h3>
-          <button type="button" className="secondary-button" onClick={agregarLinea}>
-            + Agregar producto
-          </button>
-        </div>
-
-        <div className="table-scroll venta-form-productos-scroll">
-          <table className="data-table lineas-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio unitario</th>
-                <th>Descuento</th>
-                <th>Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineas.map((linea, index) => {
-                const producto = productos.find((p) => p.id === linea.productoId)
-                const cantidadNum = Number(linea.cantidad)
-                const precioUnitarioNum = Number(linea.precioUnitario)
-                const descuentoVsVenta =
-                  producto && Number.isFinite(precioUnitarioNum)
-                    ? calcularDescuentoVsVenta(producto.precioVenta, precioUnitarioNum)
-                    : 0
-                const subtotalLinea =
-                  linea.productoId && Number.isFinite(cantidadNum) && Number.isFinite(precioUnitarioNum)
-                    ? cantidadNum * precioUnitarioNum
-                    : 0
-                return (
-                  <tr key={index}>
-                    <td>
-                      <select
-                        value={linea.productoId ?? ''}
-                        onChange={(e) => {
-                          const nuevoProductoId = Number(e.target.value)
-                          const nuevoProducto = productos.find((p) => p.id === nuevoProductoId)
-                          actualizarLinea(index, {
-                            productoId: nuevoProductoId,
-                            precioUnitario: nuevoProducto ? String(nuevoProducto.precioProveedor) : '',
-                          })
-                        }}
-                      >
-                        <option value="">Selecciona un producto</option>
-                        {productosDelProveedor.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.sku} — {p.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        value={linea.cantidad}
-                        onChange={(e) => actualizarLinea(index, { cantidad: e.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        value={linea.precioUnitario}
-                        onChange={(e) => actualizarLinea(index, { precioUnitario: e.target.value })}
-                      />
-                      {producto && (
-                        <span className="field-hint">Venta al público: {formatearMoneda(producto.precioVenta)}</span>
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className={`descuento-badge ${descuentoVsVenta > 0 ? 'descuento-activo' : ''}`}
-                      >
-                        {descuentoVsVenta}%
-                      </span>
-                    </td>
-                    <td>{subtotalLinea > 0 ? formatearMoneda(subtotalLinea) : '—'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => quitarLinea(index)}
-                        disabled={lineas.length === 1}
-                      >
-                        Quitar
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div className="venta-form-seccion--fija">
         {error && <p className="error-text">{error}</p>}
 
         <div className="modal-actions venta-form-acciones">
-          <button type="submit" disabled={isSubmitting}>
+          {onCancelar && (
+            <button type="button" className="danger-button" onClick={onCancelar}>
+              Cancelar
+            </button>
+          )}
+          <button type="submit" className="primary-button" disabled={isSubmitting}>
             {isSubmitting ? 'Creando...' : 'Crear orden de compra'}
           </button>
         </div>

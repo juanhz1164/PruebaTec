@@ -12,19 +12,38 @@ usaron otras herramientas de IA (Copilot, ChatGPT) en este proyecto — todo el 
 desde la definición inicial del plan hasta el código final, se hizo en sesiones de Claude
 Code.
 
-## 2. Etapas del desarrollo donde se usó IA
+## 2. Log cronológico de uso (por commit)
+
+Registro continuo del uso de Claude Code a lo largo del proyecto, reconstruido a partir del
+historial real de commits (`git log`) — no es un recuento posterior aproximado, sino la
+traza objetiva de cuándo se usó IA para qué, en qué etapa.
+
+| Fecha | Commit | Etapa | Qué se hizo con IA |
+|---|---|---|---|
+| 2026-08-27 | `f632ff6` | Infraestructura | Scaffolding inicial del proyecto (estructura de carpetas Backend/Frontend/Database, Docker Compose base). |
+| 2026-09-01 | `16f109c` | Backend / Base de datos | Modelos, controladores iniciales, contexto EF Core y scripts SQL de esquema (T15-T24). |
+| 2026-09-03 | `2d9daa4`…`4a0d408` | Backend | Refactor a arquitectura por capas (Controllers/Services/Repositories) y los 6 módulos obligatorios completos: Usuarios/Sucursales, Inventario, Compras, Ventas, Transferencias, Logística, Dashboard, JWT (T31-T57). |
+| 2026-09-03 | `3d09b36` | Frontend + Documentación | SPA completa en React/TypeScript (T58-T69) y primera versión de la documentación de ingeniería (§6-§10 del PDF). |
+| 2026-09-03 – 2026-09-06 | `b05b36a`…`6de074a` | Frontend (UX) | Rediseño de login, reportes del mes, tema oscuro/claro, ajustes de UX en ventas/transferencias/dashboard. |
+| 2026-09-07 | `4c77c8b` | Funcionalidad adicional | Módulo de flujo de personas (Visitas) — funcionalidad adicional del §4 del PDF — y corrección de zona horaria a Colombia. |
+| 2026-09-07 | `58c89b9` | Frontend + Testing | Módulo de Administración, rediseños de UI y creación de la suite de tests unitarios/integración (T80-T83). |
+| 2026-09-08 | `d00b9dc` | Backend + Frontend | Permisos por sucursal y colores de estado en Compras. |
+| 2026-09-09 | `201ccd2` | Frontend (layout) | Corrección iterativa del layout del Dashboard (dona de "Ventas por mes", "Productos más vendidos", "Flujo de personas") — sesión larga de depuración real en navegador, incluyendo diagnóstico de un problema de sincronización del contenedor Docker de desarrollo (ver Ejemplo 4 en §3). |
+| 2026-09-09 | *(este commit)* | Documentación final | Auditoría del PDF y el tablero de Trello (T73-T88): completar `docs/requerimientos.md` con la funcionalidad adicional, ampliar este log, actualizar el README y limpiar el repositorio. |
+
+## 3. Etapas del desarrollo donde se usó IA
 
 | Etapa | Uso | Impacto |
 |---|---|---|
 | **Diseño de arquitectura** | Se pidió a Claude analizar el PDF de requerimientos y producir un plan de trabajo por fases (`Requerimientos/Plan-de-Trabajo.md`) y un desglose de tareas listo para Trello (`Requerimientos/Tareas-Trello.md`), ambos con la justificación de por qué cada fase depende de la anterior. | Alto — este plan se siguió literalmente durante todo el desarrollo (Backend T31-T57, Frontend T58-T69 en este orden). |
-| **Generación de código (backend)** | Implementación completa de los 6 módulos obligatorios: usuarios/roles/sucursales, inventario (CRUD + movimientos + stock mínimo + unidades alternativas), compras (con costo promedio ponderado), ventas (con validación de stock), transferencias (ciclo de 5 pasos), logística y dashboard — todo en capas (Controllers/Services/Repositories/DTOs/Models), con autenticación JWT y Swagger. | Alto — la mayoría del código de backend fue generado por Claude a partir de instrucciones incrementales módulo por módulo, revisado y corregido en el momento (ver §3 más abajo para ejemplos de correcciones). |
+| **Generación de código (backend)** | Implementación completa de los 6 módulos obligatorios: usuarios/roles/sucursales, inventario (CRUD + movimientos + stock mínimo + unidades alternativas), compras (con costo promedio ponderado), ventas (con validación de stock), transferencias (ciclo de 5 pasos), logística y dashboard — todo en capas (Controllers/Services/Repositories/DTOs/Models), con autenticación JWT y Swagger. | Alto — la mayoría del código de backend fue generado por Claude a partir de instrucciones incrementales módulo por módulo, revisado y corregido en el momento (ver §4 más abajo para ejemplos de correcciones). |
 | **Generación de código (frontend)** | Implementación completa de la SPA en React/TypeScript: cliente API, contexto de autenticación, rutas protegidas por rol, y las 12 páginas de los 6 módulos (inventario propio/otras sucursales, movimientos, compras, ventas, transferencias, logística, dashboard con gráficas SVG), con diseño responsivo. | Alto — todas las páginas, componentes, tipos y clientes API del frontend fueron generados por Claude, verificando en cada paso `tsc --noEmit`, `oxlint` y `vite build`. |
 | **Documentación técnica** | Este mismo documento, `docs/requerimientos.md`, `docs/decisiones-tecnicas.md`, los 4 diagramas obligatorios en `docs/diagramas/` (Mermaid) y el `README.md` raíz fueron redactados por Claude a partir de una auditoría del código real (no inventados de antemano) contra el PDF de requerimientos. | Alto. |
-| **Revisión de código / auditoría de cumplimiento** | Se ejecutó una auditoría dedicada (agente en background) que releyó el PDF completo y comparó cada sección (§2-§10) contra el estado real del repositorio, para detectar qué faltaba antes de esta entrega — encontró que faltaban los diagramas, la documentación de decisiones técnicas, el log de IA, el README raíz y la funcionalidad adicional (§4). | Alto — sin esa auditoría explícita, estos huecos de documentación habrían pasado desapercibidos hasta la evaluación. |
-| **Generación de tests** | No se generaron tests automatizados con IA en esta entrega — el módulo de Testing & QA (Trello T80-T83) queda pendiente. | Ninguno (por ahora). |
+| **Revisión de código / auditoría de cumplimiento** | Se ejecutaron dos auditorías dedicadas contra el PDF completo (§2-§10) y el tablero de Trello: la primera detectó que faltaban los diagramas, `docs/decisiones-tecnicas.md`, el log de IA, el README raíz y la funcionalidad adicional (§4) — todo se completó en el commit `3d09b36`; la segunda (T73-T88, este mismo commit) detectó que la funcionalidad adicional (Visitas) y la suite de tests, aunque ya implementadas en código, no estaban reflejadas en la documentación. | Alto — sin esas auditorías explícitas, estos huecos de documentación habrían pasado desapercibidos hasta la evaluación. |
+| **Generación de tests** | Suite de tests unitarios (costo promedio ponderado, validación de stock en ventas, reglas de transferencia) y de integración (endpoints de Inventario, Compras, Ventas, Transferencias, Dashboard) con xUnit, en `InventarioMultiSucursal.Api.Tests/` (T80-T83, commit `58c89b9`). | Alto — 72 pruebas, todas en verde (`dotnet test InventarioMultiSucursal.Api.Tests`). |
 | **Consulta de buenas prácticas** | Se usó Claude para decidir convenciones puntuales sobre la marcha: p. ej. verificar accesibilidad de la paleta de colores del dashboard (contraste, daltonismo) usando un validador programático en vez de elegir colores "a ojo", y para decidir la forma correcta de envolver tablas HTML con scroll horizontal sin romper el layout en móvil. | Media. |
 
-## 3. Ejemplos concretos de prompts y resultados
+## 4. Ejemplos concretos de prompts y resultados
 
 ### Ejemplo 1 — Arranque del frontend
 > *"estmos haciendo una prueba tecnica, que me haz ayuda, y hemos lleano un tablreo entrello ya hizimos el backen nos falta el front entonces sigamos con lkas tareas"*
@@ -52,7 +71,22 @@ de qué archivos tocar y qué patrón aplicar, para no consumir contexto de la c
 principal en una tarea repetitiva de bajo riesgo. El subagente devolvió un resumen
 verificable (tsc/oxlint/build limpios) que se validó de nuevo manualmente antes de continuar.
 
-## 4. Evaluación crítica
+### Ejemplo 4 — Diagnóstico erróneo por asumir el entorno, corregido con auditoría explícita
+Durante la corrección del layout del Dashboard (dona de "Ventas por mes", tarjeta
+"Registrar visita" en Visitas), varios cambios de CSS parecían no tener ningún efecto
+visual pese a que el código sí se había editado correctamente en disco. La primera
+hipótesis (recarga de caché del navegador) era incorrecta. Ante la insistencia del usuario
+de que "no había cambiado nada", se hizo una auditoría explícita del entorno en vez de
+seguir iterando a ciegas sobre el CSS: se comparó el hash SHA-256 del archivo en el host
+contra el que veía el proceso Vite real, se identificó que la app corría dentro de un
+contenedor Docker (`inventario_frontend`) con bind mount al código, y se comprobó con una
+prueba de humo (un texto de debug temporal insertado y verificado en pantalla) que el
+contenedor no siempre recogía las escrituras del host sin un `docker restart`. A partir de
+ahí, cada cambio se verificó reiniciando el contenedor y confirmando el hash antes de darlo
+por aplicado — evitando seguir "arreglando" código que ya estaba bien mientras el problema
+real era de sincronización del entorno, no de CSS.
+
+## 5. Evaluación crítica
 
 **Qué aportó la IA:**
 - Velocidad: los 6 módulos backend y las 12 páginas de frontend se construyeron en un
@@ -83,7 +117,7 @@ verificable (tsc/oxlint/build limpios) que se validó de nuevo manualmente antes
   espacio real de "exploración creativa" de la IA fue limitado — el valor estuvo más en
   ejecutar esas decisiones consistentemente que en descubrirlas.
 
-## 5. Estimación del porcentaje generado con asistencia de IA
+## 6. Estimación del porcentaje generado con asistencia de IA
 
 - **Código de backend**: ~95% generado por Claude Code, con dirección y revisión humana en
   cada módulo (aprobación de cada tool call, corrección de rumbo cuando fue necesario).
@@ -94,6 +128,9 @@ verificable (tsc/oxlint/build limpios) que se validó de nuevo manualmente antes
   código existente (no contenido genérico ni inventado).
 - **Scripts SQL de esquema y seed**: generados por Claude Code junto con los modelos del
   backend, en el mismo flujo de trabajo por capas.
+- **Tests** (72 pruebas unitarias e integración en `InventarioMultiSucursal.Api.Tests/`):
+  ~90% generados por Claude Code, con revisión humana de qué casos de negocio cubrir
+  (costo promedio, validación de stock, reglas de transferencia).
 
 En conjunto, la práctica totalidad del código y la documentación de este repositorio fue
 producida con asistencia de Claude Code, bajo dirección, revisión y aprobación humana

@@ -13,11 +13,13 @@ erDiagram
     SUCURSALES ||--o{ VENTAS : "origina"
     SUCURSALES ||--o{ TRANSFERENCIAS : "envia (origen)"
     SUCURSALES ||--o{ TRANSFERENCIAS : "recibe (destino)"
+    SUCURSALES ||--o{ VISITAS : "recibe"
 
     USUARIOS ||--o{ MOVIMIENTOS_INVENTARIO : "responsable de"
     USUARIOS ||--o{ ORDENES_COMPRA : "crea"
     USUARIOS ||--o{ VENTAS : "registra"
     USUARIOS ||--o{ TRANSFERENCIAS : "solicita"
+    USUARIOS ||--o{ VISITAS : "registra"
 
     UNIDADES_MEDIDA ||--o{ PRODUCTOS : "unidad base de"
     UNIDADES_MEDIDA ||--o{ PRODUCTO_UNIDADES_MEDIDA : "es unidad alternativa"
@@ -178,6 +180,14 @@ erDiagram
         decimal cantidad_enviada
         decimal cantidad_recibida
     }
+
+    VISITAS {
+        int id PK
+        int sucursal_id FK
+        int usuario_id FK
+        int cantidad_personas "check >= 1"
+        datetime fecha_hora
+    }
 ```
 
 ## Notas de diseño
@@ -196,3 +206,8 @@ erDiagram
   en vez de tablas de catálogo separadas: son conjuntos cerrados y pequeños definidos por
   la lógica de negocio del backend (`Backend/Models/EstadoOrdenCompra.cs`,
   `EstadoTransferencia.cs`), no datos configurables por el usuario.
+- **`visitas`** (funcionalidad adicional, §4 del PDF) representa un *grupo* que ingresa a
+  la sucursal, no una persona individual: `cantidad_personas` (con `CHECK >= 1`) cuenta
+  cuántas personas trae ese grupo. No tiene tabla de líneas porque no hay nada que
+  desglosar por producto — es una entidad simple de registro/auditoría, análoga en espíritu
+  a `movimientos_inventario` pero para el flujo físico de personas en vez de mercancía.

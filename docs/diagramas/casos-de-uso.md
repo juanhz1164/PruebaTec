@@ -54,6 +54,13 @@ flowchart LR
         UC19(("Gestionar usuarios y sucursales"))
     end
 
+    subgraph Visitas[Visitas — funcionalidad adicional]
+        UC20(("Registrar visita"))
+        UC21(("Consultar/eliminar visitas del día"))
+        UC22(("Ver flujo de personas — propia sucursal"))
+        UC23(("Comparar flujo de personas entre sucursales"))
+    end
+
     Admin --> UC1
     Gerente --> UC1
     Operador --> UC1
@@ -109,6 +116,14 @@ flowchart LR
 
     Admin --> UC19
 
+    Gerente --> UC20
+    Operador --> UC20
+    Gerente --> UC21
+    Operador --> UC21
+    Admin --> UC22
+    Gerente --> UC22
+    Admin --> UC23
+
     Externo -. "vía API REST (Swagger)" .-> UC2
     Externo -. "vía API REST (Swagger)" .-> UC9
 ```
@@ -127,3 +142,10 @@ flowchart LR
 - El resto de los casos de uso (inventario, ventas, compras, logística, dashboard propio)
   están disponibles para los 3 roles, ya que son parte de la operación diaria de cualquier
   usuario de una sucursal.
+- **Visitas** (funcionalidad adicional, §4 del PDF): `Registrar visita` y
+  `Consultar/eliminar visitas del día` están disponibles para `Operador` y `Gerente`
+  (`Roles.GerenteYOperador`), siempre acotados a su propia sucursal. `Ver flujo de
+  personas` está disponible para `Gerente` (su sucursal) y `Administrador general` (toda
+  la red); solo el `Administrador general` puede `Comparar flujo de personas entre
+  sucursales` — mismo patrón de permisos que `Ver comparativa entre sucursales` del
+  Dashboard. Ver `VisitasController.cs` para el detalle exacto de cada endpoint.

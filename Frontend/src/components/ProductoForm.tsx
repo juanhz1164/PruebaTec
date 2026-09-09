@@ -6,7 +6,13 @@ import { ApiError } from '../api/client'
 import type { UnidadMedida } from '../types/unidadMedida'
 import type { Proveedor } from '../types/proveedor'
 
-export function ProductoForm({ onCreado }: { onCreado: () => void }) {
+export function ProductoForm({
+  onCreado,
+  onCancelar,
+}: {
+  onCreado: () => void
+  onCancelar?: () => void
+}) {
   const [unidades, setUnidades] = useState<UnidadMedida[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [unidadMedidaId, setUnidadMedidaId] = useState<number | null>(null)
@@ -38,10 +44,10 @@ export function ProductoForm({ onCreado }: { onCreado: () => void }) {
       return
     }
 
-    const venta = Number(precioVenta)
-    const proveedor = Number(precioProveedor || 0)
+    const venta = Math.trunc(Number(precioVenta))
+    const proveedor = Math.trunc(Number(precioProveedor || 0))
     if (!Number.isFinite(venta) || venta < 0) {
-      setError('El precio de venta debe ser un número válido')
+      setError('El precio de venta debe ser un número entero válido')
       return
     }
 
@@ -130,9 +136,13 @@ export function ProductoForm({ onCreado }: { onCreado: () => void }) {
             id="prod-precio-venta"
             type="number"
             min="0"
-            step="any"
+            step="1"
+            inputMode="numeric"
             value={precioVenta}
-            onChange={(e) => setPrecioVenta(e.target.value)}
+            onChange={(e) => setPrecioVenta(e.target.value.replace(/[^0-9]/g, ''))}
+            onKeyDown={(e) => {
+              if (e.key === '.' || e.key === ',') e.preventDefault()
+            }}
             required
           />
         </div>
@@ -142,18 +152,29 @@ export function ProductoForm({ onCreado }: { onCreado: () => void }) {
             id="prod-precio-proveedor"
             type="number"
             min="0"
-            step="any"
+            step="1"
+            inputMode="numeric"
             value={precioProveedor}
-            onChange={(e) => setPrecioProveedor(e.target.value)}
+            onChange={(e) => setPrecioProveedor(e.target.value.replace(/[^0-9]/g, ''))}
+            onKeyDown={(e) => {
+              if (e.key === '.' || e.key === ',') e.preventDefault()
+            }}
           />
         </div>
       </div>
 
       {error && <p className="error-text">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creando...' : 'Crear producto'}
-      </button>
+      <div className="modal-actions">
+        {onCancelar && (
+          <button type="button" className="danger-button" onClick={onCancelar}>
+            Cancelar
+          </button>
+        )}
+        <button type="submit" className="primary-button" disabled={isSubmitting}>
+          {isSubmitting ? 'Creando...' : 'Crear producto'}
+        </button>
+      </div>
     </form>
   )
 }

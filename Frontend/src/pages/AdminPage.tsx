@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trash2, Ban, RotateCcw, PencilLine, Plus } from 'lucide-react'
 import { getUsuarios, actualizarUsuario, eliminarUsuario } from '../api/usuarios'
 import { getSucursales, actualizarSucursal, eliminarSucursal } from '../api/sucursales'
 import { getProductos, actualizarProducto, eliminarProducto } from '../api/productos'
@@ -320,7 +321,8 @@ export function AdminPage() {
                 className="admin-cta-button"
                 onClick={() => setMostrarModalUsuario(true)}
               >
-                + Nuevo usuario
+                <Plus size={15} strokeWidth={2.3} />
+                Nuevo usuario
               </button>
             </div>
 
@@ -356,7 +358,8 @@ export function AdminPage() {
                 className="admin-cta-button"
                 onClick={() => setMostrarModalSucursal(true)}
               >
-                + Nueva sucursal
+                <Plus size={15} strokeWidth={2.3} />
+                Nueva sucursal
               </button>
             </div>
 
@@ -392,7 +395,8 @@ export function AdminPage() {
                 className="admin-cta-button"
                 onClick={() => setMostrarModalProducto(true)}
               >
-                + Nuevo producto
+                <Plus size={15} strokeWidth={2.3} />
+                Nuevo producto
               </button>
             </div>
 
@@ -451,15 +455,19 @@ export function AdminPage() {
                                 ? {
                                     label: 'Desactivar',
                                     tone: 'danger',
+                                    icon: <Ban size={14} strokeWidth={2} />,
                                     onSelect: () => setUsuarioParaDesactivar(u),
                                   }
                                 : {
                                     label: 'Reactivar',
+                                    tone: 'success',
+                                    icon: <RotateCcw size={14} strokeWidth={2} />,
                                     onSelect: () => toggleUsuarioActivo(u),
                                   },
                               {
                                 label: 'Eliminar',
                                 tone: 'danger',
+                                icon: <Trash2 size={14} strokeWidth={2} />,
                                 onSelect: () => setUsuarioParaEliminar(u),
                               },
                             ]}
@@ -512,15 +520,19 @@ export function AdminPage() {
                               ? {
                                   label: 'Desactivar',
                                   tone: 'danger',
+                                  icon: <Ban size={14} strokeWidth={2} />,
                                   onSelect: () => setSucursalParaDesactivar(s),
                                 }
                               : {
                                   label: 'Reactivar',
+                                  tone: 'success',
+                                  icon: <RotateCcw size={14} strokeWidth={2} />,
                                   onSelect: () => toggleSucursalActiva(s),
                                 },
                             {
                               label: 'Eliminar',
                               tone: 'danger',
+                              icon: <Trash2 size={14} strokeWidth={2} />,
                               onSelect: () => setSucursalParaEliminar(s),
                             },
                           ]}
@@ -570,21 +582,26 @@ export function AdminPage() {
                           acciones={[
                             {
                               label: 'Editar precio',
+                              icon: <PencilLine size={14} strokeWidth={2} />,
                               onSelect: () => abrirModalPrecio(p),
                             },
                             p.activo
                               ? {
                                   label: 'Desactivar',
                                   tone: 'danger',
+                                  icon: <Ban size={14} strokeWidth={2} />,
                                   onSelect: () => setProductoParaDesactivar(p),
                                 }
                               : {
                                   label: 'Activar',
+                                  tone: 'success',
+                                  icon: <RotateCcw size={14} strokeWidth={2} />,
                                   onSelect: () => toggleProductoActivo(p),
                                 },
                             {
                               label: 'Eliminar',
                               tone: 'danger',
+                              icon: <Trash2 size={14} strokeWidth={2} />,
                               onSelect: () => setProductoParaEliminar(p),
                             },
                           ]}
@@ -600,20 +617,42 @@ export function AdminPage() {
       </div>
 
       {mostrarModalUsuario && (
-        <Modal title="Crear nuevo usuario" onClose={() => setMostrarModalUsuario(false)}>
-          <UsuarioForm onCreado={handleUsuarioCreado} />
+        <Modal
+          title="Crear nuevo usuario"
+          description="Registra un nuevo miembro del equipo y asígnale un rol y sucursal"
+          onClose={() => setMostrarModalUsuario(false)}
+        >
+          <UsuarioForm
+            onCreado={handleUsuarioCreado}
+            onCancelar={() => setMostrarModalUsuario(false)}
+          />
         </Modal>
       )}
 
       {mostrarModalSucursal && (
-        <Modal title="Crear nueva sucursal" onClose={() => setMostrarModalSucursal(false)}>
-          <SucursalForm onCreada={handleSucursalCreada} />
+        <Modal
+          title="Crear nueva sucursal"
+          description="Agrega una nueva sucursal a la organización"
+          onClose={() => setMostrarModalSucursal(false)}
+        >
+          <SucursalForm
+            onCreada={handleSucursalCreada}
+            onCancelar={() => setMostrarModalSucursal(false)}
+          />
         </Modal>
       )}
 
       {mostrarModalProducto && (
-        <Modal title="Crear nuevo producto" size="lg" onClose={() => setMostrarModalProducto(false)}>
-          <ProductoForm onCreado={handleProductoCreado} />
+        <Modal
+          title="Crear nuevo producto"
+          description="Agrega un producto al catálogo con su precio y proveedor"
+          size="lg"
+          onClose={() => setMostrarModalProducto(false)}
+        >
+          <ProductoForm
+            onCreado={handleProductoCreado}
+            onCancelar={() => setMostrarModalProducto(false)}
+          />
         </Modal>
       )}
 
@@ -633,12 +672,19 @@ export function AdminPage() {
               id="modal-precio-venta"
               type="number"
               min="0"
-              step="any"
+              step="1"
+              inputMode="numeric"
               autoFocus
               value={precioEnEdicion[productoParaPrecio.id] ?? ''}
               onChange={(e) =>
-                setPrecioEnEdicion((prev) => ({ ...prev, [productoParaPrecio.id]: e.target.value }))
+                setPrecioEnEdicion((prev) => ({
+                  ...prev,
+                  [productoParaPrecio.id]: e.target.value.replace(/[^0-9]/g, ''),
+                }))
               }
+              onKeyDown={(e) => {
+                if (e.key === '.' || e.key === ',') e.preventDefault()
+              }}
             />
           </div>
 
@@ -647,13 +693,14 @@ export function AdminPage() {
           <div className="modal-actions">
             <button
               type="button"
-              className="secondary-button"
+              className="danger-button"
               onClick={() => cerrarModalPrecio(productoParaPrecio.id)}
             >
               Cancelar
             </button>
             <button
               type="button"
+              className="success-button"
               disabled={procesandoId === productoParaPrecio.id}
               onClick={() => guardarPrecio(productoParaPrecio)}
             >
@@ -677,7 +724,7 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setProductoParaDesactivar(null)}>
+            <button type="button" className="danger-button" onClick={() => setProductoParaDesactivar(null)}>
               Cancelar
             </button>
             <button
@@ -704,7 +751,7 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setUsuarioParaDesactivar(null)}>
+            <button type="button" className="danger-button" onClick={() => setUsuarioParaDesactivar(null)}>
               Cancelar
             </button>
             <button
@@ -732,7 +779,7 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setSucursalParaDesactivar(null)}>
+            <button type="button" className="danger-button" onClick={() => setSucursalParaDesactivar(null)}>
               Cancelar
             </button>
             <button
@@ -763,15 +810,16 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setUsuarioParaEliminar(null)}>
+            <button type="button" className="danger-button" onClick={() => setUsuarioParaEliminar(null)}>
               Cancelar
             </button>
             <button
               type="button"
-              className="danger-button"
+              className="danger-button danger-button--solido"
               disabled={procesandoId === usuarioParaEliminar.id}
               onClick={() => eliminarUsuarioDefinitivo(usuarioParaEliminar)}
             >
+              <Trash2 size={14} strokeWidth={2} />
               {procesandoId === usuarioParaEliminar.id ? 'Eliminando...' : 'Eliminar usuario'}
             </button>
           </div>
@@ -796,15 +844,16 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setSucursalParaEliminar(null)}>
+            <button type="button" className="danger-button" onClick={() => setSucursalParaEliminar(null)}>
               Cancelar
             </button>
             <button
               type="button"
-              className="danger-button"
+              className="danger-button danger-button--solido"
               disabled={procesandoId === sucursalParaEliminar.id}
               onClick={() => eliminarSucursalDefinitiva(sucursalParaEliminar)}
             >
+              <Trash2 size={14} strokeWidth={2} />
               {procesandoId === sucursalParaEliminar.id ? 'Eliminando...' : 'Eliminar sucursal'}
             </button>
           </div>
@@ -827,15 +876,16 @@ export function AdminPage() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="secondary-button" onClick={() => setProductoParaEliminar(null)}>
+            <button type="button" className="danger-button" onClick={() => setProductoParaEliminar(null)}>
               Cancelar
             </button>
             <button
               type="button"
-              className="danger-button"
+              className="danger-button danger-button--solido"
               disabled={procesandoId === productoParaEliminar.id}
               onClick={() => eliminarProductoDefinitivo(productoParaEliminar)}
             >
+              <Trash2 size={14} strokeWidth={2} />
               {procesandoId === productoParaEliminar.id ? 'Eliminando...' : 'Eliminar producto'}
             </button>
           </div>
