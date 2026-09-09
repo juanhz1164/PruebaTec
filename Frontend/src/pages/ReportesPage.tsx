@@ -102,7 +102,9 @@ function TablaVentas({ ventas, mostrarSucursal }: { ventas: Venta[]; mostrarSucu
           <tbody>
             {ordenadas.length === 0 && (
               <tr>
-                <td colSpan={mostrarSucursal ? 8 : 7}>No hay ventas registradas este mes.</td>
+                <td className="data-table-vacio" colSpan={mostrarSucursal ? 8 : 7}>
+                  No hay ventas registradas este mes.
+                </td>
               </tr>
             )}
             {itemsPagina.map((v) => (
