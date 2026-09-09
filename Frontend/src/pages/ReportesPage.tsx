@@ -281,9 +281,14 @@ export function ReportesPage() {
                     ))}
                   </select>
                 </div>
-                <button type="button" className="secondary-button btn-sm" onClick={handleExportarPdf}>
-                  <FileDown size={14} strokeWidth={2.2} />
-                  Exportar PDF
+                <button
+                  type="button"
+                  className="secondary-button btn-icon-only btn-sm"
+                  onClick={handleExportarPdf}
+                  aria-label="Exportar PDF"
+                  title="Exportar PDF"
+                >
+                  <FileDown size={16} strokeWidth={2.2} />
                 </button>
               </>
             )}
