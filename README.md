@@ -4,7 +4,7 @@ Prueba técnica para OptiPlant Consultores: aplicación para gestionar inventari
 ventas, transferencias y logística de múltiples sucursales de una misma organización, con
 visibilidad compartida de inventario en tiempo real y autonomía operativa por sucursal.
 
-> Ver `Requerimientos/Prueba Tecnica Inventario.pdf` para el enunciado original.
+> Ver `documentacion/Requerimientos/Prueba Tecnica Inventario.pdf` para el enunciado original.
 
 ## Instalación y arranque
 
@@ -58,7 +58,7 @@ Frontend (React + TS)  --HTTP/JSON, JWT-->  Backend (ASP.NET Core)  --EF Core-->
 - **Base de datos** (`Database/`) — esquema y seed de MySQL, versionados como SQL plano en
   `Database/init/`.
 
-Diagrama completo con el detalle de cada contenedor: **[`docs/diagramas/arquitectura.md`](docs/diagramas/arquitectura.md)**.
+Diagrama completo con el detalle de cada contenedor: **[`documentacion/docs/diagramas/arquitectura.md`](documentacion/docs/diagramas/arquitectura.md)**.
 
 ## Módulos implementados
 
@@ -107,16 +107,16 @@ dotnet test InventarioMultiSucursal.Api.Tests
 
 | Documento | Contenido |
 |---|---|
-| [`docs/requerimientos.md`](docs/requerimientos.md) | Requerimientos funcionales, no funcionales, restricciones, supuestos, actores y responsabilidades, historias de usuario (§6 del PDF). |
-| [`docs/decisiones-tecnicas.md`](docs/decisiones-tecnicas.md) | Justificación de cada decisión de arquitectura: lenguaje de backend, motor de BD, autenticación/autorización, sincronización de inventario, patrones de diseño (§8.2 del PDF). |
-| [`docs/uso-ia.md`](docs/uso-ia.md) | Uso de inteligencia artificial durante el desarrollo, con ejemplos y evaluación crítica (§9 del PDF). |
-| [`docs/diagramas/casos-de-uso.md`](docs/diagramas/casos-de-uso.md) | Diagrama de casos de uso (actores × módulos). |
-| [`docs/diagramas/actividad-transferencia.md`](docs/diagramas/actividad-transferencia.md) | Diagrama de actividad del flujo de transferencia entre sucursales. |
-| [`docs/diagramas/actividad-venta.md`](docs/diagramas/actividad-venta.md) | Diagrama de actividad del flujo de venta. |
-| [`docs/diagramas/arquitectura.md`](docs/diagramas/arquitectura.md) | Diagrama de arquitectura del sistema. |
-| [`docs/diagramas/er.md`](docs/diagramas/er.md) | Diagrama entidad-relación completo. |
-| `Requerimientos/Plan-de-Trabajo.md` | Plan de ejecución por fases usado durante el desarrollo. |
-| `Requerimientos/Tareas-Trello.md` | Desglose de tareas usado como tablero de trabajo (`pruebatec` en Trello). |
+| [`documentacion/docs/requerimientos.md`](documentacion/docs/requerimientos.md) | Requerimientos funcionales, no funcionales, restricciones, supuestos, actores y responsabilidades, historias de usuario (§6 del PDF). |
+| [`documentacion/docs/decisiones-tecnicas.md`](documentacion/docs/decisiones-tecnicas.md) | Justificación de cada decisión de arquitectura: lenguaje de backend, motor de BD, autenticación/autorización, sincronización de inventario, patrones de diseño (§8.2 del PDF). |
+| [`documentacion/docs/uso-ia.md`](documentacion/docs/uso-ia.md) | Uso de inteligencia artificial durante el desarrollo, con ejemplos y evaluación crítica (§9 del PDF). |
+| [`documentacion/docs/diagramas/casos-de-uso.md`](documentacion/docs/diagramas/casos-de-uso.md) | Diagrama de casos de uso (actores × módulos). |
+| [`documentacion/docs/diagramas/actividad-transferencia.md`](documentacion/docs/diagramas/actividad-transferencia.md) | Diagrama de actividad del flujo de transferencia entre sucursales. |
+| [`documentacion/docs/diagramas/actividad-venta.md`](documentacion/docs/diagramas/actividad-venta.md) | Diagrama de actividad del flujo de venta. |
+| [`documentacion/docs/diagramas/arquitectura.md`](documentacion/docs/diagramas/arquitectura.md) | Diagrama de arquitectura del sistema. |
+| [`documentacion/docs/diagramas/er.md`](documentacion/docs/diagramas/er.md) | Diagrama entidad-relación completo. |
+| `documentacion/Requerimientos/Plan-de-Trabajo.md` | Plan de ejecución por fases usado durante el desarrollo. |
+| `documentacion/Requerimientos/Tareas-Trello.md` | Desglose de tareas usado como tablero de trabajo (`pruebatec` en Trello). |
 
 ## Stack tecnológico
 
@@ -128,16 +128,18 @@ dotnet test InventarioMultiSucursal.Api.Tests
 | Autenticación | JWT (Bearer) | Stateless, permite escalar el backend sin sesión compartida. |
 | Infraestructura | Docker Compose | Los 3 servicios arrancan con un solo comando, sin configuración manual. |
 
-Justificación completa de cada elección: **[`docs/decisiones-tecnicas.md`](docs/decisiones-tecnicas.md)**.
+Justificación completa de cada elección: **[`documentacion/docs/decisiones-tecnicas.md`](documentacion/docs/decisiones-tecnicas.md)**.
 
 ## Estructura del repositorio
 
 ```
-Backend/          API REST en ASP.NET Core (Controllers/Services/Repositories/Models/DTOs)
-Frontend/         SPA en React + TypeScript (api/auth/types/components/pages/layouts)
-Database/         Esquema y seed de MySQL (Database/init/)
-docs/             Documentación de arquitectura, decisiones técnicas, uso de IA y diagramas
-Requerimientos/   Enunciado original (PDF) y planificación interna del proyecto
+Backend/                          API REST en ASP.NET Core (Controllers/Services/Repositories/Models/DTOs)
+Frontend/                         SPA en React + TypeScript (api/auth/types/components/pages/layouts)
+Database/                         Esquema y seed de MySQL (Database/init/)
+InventarioMultiSucursal.Api.Tests/ Suite de tests unitarios e integración (xUnit)
+documentacion/
+├── docs/                         Requerimientos, decisiones técnicas, uso de IA y diagramas
+└── Requerimientos/               Enunciado original (PDF) y planificación interna del proyecto
 docker-compose.yaml
 .env.example
 ```

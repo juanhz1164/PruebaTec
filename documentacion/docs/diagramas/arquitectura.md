@@ -63,4 +63,4 @@ flowchart TB
   de Docker Compose, con `depends_on` + healthcheck para garantizar el orden de arranque
   (`db` → `backend` → `frontend`) sin pasos manuales.
 
-Ver `docs/decisiones-tecnicas.md` para la justificación de cada elección tecnológica.
+Ver `decisiones-tecnicas.md` para la justificación de cada elección tecnológica.

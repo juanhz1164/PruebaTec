@@ -1,7 +1,7 @@
 # Requerimientos — Sistema de Inventario Multi-Sucursal
 
 Este documento consolida el levantamiento de requerimientos exigido en la sección 6 de
-`Requerimientos/Prueba Tecnica Inventario.pdf`: requerimientos funcionales, no funcionales,
+`../Requerimientos/Prueba Tecnica Inventario.pdf`: requerimientos funcionales, no funcionales,
 restricciones técnicas/de negocio, supuestos y dependencias, actores y casos de uso, e
 historias de usuario clave.
 
@@ -82,7 +82,7 @@ aplicada al control de ingreso físico a cada sucursal, no solo al inventario:
 | **Usabilidad** | La interfaz oculta del menú de navegación las secciones a las que el rol del usuario no tiene acceso (p. ej. "Compras" no aparece para un Operador). Mensajes de error de la API se muestran tal cual al usuario para acciones que fallan (stock insuficiente, validaciones de negocio). |
 | **Escalabilidad** | Separación en 3 capas desplegables de forma independiente (frontend, backend, base de datos), cada una en su propio contenedor Docker, permitiendo escalar o reemplazar cada capa sin afectar a las otras. |
 | **Rendimiento** | Las consultas de catálogo, inventario y dashboard se resuelven en un solo round-trip por vista (sin cascadas de N+1 desde el cliente); el cliente pagina/filtra en servidor mediante query params (`sucursalId`, `productoId`, etc.). |
-| **Disponibilidad de datos entre sucursales** | La visibilidad de inventario entre sucursales es *síncrona* (no eventual): todas las sucursales leen de la misma base de datos relacional, por lo que cualquier movimiento confirmado es visible de inmediato a las demás sucursales que consulten la API. Ver `docs/decisiones-tecnicas.md` §4 para el detalle de esta decisión. |
+| **Disponibilidad de datos entre sucursales** | La visibilidad de inventario entre sucursales es *síncrona* (no eventual): todas las sucursales leen de la misma base de datos relacional, por lo que cualquier movimiento confirmado es visible de inmediato a las demás sucursales que consulten la API. Ver `decisiones-tecnicas.md` §4 para el detalle de esta decisión. |
 | **Portabilidad / despliegue** | El sistema completo debe levantar con un único comando (`docker compose up`), sin pasos de configuración manual adicionales en un entorno limpio. |
 | **Mantenibilidad** | Backend organizado en capas (Controllers → Services → Repositories → Data/Models) con inyección de dependencias por interfaz; frontend organizado en capas equivalentes (`api/`, `auth/`, `types/`, `components/`, `pages/`, `layouts/`). |
 
@@ -99,7 +99,7 @@ aplicada al control de ingreso físico a cada sucursal, no solo al inventario:
 - **Contenedorización total**: no se admite ningún paso de instalación manual (crear base
   de datos, instalar dependencias, configurar variables) fuera de `docker compose up`.
 - **Stack libre pero justificado**: cada elección tecnológica relevante debe estar
-  documentada con su razón — ver `docs/decisiones-tecnicas.md`.
+  documentada con su razón — ver `decisiones-tecnicas.md`.
 - **Multi-sucursal con autonomía operativa**: cada sucursal opera sus transacciones locales
   (ventas, ingresos/retiros) sin depender de otra sucursal, pero comparte visibilidad total
   del inventario de la red.
@@ -117,7 +117,7 @@ aplicada al control de ingreso físico a cada sucursal, no solo al inventario:
   el futuro se requiere.
 - El "tiempo real / near-real-time" de sincronización de inventario entre sucursales (§2.1
   del PDF) se resuelve mediante una única base de datos relacional compartida por todas las
-  sucursales (ver decisión en `docs/decisiones-tecnicas.md`), no mediante mensajería o
+  sucursales (ver decisión en `decisiones-tecnicas.md`), no mediante mensajería o
   replicación asíncrona — se asume que esto es aceptable porque el volumen y la
   concurrencia esperados para esta prueba técnica no justifican la complejidad adicional de
   un mecanismo de eventos.
