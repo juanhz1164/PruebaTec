@@ -13,6 +13,8 @@ erDiagram
     SUCURSALES ||--o{ VENTAS : "origina"
     SUCURSALES ||--o{ TRANSFERENCIAS : "envia (origen)"
     SUCURSALES ||--o{ TRANSFERENCIAS : "recibe (destino)"
+    SUCURSALES ||--o{ RUTAS_LOGISTICAS : "origen de"
+    SUCURSALES ||--o{ RUTAS_LOGISTICAS : "destino de"
     SUCURSALES ||--o{ VISITAS : "recibe"
 
     USUARIOS ||--o{ MOVIMIENTOS_INVENTARIO : "responsable de"
@@ -187,6 +189,15 @@ erDiagram
         int usuario_id FK
         int cantidad_personas "check >= 1"
         datetime fecha_hora
+    }
+
+    RUTAS_LOGISTICAS {
+        int id PK
+        int sucursal_origen_id FK
+        int sucursal_destino_id FK
+        string transportista "default 'Coordinadora'"
+        decimal costo_envio
+        int tiempo_estimado_dias
     }
 ```
 

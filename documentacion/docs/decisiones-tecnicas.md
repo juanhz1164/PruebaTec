@@ -105,3 +105,28 @@ sucursales, sin mensajería, colas ni replicación asíncrona.
 No se usó CQRS: el volumen de lecturas/escrituras y la complejidad del dominio no
 justifican separar los modelos de lectura y escritura — la separación
 Controller/Service/Repository ya da suficiente claridad para el alcance de esta prueba.
+
+## 6. Configuración de logística por ruta (`rutas_logisticas`)
+
+**Decisión:** una tabla de configuración `rutas_logisticas` (origen, destino,
+transportista por defecto, costo, tiempo estimado en días) separada de `transferencias`,
+en vez de seguir tecleando transportista/costo/fecha estimada manualmente en cada envío.
+
+**Por qué:**
+- El costo y el tiempo de tránsito entre dos sucursales son, en la práctica, un dato de
+  la **ruta** (una propiedad relativamente estable de la relación origen→destino), no un
+  dato que cambie transferencia a transferencia. Modelarlo como configuración reutilizable
+  evita que cada Gerente tenga que inventar/recordar el costo correcto cada vez que envía,
+  y evita que el "costo promedio" de Logística termine promediando valores inconsistentes
+  introducidos manualmente.
+- El costo/tiempo *real* usado en una transferencia concreta sigue viviendo en
+  `transferencias.costo_envio` / `fecha_estimada_llegada` (no se elimina ese dato): la
+  ruta configurada solo **prellena** el formulario de envío. El Gerente puede ajustar el
+  costo manualmente para un caso excepcional ("Modificar costo" en el frontend), y ese
+  valor ajustado es el que queda persistido y el que alimenta los cálculos de Logística —
+  la configuración de ruta es la fuente por defecto, nunca un valor forzado.
+- Se descartó extender `transferencias` con un `ruta_logistica_id` (FK) en vez de una
+  tabla de configuración separada, porque `transferencias.ruta` ya es texto libre editable
+  por el usuario (puede no coincidir exactamente con un par origen/destino configurado, p.
+  ej. variantes de la misma ruta física) — la configuración se busca por
+  `(sucursal_origen_id, sucursal_destino_id)`, no por el texto de la ruta.
