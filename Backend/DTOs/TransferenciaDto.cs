@@ -11,6 +11,9 @@ public class TransferenciaDto
     public string SucursalDestinoNombre { get; set; } = string.Empty;
     public int UsuarioSolicitanteId { get; set; }
     public string UsuarioSolicitanteNombre { get; set; } = string.Empty;
+    public string? UsuarioPreparadorNombre { get; set; }
+    public string? UsuarioEnvioNombre { get; set; }
+    public string? UsuarioRecepcionNombre { get; set; }
     public EstadoTransferencia Estado { get; set; }
     public string? Transportista { get; set; }
     public string? Ruta { get; set; }

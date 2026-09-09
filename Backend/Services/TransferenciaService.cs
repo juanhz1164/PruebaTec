@@ -69,7 +69,7 @@ public class TransferenciaService : ITransferenciaService
     }
 
     // T45 (parte 1): marca la transferencia como en preparación.
-    public async Task<ResultadoTransferencia> IniciarPreparacionAsync(int id)
+    public async Task<ResultadoTransferencia> IniciarPreparacionAsync(int id, int usuarioId)
     {
         var transferencia = await _repository.GetByIdAsync(id);
         if (transferencia is null)
@@ -83,6 +83,7 @@ public class TransferenciaService : ITransferenciaService
         }
 
         transferencia.Estado = EstadoTransferencia.EnPreparacion;
+        transferencia.UsuarioPreparadorId = usuarioId;
         await _repository.SaveChangesAsync();
 
         var actualizada = await _repository.GetByIdAsync(id);
@@ -91,7 +92,7 @@ public class TransferenciaService : ITransferenciaService
 
     // T45 (parte 2): confirma el envío — registra transportista/ruta/fecha estimada,
     // fija cuánto se envía realmente por línea, y retira ese stock del origen.
-    public async Task<ResultadoTransferencia> RegistrarEnvioAsync(int id, RegistrarEnvioDto dto)
+    public async Task<ResultadoTransferencia> RegistrarEnvioAsync(int id, RegistrarEnvioDto dto, int usuarioId)
     {
         var transferencia = await _repository.GetByIdAsync(id);
         if (transferencia is null)
@@ -157,6 +158,7 @@ public class TransferenciaService : ITransferenciaService
         transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada
             ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : null);
         transferencia.Estado = EstadoTransferencia.EnTransito;
+        transferencia.UsuarioEnvioId = usuarioId;
 
         foreach (var lineaEnvio in dto.Lineas)
         {
@@ -192,7 +194,7 @@ public class TransferenciaService : ITransferenciaService
     // T46/T47: confirma cuánto llegó realmente al destino. Si coincide con lo enviado
     // en todas las líneas queda "RecibidaCompleta"; si algo llegó de menos, "RecibidaParcial"
     // (el faltante = enviado - recibido queda expuesto para investigar, sin ajuste automático).
-    public async Task<ResultadoTransferencia> ConfirmarRecepcionAsync(int id, ConfirmarRecepcionDto dto)
+    public async Task<ResultadoTransferencia> ConfirmarRecepcionAsync(int id, ConfirmarRecepcionDto dto, int usuarioId)
     {
         var transferencia = await _repository.GetByIdAsync(id);
         if (transferencia is null)
@@ -277,6 +279,7 @@ public class TransferenciaService : ITransferenciaService
 
         transferencia.Estado = huboFaltante ? EstadoTransferencia.RecibidaParcial : EstadoTransferencia.RecibidaCompleta;
         transferencia.FechaRecepcion = DateTime.UtcNow;
+        transferencia.UsuarioRecepcionId = usuarioId;
 
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
@@ -339,6 +342,9 @@ public class TransferenciaService : ITransferenciaService
         SucursalDestinoNombre = t.SucursalDestino?.Nombre ?? string.Empty,
         UsuarioSolicitanteId = t.UsuarioSolicitanteId,
         UsuarioSolicitanteNombre = t.UsuarioSolicitante?.Nombre ?? string.Empty,
+        UsuarioPreparadorNombre = t.UsuarioPreparador?.Nombre,
+        UsuarioEnvioNombre = t.UsuarioEnvio?.Nombre,
+        UsuarioRecepcionNombre = t.UsuarioRecepcion?.Nombre,
         Estado = t.Estado,
         Transportista = t.Transportista,
         Ruta = t.Ruta,

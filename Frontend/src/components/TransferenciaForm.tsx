@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, ArrowRight, Trash2, Send } from 'lucide-react'
+import { Plus, Minus, ArrowRight, Trash2, Send } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { getProductos } from '../api/productos'
 import { getSucursales } from '../api/sucursales'
@@ -105,25 +105,53 @@ function AgregarProductoModal({
           </div>
 
           <div className="form-row">
-            <label htmlFor="tr-agregar-cantidad">Cantidad</label>
-            <input
-              id="tr-agregar-cantidad"
-              type="number"
-              min="0"
-              max={stock}
-              step="1"
-              inputMode="numeric"
-              placeholder="0"
-              value={cantidadSolicitada}
-              disabled={!productoId}
-              onChange={(e) => {
-                setCantidadSolicitada(e.target.value.replace(/[^0-9]/g, ''))
-                setError(null)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === '.' || e.key === ',') e.preventDefault()
-              }}
-            />
+            <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
+            <div className="tr-agregar-cantidad-stepper">
+              <button
+                type="button"
+                className="tr-agregar-stepper-btn"
+                disabled={!productoId || (Number(cantidadSolicitada) || 0) <= 0}
+                onClick={() => {
+                  const actual = Number(cantidadSolicitada) || 0
+                  setCantidadSolicitada(String(Math.max(0, actual - 1)))
+                  setError(null)
+                }}
+                aria-label="Disminuir cantidad"
+              >
+                <Minus size={14} strokeWidth={2.4} />
+              </button>
+              <input
+                id="tr-agregar-cantidad"
+                type="number"
+                min="0"
+                max={stock}
+                step="1"
+                inputMode="numeric"
+                placeholder="0"
+                value={cantidadSolicitada}
+                disabled={!productoId}
+                onChange={(e) => {
+                  setCantidadSolicitada(e.target.value.replace(/[^0-9]/g, ''))
+                  setError(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === ',') e.preventDefault()
+                }}
+              />
+              <button
+                type="button"
+                className="tr-agregar-stepper-btn"
+                disabled={!productoId}
+                onClick={() => {
+                  const actual = Number(cantidadSolicitada) || 0
+                  setCantidadSolicitada(String(actual + 1))
+                  setError(null)
+                }}
+                aria-label="Aumentar cantidad"
+              >
+                <Plus size={14} strokeWidth={2.4} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -143,11 +171,20 @@ function AgregarProductoModal({
   )
 }
 
+// Rol de "mi sucursal" en la transferencia que se va a crear: si mi sucursal
+// TIENE el producto, soy el origen (voy a preparar/enviar); si mi sucursal lo
+// NECESITA, soy el destino (voy a esperar recepción). No son lo mismo — la
+// sucursal solicitante nunca se asume automáticamente como origen (ver punto
+// 3 del enunciado: "sucursalSolicitante NO necesariamente es sucursalOrigen").
+type RolEnTransferencia = 'origen' | 'destino'
+
 export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'AdministradorGeneral'
   const [productos, setProductos] = useState<Producto[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
+  const [rolMiSucursal, setRolMiSucursal] = useState<RolEnTransferencia>('destino')
+  const [otraSucursalId, setOtraSucursalId] = useState<number | null>(null)
   const [sucursalOrigenId, setSucursalOrigenId] = useState<number | null>(null)
   const [sucursalDestinoId, setSucursalDestinoId] = useState<number | null>(null)
   const [lineas, setLineas] = useState<LineaForm[]>([])
@@ -176,11 +213,23 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         }
         const otras = data.filter((s) => s.id !== usuario?.sucursalId)
         setSucursales(otras)
-        setSucursalOrigenId(usuario?.sucursalId ?? null)
-        setSucursalDestinoId((current) => current ?? otras[0]?.id ?? null)
+        setOtraSucursalId((current) => current ?? otras[0]?.id ?? null)
       })
       .catch(() => setError('No se pudo cargar el listado de sucursales'))
   }, [usuario?.sucursalId, esAdmin])
+
+  // Para Gerente/Operador (no Admin): "mi sucursal" ocupa el rol elegido
+  // (origen o destino) y la sucursal elegida en el select ocupa el otro.
+  useEffect(() => {
+    if (esAdmin || !usuario?.sucursalId) return
+    if (rolMiSucursal === 'origen') {
+      setSucursalOrigenId(usuario.sucursalId)
+      setSucursalDestinoId(otraSucursalId)
+    } else {
+      setSucursalOrigenId(otraSucursalId)
+      setSucursalDestinoId(usuario.sucursalId)
+    }
+  }, [esAdmin, usuario?.sucursalId, rolMiSucursal, otraSucursalId])
 
   // Se muestra junto a cada línea y además se usa para validar que no se
   // solicite más de lo disponible (ver handleAgregar y handleSubmit); no
@@ -201,13 +250,18 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
     ? sucursales.filter((s) => s.id !== sucursalOrigenId)
     : sucursales
 
-  // Para Gerente/Operador, la sucursal de origen es siempre la propia, que
-  // queda deliberadamente excluida de la lista "sucursales" (esa lista es la
-  // de posibles destinos): buscarla ahí nunca la encontraba y el nombre
-  // quedaba en "—". El nombre ya viene en el propio usuario autenticado.
+  // Para Gerente/Operador, "mi sucursal" (la propia) ocupa origen o destino
+  // según rolMiSucursal, y su nombre viene directamente del usuario
+  // autenticado; la lista "sucursales" (todas menos la propia) es de dónde
+  // sale la OTRA parte de la transferencia.
   const sucursalOrigenNombre = esAdmin
     ? (sucursales.find((s) => s.id === sucursalOrigenId)?.nombre ?? null)
-    : (usuario?.sucursalNombre ?? null)
+    : rolMiSucursal === 'origen'
+      ? (usuario?.sucursalNombre ?? null)
+      : (sucursales.find((s) => s.id === sucursalOrigenId)?.nombre ?? null)
+
+  const sucursalDestinoNombreFijo =
+    !esAdmin && rolMiSucursal === 'destino' ? (usuario?.sucursalNombre ?? null) : null
 
   // Si el producto ya está en la solicitud, se fusiona sumando la cantidad
   // a la línea existente en vez de crear una línea duplicada — evita que el
@@ -313,6 +367,29 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
         </div>
       </div>
 
+      {!esAdmin && (
+        <div className="tr-rol-toggle" role="radiogroup" aria-label="Rol de tu sucursal en esta transferencia">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={rolMiSucursal === 'destino'}
+            className={`tr-rol-chip ${rolMiSucursal === 'destino' ? 'tr-rol-chip--activo' : ''}`}
+            onClick={() => setRolMiSucursal('destino')}
+          >
+            Mi sucursal NECESITA el producto
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={rolMiSucursal === 'origen'}
+            className={`tr-rol-chip ${rolMiSucursal === 'origen' ? 'tr-rol-chip--activo' : ''}`}
+            onClick={() => setRolMiSucursal('origen')}
+          >
+            Mi sucursal TIENE el producto
+          </button>
+        </div>
+      )}
+
       <div className="tr-ruta">
         <div className="tr-ruta-card tr-ruta-card--origen">
           <span className="tr-ruta-eyebrow">Sucursal origen</span>
@@ -329,10 +406,23 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
                 </option>
               ))}
             </select>
-          ) : (
+          ) : rolMiSucursal === 'origen' ? (
             <span className="tr-ruta-nombre">{sucursalOrigenNombre ?? '—'}</span>
+          ) : (
+            <select
+              className="tr-ruta-select"
+              id="tr-origen"
+              value={otraSucursalId ?? ''}
+              onChange={(e) => setOtraSucursalId(Number(e.target.value))}
+            >
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
           )}
-          <span className="tr-ruta-hint">Inventario de salida</span>
+          <span className="tr-ruta-hint">Prepara y envía</span>
         </div>
 
         <div className="tr-ruta-flecha" aria-hidden="true">
@@ -341,19 +431,36 @@ export function TransferenciaForm({ onCreada }: { onCreada: () => void }) {
 
         <div className="tr-ruta-card tr-ruta-card--destino">
           <span className="tr-ruta-eyebrow">Sucursal destino</span>
-          <select
-            className="tr-ruta-select"
-            id="tr-destino"
-            value={sucursalDestinoId ?? ''}
-            onChange={(e) => setSucursalDestinoId(Number(e.target.value))}
-          >
-            {sucursalesDestino.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}
-              </option>
-            ))}
-          </select>
-          <span className="tr-ruta-hint">Sucursal receptora</span>
+          {esAdmin ? (
+            <select
+              className="tr-ruta-select"
+              id="tr-destino"
+              value={sucursalDestinoId ?? ''}
+              onChange={(e) => setSucursalDestinoId(Number(e.target.value))}
+            >
+              {sucursalesDestino.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          ) : rolMiSucursal === 'destino' ? (
+            <span className="tr-ruta-nombre">{sucursalDestinoNombreFijo ?? '—'}</span>
+          ) : (
+            <select
+              className="tr-ruta-select"
+              id="tr-destino"
+              value={otraSucursalId ?? ''}
+              onChange={(e) => setOtraSucursalId(Number(e.target.value))}
+            >
+              {sucursales.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+          <span className="tr-ruta-hint">Recibe y confirma</span>
         </div>
       </div>
 

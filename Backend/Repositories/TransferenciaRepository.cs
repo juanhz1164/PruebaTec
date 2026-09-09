@@ -17,24 +17,14 @@ public class TransferenciaRepository : ITransferenciaRepository
 
     public async Task<List<Transferencia>> GetAllAsync()
     {
-        return await _context.Transferencias
-            .Include(t => t.SucursalOrigen)
-            .Include(t => t.SucursalDestino)
-            .Include(t => t.UsuarioSolicitante)
-            .Include(t => t.Lineas)
-                .ThenInclude(l => l.Producto)
+        return await ConsultaBase()
             .OrderByDescending(t => t.FechaSolicitud)
             .ToListAsync();
     }
 
     public async Task<Transferencia?> GetByIdAsync(int id)
     {
-        return await _context.Transferencias
-            .Include(t => t.SucursalOrigen)
-            .Include(t => t.SucursalDestino)
-            .Include(t => t.UsuarioSolicitante)
-            .Include(t => t.Lineas)
-                .ThenInclude(l => l.Producto)
+        return await ConsultaBase()
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
@@ -67,6 +57,9 @@ public class TransferenciaRepository : ITransferenciaRepository
         .Include(t => t.SucursalOrigen)
         .Include(t => t.SucursalDestino)
         .Include(t => t.UsuarioSolicitante)
+        .Include(t => t.UsuarioPreparador)
+        .Include(t => t.UsuarioEnvio)
+        .Include(t => t.UsuarioRecepcion)
         .Include(t => t.Lineas)
             .ThenInclude(l => l.Producto);
 

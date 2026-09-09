@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using InventarioMultiSucursal.Api.Auth;
 using InventarioMultiSucursal.Api.DTOs;
 using InventarioMultiSucursal.Api.Services.Interfaces;
@@ -9,12 +10,17 @@ namespace InventarioMultiSucursal.Api.Controllers;
 // Cualquier rol autenticado puede consultar y solicitar (T44) una transferencia
 // entre dos sucursales cualesquiera (el Administrador general no está atado a
 // una sucursal y puede pedirle a cualquier sucursal que transfiera a otra).
+// La sucursal SOLICITANTE de una transferencia no es necesariamente su
+// ORIGEN: quien solicita puede ser quien NECESITA el producto (destino) o
+// quien lo TIENE y lo ofrece (origen) — el frontend deja elegir cuál rol
+// ocupa la sucursal propia al crear la solicitud.
 //
-// Pero preparar/enviar (T45) y confirmar recepción (T46/T47) son operaciones
-// físicas que solo puede realizar quien está en la sucursal correspondiente:
-// el Gerente de la sucursal ORIGEN prepara y envía; el Gerente de la sucursal
-// DESTINO confirma la recepción. El Administrador general no participa en
-// estos pasos porque no está físicamente en ninguna sucursal.
+// Preparar/enviar (T45) y confirmar recepción (T46/T47) son operaciones
+// físicas que solo puede realizar quien está en la sucursal correspondiente,
+// sin importar quién solicitó la transferencia: el Gerente de la sucursal
+// ORIGEN prepara y envía; el Gerente u Operador de la sucursal DESTINO
+// confirma la recepción. El Administrador general no participa en estos
+// pasos porque no está físicamente en ninguna sucursal.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -29,6 +35,9 @@ public class TransferenciasController : ControllerBase
 
     private int? SucursalIdUsuarioActual =>
         int.TryParse(User.FindFirst("sucursalId")?.Value, out var id) ? id : null;
+
+    private int UsuarioIdActual =>
+        int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TransferenciaDto>>> GetAll()
@@ -75,7 +84,7 @@ public class TransferenciasController : ControllerBase
             return Forbid();
         }
 
-        var resultado = await _service.IniciarPreparacionAsync(id);
+        var resultado = await _service.IniciarPreparacionAsync(id, UsuarioIdActual);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
 
@@ -98,16 +107,17 @@ public class TransferenciasController : ControllerBase
             return Forbid();
         }
 
-        var resultado = await _service.RegistrarEnvioAsync(id, dto);
+        var resultado = await _service.RegistrarEnvioAsync(id, dto, UsuarioIdActual);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
 
     // PUT api/Transferencias/5/recibir
     // T46/T47: confirma la recepción (completa o parcial) e ingresa el stock recibido
-    // a la sucursal destino. Solo el Gerente de la sucursal DESTINO (quien
-    // físicamente recibe la mercancía).
+    // a la sucursal destino. Gerente u Operador de la sucursal DESTINO (quien
+    // físicamente recibe la mercancía) — a diferencia de preparar/enviar, que
+    // son operaciones exclusivas del Gerente de origen.
     [HttpPut("{id}/recibir")]
-    [Authorize(Roles = Roles.Gerente)]
+    [Authorize(Roles = Roles.GerenteYOperador)]
     public async Task<IActionResult> ConfirmarRecepcion(int id, ConfirmarRecepcionDto dto)
     {
         var transferencia = await _service.GetByIdAsync(id);
@@ -121,7 +131,7 @@ public class TransferenciasController : ControllerBase
             return Forbid();
         }
 
-        var resultado = await _service.ConfirmarRecepcionAsync(id, dto);
+        var resultado = await _service.ConfirmarRecepcionAsync(id, dto, UsuarioIdActual);
         return resultado.Exitoso ? Ok(resultado.Transferencia) : BadRequest(resultado.Error);
     }
 

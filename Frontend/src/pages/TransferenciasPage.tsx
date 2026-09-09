@@ -16,7 +16,12 @@ import {
 import type { Transferencia } from '../types/transferencia'
 import { ApiError } from '../api/client'
 
-const PUEDE_APROBAR = ['GerenteSucursal']
+// Preparar y enviar son operaciones físicas de la sucursal ORIGEN — quedan
+// reservadas al Gerente (el Operador no aprueba envíos). Confirmar recepción
+// es una operación de la sucursal DESTINO y sí puede hacerla el Operador,
+// además del Gerente, ya que suele ser quien recibe físicamente la mercancía.
+const PUEDE_PREPARAR_Y_ENVIAR = ['GerenteSucursal']
+const PUEDE_RECIBIR = ['GerenteSucursal', 'OperadorInventario']
 
 type Tab = 'solicitar' | 'gestionar'
 
@@ -60,7 +65,8 @@ export function TransferenciasPage() {
     cargar()
   }, [cargar])
 
-  const puedeAprobar = usuario ? PUEDE_APROBAR.includes(usuario.rol) : false
+  const puedePrepararYEnviar = usuario ? PUEDE_PREPARAR_Y_ENVIAR.includes(usuario.rol) : false
+  const puedeRecibir = usuario ? PUEDE_RECIBIR.includes(usuario.rol) : false
 
   const preparar = async (id: number) => {
     setActualizandoId(id)
@@ -186,12 +192,10 @@ export function TransferenciasPage() {
                     </tr>
                   )}
                   {[...transferencias]
-                    .sort((a, b) => {
-                      const pendienteA = a.estado !== ESTADO_TRANSFERENCIA.Cancelada && a.estado !== ESTADO_TRANSFERENCIA.RecibidaCompleta
-                      const pendienteB = b.estado !== ESTADO_TRANSFERENCIA.Cancelada && b.estado !== ESTADO_TRANSFERENCIA.RecibidaCompleta
-                      if (pendienteA === pendienteB) return 0
-                      return pendienteA ? -1 : 1
-                    })
+                    // Más recientes primero (fechaSolicitud DESC) — el backend ya
+                    // las devuelve así, pero se reordena aquí también por si la
+                    // lista llega de una fuente distinta o el usuario la filtra.
+                    .sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime())
                     .map((t) => {
                     // Preparar, registrar envío y confirmar recepción son operaciones
                     // físicas: solo el Gerente de la sucursal de origen/destino puede
@@ -205,6 +209,18 @@ export function TransferenciasPage() {
                       puedeCancelarPorSucursal &&
                       (t.estado === ESTADO_TRANSFERENCIA.Solicitada ||
                         t.estado === ESTADO_TRANSFERENCIA.EnPreparacion)
+
+                    // La sucursal DESTINO (la que solicitó y está esperando)
+                    // ve un texto de estado distinto al de ORIGEN (que debe
+                    // actuar): el mismo estado se lee distinto según de qué
+                    // lado de la transferencia esté cada usuario.
+                    let textoEsperaDestino: string | null = null
+                    if (esDestino) {
+                      if (t.estado === ESTADO_TRANSFERENCIA.Solicitada) textoEsperaDestino = 'Esperando preparación'
+                      else if (t.estado === ESTADO_TRANSFERENCIA.EnPreparacion) textoEsperaDestino = 'Esperando envío'
+                      else if (t.estado === ESTADO_TRANSFERENCIA.EnTransito) textoEsperaDestino = 'Esperando recepción'
+                    }
+
                     return (
                       <tr key={t.id}>
                         <td>{t.sucursalOrigenNombre}</td>
@@ -213,6 +229,9 @@ export function TransferenciasPage() {
                           <span className={`estado-badge estado-transferencia-${t.estado}`}>
                             {ESTADO_TRANSFERENCIA_LABEL[t.estado]}
                           </span>
+                          {textoEsperaDestino && (
+                            <span className="tr-estado-contextual">{textoEsperaDestino}</span>
+                          )}
                         </td>
                         <td>{new Date(t.fechaSolicitud).toLocaleDateString()}</td>
                         <td>
@@ -230,7 +249,7 @@ export function TransferenciasPage() {
                         </td>
                         <td>
                           <div className="acciones-cell">
-                            {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.Solicitada && (
+                            {esOrigen && puedePrepararYEnviar && t.estado === ESTADO_TRANSFERENCIA.Solicitada && (
                               <button
                                 type="button"
                                 className="secondary-button btn-sm"
@@ -241,7 +260,7 @@ export function TransferenciasPage() {
                                 Preparar
                               </button>
                             )}
-                            {esOrigen && puedeAprobar && t.estado === ESTADO_TRANSFERENCIA.EnPreparacion && (
+                            {esOrigen && puedePrepararYEnviar && t.estado === ESTADO_TRANSFERENCIA.EnPreparacion && (
                               <button
                                 type="button"
                                 className="secondary-button btn-sm"
@@ -251,7 +270,7 @@ export function TransferenciasPage() {
                                 Registrar envío
                               </button>
                             )}
-                            {esDestino && t.estado === ESTADO_TRANSFERENCIA.EnTransito && (
+                            {esDestino && puedeRecibir && t.estado === ESTADO_TRANSFERENCIA.EnTransito && (
                               <button
                                 type="button"
                                 className="success-button btn-sm"

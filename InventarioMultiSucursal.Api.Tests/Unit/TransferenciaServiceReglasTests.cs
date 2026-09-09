@@ -61,7 +61,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 20m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.RecibidaCompleta, transferencia.Estado);
@@ -88,7 +88,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 15m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.RecibidaParcial, transferencia.Estado);
@@ -121,7 +121,7 @@ public class TransferenciaServiceReglasTests
             }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.RecibidaParcial, transferencia.Estado);
@@ -142,7 +142,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 0m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.RecibidaParcial, transferencia.Estado);
@@ -165,7 +165,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 11m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("debe estar entre 0", resultado.Error);
@@ -188,7 +188,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 10m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("todas las líneas", resultado.Error);
@@ -219,7 +219,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaRecepcionDto> { new() { TransferenciaLineaId = 1, CantidadRecibida = 0m } }
         };
 
-        var resultado = await service.ConfirmarRecepcionAsync(1, dto);
+        var resultado = await service.ConfirmarRecepcionAsync(1, dto, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("No se puede confirmar recepción", resultado.Error);
@@ -253,7 +253,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaEnvioDto> { new() { TransferenciaLineaId = 1, CantidadEnviada = 20m } }
         };
 
-        var resultado = await service.RegistrarEnvioAsync(1, dto);
+        var resultado = await service.RegistrarEnvioAsync(1, dto, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.EnTransito, transferencia.Estado);
@@ -287,7 +287,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaEnvioDto> { new() { TransferenciaLineaId = 1, CantidadEnviada = 20m } }
         };
 
-        var resultado = await service.RegistrarEnvioAsync(1, dto);
+        var resultado = await service.RegistrarEnvioAsync(1, dto, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("Stock insuficiente en origen", resultado.Error);
@@ -319,7 +319,7 @@ public class TransferenciaServiceReglasTests
             Lineas = new List<LineaEnvioDto> { new() { TransferenciaLineaId = 1, CantidadEnviada = 5m } }
         };
 
-        var resultado = await service.RegistrarEnvioAsync(1, dto);
+        var resultado = await service.RegistrarEnvioAsync(1, dto, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("No se puede registrar el envío", resultado.Error);
@@ -445,7 +445,7 @@ public class TransferenciaServiceReglasTests
         repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(transferencia);
 
         var service = new TransferenciaService(repo.Object);
-        var resultado = await service.IniciarPreparacionAsync(1);
+        var resultado = await service.IniciarPreparacionAsync(1, 99);
 
         Assert.True(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.EnPreparacion, transferencia.Estado);
@@ -469,7 +469,7 @@ public class TransferenciaServiceReglasTests
         repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(transferencia);
 
         var service = new TransferenciaService(repo.Object);
-        var resultado = await service.IniciarPreparacionAsync(1);
+        var resultado = await service.IniciarPreparacionAsync(1, 99);
 
         Assert.False(resultado.Exitoso);
         Assert.Equal(EstadoTransferencia.EnTransito, transferencia.Estado);

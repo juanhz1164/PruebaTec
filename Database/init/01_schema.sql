@@ -223,6 +223,11 @@ CREATE TABLE transferencias (
     sucursal_origen_id INT NOT NULL,
     sucursal_destino_id INT NOT NULL,
     usuario_solicitante_id INT NOT NULL,
+    -- Quién ejecutó cada paso físico (distinto del solicitante); nulos hasta
+    -- que ese paso ocurre.
+    usuario_preparador_id INT NULL,
+    usuario_envio_id INT NULL,
+    usuario_recepcion_id INT NULL,
     estado ENUM(
         'solicitada',
         'en_preparacion',
@@ -244,7 +249,13 @@ CREATE TABLE transferencias (
     CONSTRAINT fk_transferencias_destino
         FOREIGN KEY (sucursal_destino_id) REFERENCES sucursales(id),
     CONSTRAINT fk_transferencias_usuario
-        FOREIGN KEY (usuario_solicitante_id) REFERENCES usuarios(id)
+        FOREIGN KEY (usuario_solicitante_id) REFERENCES usuarios(id),
+    CONSTRAINT fk_transferencias_usuario_preparador
+        FOREIGN KEY (usuario_preparador_id) REFERENCES usuarios(id),
+    CONSTRAINT fk_transferencias_usuario_envio
+        FOREIGN KEY (usuario_envio_id) REFERENCES usuarios(id),
+    CONSTRAINT fk_transferencias_usuario_recepcion
+        FOREIGN KEY (usuario_recepcion_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE transferencias_lineas (

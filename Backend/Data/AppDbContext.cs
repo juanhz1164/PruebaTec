@@ -236,6 +236,9 @@ public class AppDbContext : DbContext
             entity.Property(t => t.SucursalOrigenId).HasColumnName("sucursal_origen_id");
             entity.Property(t => t.SucursalDestinoId).HasColumnName("sucursal_destino_id");
             entity.Property(t => t.UsuarioSolicitanteId).HasColumnName("usuario_solicitante_id");
+            entity.Property(t => t.UsuarioPreparadorId).HasColumnName("usuario_preparador_id");
+            entity.Property(t => t.UsuarioEnvioId).HasColumnName("usuario_envio_id");
+            entity.Property(t => t.UsuarioRecepcionId).HasColumnName("usuario_recepcion_id");
             entity.Property(t => t.Transportista).HasColumnName("transportista");
             entity.Property(t => t.Ruta).HasColumnName("ruta");
             entity.Property(t => t.CostoEnvio).HasColumnName("costo_envio");
@@ -269,6 +272,21 @@ public class AppDbContext : DbContext
             entity.HasOne(t => t.UsuarioSolicitante)
                 .WithMany()
                 .HasForeignKey(t => t.UsuarioSolicitanteId);
+
+            entity.HasOne(t => t.UsuarioPreparador)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioPreparadorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.UsuarioEnvio)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioEnvioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.UsuarioRecepcion)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioRecepcionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<TransferenciaLinea>(entity =>

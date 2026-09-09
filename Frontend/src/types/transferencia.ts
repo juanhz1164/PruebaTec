@@ -1,3 +1,8 @@
+// Único lugar donde vive el nombre del transportista fijo — el backend usa
+// el mismo valor como default de RutaLogistica.Transportista (ver
+// Backend/Models/RutaLogistica.cs). Nunca se teclea en el formulario.
+export const TRANSPORTISTA_POR_DEFECTO = 'Coordinadora'
+
 export const ESTADO_TRANSFERENCIA = {
   Solicitada: 0,
   EnPreparacion: 1,

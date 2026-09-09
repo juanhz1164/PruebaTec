@@ -11,12 +11,13 @@ public interface ITransferenciaService
     Task<ResultadoTransferencia> CrearAsync(CrearTransferenciaDto dto);
 
     // T45: preparación (marca en_preparacion) y confirmación de envío (marca en_transito,
-    // retira stock del origen, registra transportista/ruta/fecha estimada).
-    Task<ResultadoTransferencia> IniciarPreparacionAsync(int id);
-    Task<ResultadoTransferencia> RegistrarEnvioAsync(int id, RegistrarEnvioDto dto);
+    // retira stock del origen, registra transportista/ruta/fecha estimada). El usuarioId
+    // queda registrado como quien ejecutó ese paso (trazabilidad, distinta del solicitante).
+    Task<ResultadoTransferencia> IniciarPreparacionAsync(int id, int usuarioId);
+    Task<ResultadoTransferencia> RegistrarEnvioAsync(int id, RegistrarEnvioDto dto, int usuarioId);
 
     // T46/T47: confirmación de recepción completa o parcial (ingresa stock al destino).
-    Task<ResultadoTransferencia> ConfirmarRecepcionAsync(int id, ConfirmarRecepcionDto dto);
+    Task<ResultadoTransferencia> ConfirmarRecepcionAsync(int id, ConfirmarRecepcionDto dto, int usuarioId);
 
     Task<ResultadoTransferencia> CancelarAsync(int id);
 

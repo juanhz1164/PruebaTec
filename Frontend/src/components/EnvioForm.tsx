@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Truck, Pencil } from 'lucide-react'
 import { Modal } from './Modal'
 import { DatePicker } from './DatePicker'
-import { PRIORIDAD_TRANSFERENCIA_LABEL } from '../types/transferencia'
+import { PRIORIDAD_TRANSFERENCIA_LABEL, TRANSPORTISTA_POR_DEFECTO } from '../types/transferencia'
 import type { RegistrarEnvio, RutaLogistica, Transferencia } from '../types/transferencia'
 import { registrarEnvioTransferencia, getRutaLogistica } from '../api/transferencias'
 import { ApiError } from '../api/client'
@@ -26,11 +26,14 @@ function sumarDiasIso(fechaIso: string, dias: number): string {
 // prioridad ya quedó fija desde la solicitud y aquí solo se muestra como
 // información de solo lectura, nunca se vuelve a pedir.
 //
-// Transportista, costo y tiempo estimado se prellenan desde la configuración
-// de la ruta (GET rutas-logisticas/origen/{}/destino/{}) en vez de que el
-// Gerente los invente cada vez; el costo puede ajustarse manualmente para
-// casos excepcionales ("Modificar costo"), pero el valor inicial siempre
-// viene de la ruta configurada.
+// Transportista y ruta NO son editables aquí: transportista es siempre
+// TRANSPORTISTA_POR_DEFECTO ("Coordinadora", única fuente de verdad) y la
+// ruta se genera automáticamente como "Origen → Destino" — nunca texto
+// libre que el usuario pueda escribir mal. Costo y tiempo estimado se
+// prellenan desde la configuración de la ruta (GET rutas-logisticas/
+// origen/{}/destino/{}); el costo puede ajustarse manualmente para casos
+// excepcionales ("Modificar costo"), pero el valor inicial siempre viene de
+// la ruta configurada.
 export function EnvioForm({
   transferencia,
   onEnviada,
@@ -41,12 +44,9 @@ export function EnvioForm({
   onCerrar: () => void
 }) {
   const hoy = hoyIso()
+  const rutaTexto = `${transferencia.sucursalOrigenNombre} → ${transferencia.sucursalDestinoNombre}`
   const [ruta, setRuta] = useState<RutaLogistica | null>(null)
   const [cargandoRuta, setCargandoRuta] = useState(true)
-  const [transportista, setTransportista] = useState('')
-  const [rutaTexto, setRutaTexto] = useState(
-    `${transferencia.sucursalOrigenNombre} → ${transferencia.sucursalDestinoNombre}`,
-  )
   const [costoEnvio, setCostoEnvio] = useState('')
   const [editarCosto, setEditarCosto] = useState(false)
   const [fechaEstimada, setFechaEstimada] = useState(() => sumarDiasIso(hoy, 1))
@@ -61,15 +61,9 @@ export function EnvioForm({
         if (cancelado) return
         setRuta(r)
         if (r) {
-          setTransportista(r.transportista)
           setCostoEnvio(String(r.costoEnvio))
           setFechaEstimada(sumarDiasIso(hoy, r.tiempoEstimadoDias))
-        } else {
-          setTransportista('Coordinadora')
         }
-      })
-      .catch(() => {
-        if (!cancelado) setTransportista('Coordinadora')
       })
       .finally(() => {
         if (!cancelado) setCargandoRuta(false)
@@ -96,8 +90,8 @@ export function EnvioForm({
     }
 
     const dto: RegistrarEnvio = {
-      transportista: transportista.trim() || null,
-      ruta: rutaTexto.trim() || null,
+      transportista: TRANSPORTISTA_POR_DEFECTO,
+      ruta: rutaTexto,
       costoEnvio: costo,
       fechaEstimadaLlegada: fechaEstimada ? `${fechaEstimada}T00:00:00` : null,
       lineas: transferencia.lineas.map((l) => ({
@@ -135,31 +129,19 @@ export function EnvioForm({
 
         {!cargandoRuta && ruta === null && (
           <p className="tr-envio-sin-ruta">
-            No hay una ruta configurada para {transferencia.sucursalOrigenNombre} → {transferencia.sucursalDestinoNombre}.
-            Completa los datos manualmente.
+            No hay un costo configurado para esta ruta — indícalo manualmente abajo.
           </p>
         )}
 
-        <div className="form-row">
-          <label htmlFor="envio-transportista">Transportista</label>
-          <input
-            id="envio-transportista"
-            type="text"
-            placeholder="Ej. Coordinadora"
-            value={transportista}
-            onChange={(e) => setTransportista(e.target.value)}
-            autoFocus
-          />
-        </div>
-
-        <div className="form-row">
-          <label htmlFor="envio-ruta">Ruta</label>
-          <input
-            id="envio-ruta"
-            type="text"
-            value={rutaTexto}
-            onChange={(e) => setRutaTexto(e.target.value)}
-          />
+        <div className="tr-envio-fijo">
+          <div className="tr-envio-fijo-item">
+            <span className="tr-envio-fijo-label">Transportista</span>
+            <span className="tr-envio-fijo-valor">{TRANSPORTISTA_POR_DEFECTO}</span>
+          </div>
+          <div className="tr-envio-fijo-item">
+            <span className="tr-envio-fijo-label">Ruta</span>
+            <span className="tr-envio-fijo-valor">{rutaTexto}</span>
+          </div>
         </div>
 
         <div className="form-row-inline">

@@ -1341,6 +1341,50 @@
   gap: 12px;
 }
 
+/* Elige si "mi sucursal" ocupa el rol de origen (tiene el producto, prepara
+   y envía) o destino (lo necesita, confirma recepción) en la transferencia
+   que se está creando — la sucursal solicitante NO es automáticamente el
+   origen. */
+.tr-rol-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tr-rol-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--code-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.tr-rol-chip:hover {
+  border-color: var(--rol-accent-border);
+}
+
+.tr-rol-chip--activo {
+  background: var(--rol-accent-bg);
+  border-color: var(--rol-accent);
+  color: var(--rol-accent);
+}
+
+/* Texto contextual junto al badge de estado en la tabla de gestión: la
+   sucursal DESTINO (la que solicitó) lee el mismo estado como una espera
+   ("Esperando envío") en vez del nombre técnico del estado. */
+.tr-estado-contextual {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
 .tr-ruta {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -1593,6 +1637,50 @@
   letter-spacing: normal;
 }
 
+.tr-agregar-cantidad-stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.tr-agregar-cantidad-stepper input {
+  border-radius: 0;
+  text-align: center;
+  min-width: 0;
+}
+
+.tr-agregar-stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.tr-agregar-stepper-btn:first-child {
+  border-radius: 6px 0 0 6px;
+  border-right: none;
+}
+
+.tr-agregar-stepper-btn:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: none;
+}
+
+.tr-agregar-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tr-agregar-stepper-btn:not(:disabled):hover {
+  border-color: var(--rol-accent-border);
+  color: var(--rol-accent);
+}
+
 .tr-linea-stock {
   flex-shrink: 0;
   padding-bottom: 8px;
@@ -1740,6 +1828,41 @@
   background: var(--status-warning-bg);
   color: var(--status-warning);
   font-size: 12.5px;
+}
+
+/* Transportista y ruta son información fija (no editable): transportista
+   siempre "Coordinadora", ruta siempre origen → destino generada. */
+.tr-envio-fijo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tr-envio-fijo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.tr-envio-fijo-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.tr-envio-fijo-valor {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-h);
 }
 
 .tr-envio-modificar-costo {
