@@ -1,0 +1,314 @@
+// Modelo de datos — Sistema de Inventario Multi-Sucursal
+// Generado a partir de Database/init/01_schema.sql (fuente de verdad del esquema).
+// Visualizar en https://dbdiagram.io (Import > DBML) o con cualquier herramienta compatible con DBML.
+
+Project inventario_multi_sucursal {
+  database_type: 'MySQL'
+  Note: 'Sistema de Inventario Multi-Sucursal — prueba técnica para OptiPlant Consultores.'
+}
+
+// ============================================================
+// Bloque base: catálogos sin dependencias
+// ============================================================
+
+Table unidades_medida {
+  id int [pk, increment]
+  nombre varchar(50) [not null]
+  abreviatura varchar(10) [not null, unique]
+}
+
+Table sucursales {
+  id int [pk, increment]
+  nombre varchar(100) [not null]
+  direccion varchar(255)
+  ciudad varchar(100)
+  telefono varchar(30)
+  activa boolean [not null, default: true]
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+// ============================================================
+// Usuarios (depende de sucursales)
+// ============================================================
+
+Table usuarios {
+  id int [pk, increment]
+  sucursal_id int [null]
+  nombre varchar(100) [not null]
+  email varchar(150) [not null, unique]
+  password_hash varchar(255) [not null]
+  rol usuarios_rol [not null, note: 'administrador_general | gerente_sucursal | operador_inventario']
+  activo boolean [not null, default: true]
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+
+  Note: 'sucursal_id es NULL para AdministradorGeneral: no está atado a una sucursal, gestiona toda la red.'
+}
+
+Enum usuarios_rol {
+  administrador_general
+  gerente_sucursal
+  operador_inventario
+}
+
+// ============================================================
+// Inventario: productos, stock por sucursal y movimientos
+// ============================================================
+
+Table productos {
+  id int [pk, increment]
+  unidad_medida_id int [not null]
+  proveedor_id int [null]
+  sku varchar(50) [not null, unique]
+  nombre varchar(150) [not null]
+  descripcion text
+  categoria varchar(100)
+  activo boolean [not null, default: true]
+  precio_venta decimal(12,2) [not null, default: 0, note: 'precio fijo al público; Ventas lo usa por defecto']
+  precio_proveedor decimal(12,2) [not null, default: 0, note: 'precio de costo del proveedor principal; Compras lo autocompleta']
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table producto_unidades_medida {
+  id int [pk, increment]
+  producto_id int [not null]
+  unidad_medida_id int [not null]
+  factor_conversion decimal(12,4) [not null, note: 'unidades base por 1 unidad alternativa, ej. caja=12 un']
+  precio_venta decimal(12,2) [null, note: 'si es NULL, se calcula como costo_promedio * factor_conversion']
+
+  Indexes {
+    (producto_id, unidad_medida_id) [unique]
+  }
+}
+
+Table inventario {
+  id int [pk, increment]
+  producto_id int [not null]
+  sucursal_id int [not null]
+  cantidad decimal(5,2) [not null, default: 0]
+  stock_minimo decimal(5,2) [not null, default: 0]
+  costo_promedio decimal(12,2) [not null, default: 0]
+  updated_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (producto_id, sucursal_id) [unique]
+  }
+}
+
+Table movimientos_inventario {
+  id int [pk, increment]
+  producto_id int [not null]
+  sucursal_id int [not null]
+  usuario_id int [not null]
+  tipo movimientos_tipo [not null, note: 'ingreso | retiro']
+  cantidad decimal(5,2) [not null]
+  motivo varchar(255) [not null]
+  referencia_tipo varchar(50) [note: 'ej. "transferencia", "orden_compra", "venta"']
+  referencia_id int
+  fecha datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Enum movimientos_tipo {
+  ingreso
+  retiro
+}
+
+// ============================================================
+// Compras
+// ============================================================
+
+Table proveedores {
+  id int [pk, increment]
+  nombre varchar(150) [not null]
+  contacto varchar(100)
+  telefono varchar(30)
+  email varchar(150)
+  direccion varchar(255)
+  activo boolean [not null, default: true]
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table ordenes_compra {
+  id int [pk, increment]
+  proveedor_id int [not null]
+  sucursal_id int [not null]
+  usuario_id int [not null]
+  estado ordenes_compra_estado [not null, default: 'pendiente']
+  plazo_pago_dias int [not null, default: 0]
+  fecha datetime [not null, default: `CURRENT_TIMESTAMP`]
+  fecha_recepcion datetime [null]
+}
+
+Enum ordenes_compra_estado {
+  pendiente
+  confirmada
+  recibida
+  cancelada
+}
+
+Table ordenes_compra_lineas {
+  id int [pk, increment]
+  orden_compra_id int [not null]
+  producto_id int [not null]
+  cantidad decimal(5,2) [not null]
+  precio_unitario decimal(12,2) [not null]
+  descuento decimal(5,2) [not null, default: 0]
+}
+
+// ============================================================
+// Ventas
+// ============================================================
+
+Table ventas {
+  id int [pk, increment]
+  sucursal_id int [not null]
+  usuario_id int [not null]
+  numero_comprobante varchar(50) [not null, unique]
+  cliente_nombre varchar(150) [null]
+  cliente_email varchar(150) [null]
+  cliente_telefono varchar(30) [null]
+  subtotal decimal(12,2) [not null]
+  descuento_total decimal(12,2) [not null, default: 0]
+  total decimal(12,2) [not null]
+  fecha datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table ventas_lineas {
+  id int [pk, increment]
+  venta_id int [not null]
+  producto_id int [not null]
+  cantidad decimal(5,2) [not null]
+  unidad_medida_id int [not null]
+  cantidad_vendida decimal(5,2) [not null]
+  precio_unitario decimal(12,2) [not null]
+  descuento decimal(5,2) [not null, default: 0]
+}
+
+// ============================================================
+// Transferencias y logística entre sucursales
+// ============================================================
+
+Table transferencias {
+  id int [pk, increment]
+  sucursal_origen_id int [not null, note: 'sucursal que TIENE el producto: prepara y envía']
+  sucursal_destino_id int [not null, note: 'sucursal que NECESITA el producto: confirma recepción']
+  usuario_solicitante_id int [not null, note: 'quién pidió la transferencia — NO necesariamente de la sucursal origen']
+  usuario_preparador_id int [null, note: 'quién ejecutó "preparar"; nulo hasta ese paso']
+  usuario_envio_id int [null, note: 'quién ejecutó "enviar"; nulo hasta ese paso']
+  usuario_recepcion_id int [null, note: 'quién ejecutó "confirmar recepción"; nulo hasta ese paso']
+  estado transferencias_estado [not null, default: 'solicitada']
+  transportista varchar(150) [note: 'fijo "Coordinadora" en la práctica, ver rutas_logisticas']
+  ruta varchar(150) [note: 'texto "Sucursal Origen → Sucursal Destino", generado automáticamente al enviar']
+  prioridad transferencias_prioridad [null, note: 'definida por el solicitante; pertenece a la transferencia completa, no a cada línea']
+  costo_envio decimal(12,2) [null, note: 'tomado de rutas_logisticas al enviar; editable manualmente']
+  fecha_solicitud datetime [not null, default: `CURRENT_TIMESTAMP`]
+  fecha_envio datetime [null, note: 'timestamp real automático al confirmar el envío']
+  fecha_estimada_llegada datetime [null, note: 'solo fecha (medianoche hora Colombia); nunca lleva hora significativa']
+  fecha_recepcion datetime [null, note: 'timestamp real automático al confirmar recepción']
+
+  Note: '''
+    Máquina de estados unidireccional:
+    solicitada → en_preparacion → en_transito → recibida_completa | recibida_parcial
+    (o solicitada/en_preparacion → cancelada)
+    Un estado recibido es FINAL: nunca regresa a preparación/envío.
+  '''
+}
+
+Enum transferencias_estado {
+  solicitada
+  en_preparacion
+  en_transito
+  recibida_completa
+  recibida_parcial
+  cancelada
+}
+
+Enum transferencias_prioridad {
+  baja
+  media
+  alta
+}
+
+Table transferencias_lineas {
+  id int [pk, increment]
+  transferencia_id int [not null]
+  producto_id int [not null]
+  cantidad_solicitada decimal(5,2) [not null]
+  cantidad_enviada decimal(5,2) [not null, default: 0]
+  cantidad_recibida decimal(5,2) [not null, default: 0]
+}
+
+Table rutas_logisticas {
+  id int [pk, increment]
+  sucursal_origen_id int [not null]
+  sucursal_destino_id int [not null]
+  transportista varchar(150) [not null, default: 'Coordinadora']
+  costo_envio decimal(12,2) [not null]
+  tiempo_estimado_dias int [not null]
+
+  Note: 'Configuración por ruta (origen→destino): fuente de verdad para autocompletar transportista/costo/tiempo estimado al registrar un envío.'
+
+  Indexes {
+    (sucursal_origen_id, sucursal_destino_id) [unique]
+  }
+}
+
+// ============================================================
+// Visitas: control de ingreso de visitantes por sucursal
+// ============================================================
+
+Table visitas {
+  id int [pk, increment]
+  sucursal_id int [not null]
+  usuario_id int [not null]
+  cantidad_personas int [not null, note: 'CHECK >= 1']
+  fecha_hora datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'fijada por el backend, nunca por el usuario']
+}
+
+// ============================================================
+// Relaciones (Foreign Keys)
+// ============================================================
+
+Ref: usuarios.sucursal_id > sucursales.id
+
+Ref: productos.unidad_medida_id > unidades_medida.id
+Ref: productos.proveedor_id > proveedores.id
+
+Ref: producto_unidades_medida.producto_id > productos.id
+Ref: producto_unidades_medida.unidad_medida_id > unidades_medida.id
+
+Ref: inventario.producto_id > productos.id
+Ref: inventario.sucursal_id > sucursales.id
+
+Ref: movimientos_inventario.producto_id > productos.id
+Ref: movimientos_inventario.sucursal_id > sucursales.id
+Ref: movimientos_inventario.usuario_id > usuarios.id
+
+Ref: ordenes_compra.proveedor_id > proveedores.id
+Ref: ordenes_compra.sucursal_id > sucursales.id
+Ref: ordenes_compra.usuario_id > usuarios.id
+
+Ref: ordenes_compra_lineas.orden_compra_id > ordenes_compra.id
+Ref: ordenes_compra_lineas.producto_id > productos.id
+
+Ref: ventas.sucursal_id > sucursales.id
+Ref: ventas.usuario_id > usuarios.id
+
+Ref: ventas_lineas.venta_id > ventas.id
+Ref: ventas_lineas.producto_id > productos.id
+Ref: ventas_lineas.unidad_medida_id > unidades_medida.id
+
+Ref: transferencias.sucursal_origen_id > sucursales.id
+Ref: transferencias.sucursal_destino_id > sucursales.id
+Ref: transferencias.usuario_solicitante_id > usuarios.id
+Ref: transferencias.usuario_preparador_id > usuarios.id
+Ref: transferencias.usuario_envio_id > usuarios.id
+Ref: transferencias.usuario_recepcion_id > usuarios.id
+
+Ref: transferencias_lineas.transferencia_id > transferencias.id
+Ref: transferencias_lineas.producto_id > productos.id
+
+Ref: rutas_logisticas.sucursal_origen_id > sucursales.id
+Ref: rutas_logisticas.sucursal_destino_id > sucursales.id
+
+Ref: visitas.sucursal_id > sucursales.id
+Ref: visitas.usuario_id > usuarios.id

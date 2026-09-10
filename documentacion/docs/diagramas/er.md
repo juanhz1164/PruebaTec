@@ -4,6 +4,10 @@ Modelo relacional completo, generado a partir de `Database/init/01_schema.sql` (
 verdad del esquema). Los enums de MySQL (`rol`, `tipo`, `estado`, `prioridad`) se muestran
 como columnas con su dominio de valores entre paréntesis.
 
+> El mismo modelo también está disponible en formato [DBML](modelo.dbml), importable en
+> [dbdiagram.io](https://dbdiagram.io) (Import → DBML) para un diagrama interactivo con
+> notas por columna y export a SQL de otros motores.
+
 ```mermaid
 erDiagram
     SUCURSALES ||--o{ USUARIOS : "emplea"
