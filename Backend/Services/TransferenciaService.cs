@@ -155,8 +155,23 @@ public class TransferenciaService : ITransferenciaService
         transferencia.Ruta = dto.Ruta;
         transferencia.CostoEnvio = dto.CostoEnvio ?? rutaConfigurada?.CostoEnvio;
         transferencia.FechaEnvio = DateTime.UtcNow;
-        transferencia.FechaEstimadaLlegada = dto.FechaEstimadaLlegada
-            ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : null);
+
+        var fechaEstimada = dto.FechaEstimadaLlegada
+            ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : (DateTime?)null);
+
+        // El DatePicker del frontend solo captura el día (guarda 00:00:00 de
+        // ese día); si el envío ocurre después de medianoche del mismo día
+        // elegido, "00:00:00" queda técnicamente ANTES que la hora real de
+        // envío y el cálculo de días estimados en Logística da negativo. Se
+        // interpreta como "hasta el final de ese día" en ese caso — nunca
+        // antes del momento del envío.
+        if (fechaEstimada is not null && fechaEstimada.Value.Date == transferencia.FechaEnvio.Value.Date
+            && fechaEstimada.Value < transferencia.FechaEnvio.Value)
+        {
+            fechaEstimada = fechaEstimada.Value.Date.AddDays(1).AddSeconds(-1);
+        }
+
+        transferencia.FechaEstimadaLlegada = fechaEstimada;
         transferencia.Estado = EstadoTransferencia.EnTransito;
         transferencia.UsuarioEnvioId = usuarioId;
 
