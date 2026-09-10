@@ -5,15 +5,17 @@ import {
   getTransferenciasEnCurso,
   getCumplimientoPorSucursal,
 } from '../api/logistica'
+import { RESULTADO_TIEMPO_ENVIO } from '../types/logistica'
 import type {
   ClasificacionRuta,
   Cumplimiento,
+  ResultadoTiempoEnvio,
   TiempoEnvio,
   TransferenciaEnCurso,
 } from '../types/logistica'
 import { ESTADO_TRANSFERENCIA_LABEL, PRIORIDAD_TRANSFERENCIA_LABEL } from '../types/transferencia'
 import { ApiError } from '../api/client'
-import { formatearMoneda } from '../utils/format'
+import { formatearMoneda, formatearFechaHora } from '../utils/format'
 
 type Tab = 'enCurso' | 'tiempos' | 'rutas' | 'cumplimientoSucursal'
 
@@ -120,36 +122,52 @@ export function LogisticaPage() {
             {tab === 'tiempos' && (
               <MensajeVacio visible={tiempos.length === 0} texto="No hay envíos registrados.">
                 <div className="table-scroll">
-                <table className="data-table">
+                <table className="data-table tiempos-table">
                   <thead>
                     <tr>
                       <th>Ruta</th>
                       <th>Origen → Destino</th>
-                      <th>Días estimados</th>
-                      <th>Días reales</th>
-                      <th>Desviación</th>
-                      <th>Cumplió</th>
+                      <th>Enviado</th>
+                      <th>Llegada estimada</th>
+                      <th>Recibido</th>
+                      <th>Tiempo estimado</th>
+                      <th>Tiempo real</th>
+                      <th>Diferencia</th>
+                      <th>Estado</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {tiempos.map((t) => (
-                      <tr key={t.transferenciaId} className={t.cumplioTiempoEstimado === false ? 'row-alert' : undefined}>
-                        <td>{t.ruta || '—'}</td>
-                        <td>
-                          {t.sucursalOrigenNombre} → {t.sucursalDestinoNombre}
-                        </td>
-                        <td>{t.diasEstimados?.toFixed(1) ?? '—'}</td>
-                        <td>{t.diasReales?.toFixed(1) ?? '—'}</td>
-                        <td>{t.desviacionDias?.toFixed(1) ?? '—'}</td>
-                        <td>
-                          {t.cumplioTiempoEstimado === null
-                            ? 'Sin datos suficientes'
-                            : t.cumplioTiempoEstimado
-                              ? 'A tiempo'
-                              : 'Retraso'}
-                        </td>
-                      </tr>
-                    ))}
+                    {tiempos.map((t) => {
+                      // El color/texto de cada fila viene DIRECTO de `resultado`
+                      // (decidido en el backend a partir del estado real de la
+                      // transferencia) — nunca se re-infiere aquí a partir de
+                      // números o de su signo.
+                      const filaClase =
+                        t.resultado === RESULTADO_TIEMPO_ENVIO.Retraso
+                          ? 'row-alert'
+                          : t.resultado === RESULTADO_TIEMPO_ENVIO.ATiempo
+                            ? 'row-ok'
+                            : undefined
+                      const enviado = formatearFechaHora(t.fechaEnvio)
+                      const estimado = formatearFechaHora(t.fechaEstimadaLlegada)
+                      const recibido = formatearFechaHora(t.fechaRecepcion)
+                      const esPendiente = t.resultado === RESULTADO_TIEMPO_ENVIO.Pendiente
+                      return (
+                        <tr key={t.transferenciaId} className={filaClase}>
+                          <td>{t.ruta || '—'}</td>
+                          <td>
+                            {t.sucursalOrigenNombre} → {t.sucursalDestinoNombre}
+                          </td>
+                          <td><CeldaFechaHora valor={enviado} /></td>
+                          <td><CeldaFechaHora valor={estimado} /></td>
+                          <td><CeldaFechaHora valor={recibido} /></td>
+                          <td>{t.diasEstimados !== null ? `${t.diasEstimados.toFixed(1)} d` : '—'}</td>
+                          <td>{!esPendiente && t.diasReales !== null ? `${t.diasReales.toFixed(1)} d` : '—'}</td>
+                          <td><CeldaDiferencia dias={esPendiente ? null : t.desviacionDias} resultado={t.resultado} /></td>
+                          <td><BadgeResultado resultado={t.resultado} /></td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
                 </div>
@@ -223,6 +241,60 @@ function MensajeVacio({
     )
   }
   return <>{children}</>
+}
+
+function CeldaFechaHora({ valor }: { valor: { fecha: string; hora: string } | null }) {
+  if (!valor) return <span className="tr-fecha-vacia">—</span>
+  return (
+    <span className="tr-fecha-hora">
+      <span className="tr-fecha-hora-fecha">{valor.fecha}</span>
+      <span className="tr-fecha-hora-hora">{valor.hora}</span>
+    </span>
+  )
+}
+
+// Interpretación textual de la diferencia (además del número): negativa =
+// llegó antes, cero = exacto, positiva = llegó después — nunca se etiqueta
+// como "retraso" solo por ver un signo, sino según `resultado` (que ya
+// decidió el backend con la comparación real, sin redondeos).
+function CeldaDiferencia({
+  dias,
+  resultado,
+}: {
+  dias: number | null
+  resultado: ResultadoTiempoEnvio
+}) {
+  if (dias === null || resultado === RESULTADO_TIEMPO_ENVIO.Pendiente) {
+    return <span className="tr-diferencia-vacia">—</span>
+  }
+
+  const signo = dias > 0 ? '+' : ''
+  const interpretacion =
+    dias < 0 ? 'Antes de lo estimado' : dias === 0 ? 'Exactamente a tiempo' : 'Después de lo estimado'
+  const clase = resultado === RESULTADO_TIEMPO_ENVIO.Retraso ? 'tr-diferencia--retraso' : 'tr-diferencia--atiempo'
+
+  return (
+    <span className={`tr-diferencia ${clase}`}>
+      <strong>{signo}{dias.toFixed(2)} d</strong>
+      <span>{interpretacion}</span>
+    </span>
+  )
+}
+
+function BadgeResultado({ resultado }: { resultado: ResultadoTiempoEnvio }) {
+  const config = {
+    [RESULTADO_TIEMPO_ENVIO.Pendiente]: { emoji: '⚪', texto: 'Pendiente', clase: 'tr-resultado--pendiente' },
+    [RESULTADO_TIEMPO_ENVIO.ATiempo]: { emoji: '🟢', texto: 'A tiempo', clase: 'tr-resultado--atiempo' },
+    [RESULTADO_TIEMPO_ENVIO.Retraso]: { emoji: '🔴', texto: 'Retraso', clase: 'tr-resultado--retraso' },
+    [RESULTADO_TIEMPO_ENVIO.SinDatos]: { emoji: '⚪', texto: 'Sin datos suficientes', clase: 'tr-resultado--pendiente' },
+  }[resultado]
+
+  return (
+    <span className={`tr-resultado-badge ${config.clase}`}>
+      <span aria-hidden="true">{config.emoji}</span>
+      {config.texto}
+    </span>
+  )
 }
 
 function CumplimientoTable({ rows }: { rows: Cumplimiento[] }) {

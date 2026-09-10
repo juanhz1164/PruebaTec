@@ -3,6 +3,21 @@ using InventarioMultiSucursal.Api.Models;
 namespace InventarioMultiSucursal.Api.DTOs;
 
 // T48: tiempos estimados vs. reales de una transferencia ya enviada.
+//
+// Resultado es la fuente de verdad del estado/color de cada fila — se calcula
+// en el backend a partir del Estado real de la transferencia y las fechas, y
+// el frontend SOLO lo traduce a texto/color (nunca vuelve a inferirlo a
+// partir de los números redondeados, que es lo que causaba filas marcadas
+// como "Retraso" con una desviación negativa: la comparación real usa
+// timestamps completos, no los días ya redondeados a 1 decimal para mostrar).
+public enum ResultadoTiempoEnvio
+{
+    Pendiente,   // Aún en tránsito: no hay FechaRecepcion todavía.
+    ATiempo,     // Recibida, FechaRecepcion <= FechaEstimadaLlegada.
+    Retraso,     // Recibida, FechaRecepcion > FechaEstimadaLlegada.
+    SinDatos     // Recibida pero sin FechaEstimadaLlegada para comparar.
+}
+
 public class TiempoEnvioDto
 {
     public int TransferenciaId { get; set; }
@@ -17,6 +32,10 @@ public class TiempoEnvioDto
 
     // Positivo = llegó tarde (días de atraso); negativo o cero = a tiempo o adelantada.
     public double? DesviacionDias { get; set; }
+    public ResultadoTiempoEnvio Resultado { get; set; }
+
+    // Se mantiene por compatibilidad, pero deja de ser la fuente de verdad
+    // del color/estado en el frontend — usar Resultado.
     public bool? CumplioTiempoEstimado { get; set; }
 }
 

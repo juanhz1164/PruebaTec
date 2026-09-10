@@ -110,12 +110,12 @@ public class TransferenciaService : ITransferenciaService
             return ResultadoTransferencia.Falla("Debe indicar la cantidad enviada de al menos una línea.");
         }
 
-        // La fecha estimada de llegada nunca puede quedar en el pasado — se
-        // compara contra la fecha (sin hora) de hoy para no rechazar "hoy
-        // mismo" solo porque la hora exacta del envío ya pasó.
-        if (dto.FechaEstimadaLlegada is not null && dto.FechaEstimadaLlegada.Value.Date < DateTime.UtcNow.Date)
+        // La fecha/hora estimada de llegada nunca puede quedar en el pasado —
+        // se compara el instante completo (no solo el día) para que tampoco
+        // se pueda elegir una hora ya pasada del día de hoy.
+        if (dto.FechaEstimadaLlegada is not null && dto.FechaEstimadaLlegada.Value < DateTime.UtcNow)
         {
-            return ResultadoTransferencia.Falla("La fecha estimada de llegada no puede ser anterior a hoy.");
+            return ResultadoTransferencia.Falla("La fecha y hora estimada de llegada no puede ser anterior al momento actual.");
         }
 
         // Valida stock disponible en el origen de TODAS las líneas antes de tocar nada.
@@ -159,12 +159,12 @@ public class TransferenciaService : ITransferenciaService
         var fechaEstimada = dto.FechaEstimadaLlegada
             ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : (DateTime?)null);
 
-        // El DatePicker del frontend solo captura el día (guarda 00:00:00 de
-        // ese día); si el envío ocurre después de medianoche del mismo día
-        // elegido, "00:00:00" queda técnicamente ANTES que la hora real de
-        // envío y el cálculo de días estimados en Logística da negativo. Se
-        // interpreta como "hasta el final de ese día" en ese caso — nunca
-        // antes del momento del envío.
+        // Defensa en profundidad: la validación de arriba ya rechaza cualquier
+        // FechaEstimadaLlegada anterior al momento actual, pero por si algún
+        // llamador directo a la API (no el formulario) la deja pasar de otra
+        // forma, nunca se persiste una fecha estimada anterior al envío mismo
+        // — se lleva al final de ese día en vez de producir un tiempo
+        // estimado negativo sin sentido en Logística.
         if (fechaEstimada is not null && fechaEstimada.Value.Date == transferencia.FechaEnvio.Value.Date
             && fechaEstimada.Value < transferencia.FechaEnvio.Value)
         {

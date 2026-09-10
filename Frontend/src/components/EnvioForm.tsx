@@ -12,6 +12,11 @@ function hoyIso(): string {
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
 }
 
+function horaAhoraHHMM(): string {
+  const ahora = new Date()
+  return `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`
+}
+
 function sumarDiasIso(fechaIso: string, dias: number): string {
   const [anio, mes, dia] = fechaIso.split('-').map(Number)
   const fecha = new Date(anio, mes - 1, dia)
@@ -50,6 +55,11 @@ export function EnvioForm({
   const [costoEnvio, setCostoEnvio] = useState('')
   const [editarCosto, setEditarCosto] = useState(false)
   const [fechaEstimada, setFechaEstimada] = useState(() => sumarDiasIso(hoy, 1))
+  // Hora de la llegada estimada — el DatePicker solo captura el día; sin
+  // hora propia, guardar siempre "00:00" podía quedar ANTES del momento
+  // real del envío cuando este ocurre después de medianoche del mismo día
+  // elegido, produciendo un "tiempo estimado" negativo sin sentido.
+  const [horaEstimada, setHoraEstimada] = useState(() => horaAhoraHHMM())
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -89,11 +99,20 @@ export function EnvioForm({
       return
     }
 
+    // Si el día elegido es hoy, la hora tampoco puede haber quedado en el
+    // pasado (comparación de instante completo, no solo de día).
+    const ahora = new Date()
+    const fechaEstimadaCompleta = new Date(`${fechaEstimada}T${horaEstimada || '00:00'}:00`)
+    if (fechaEstimadaCompleta < ahora) {
+      setError('La hora estimada de llegada no puede ser anterior a este momento.')
+      return
+    }
+
     const dto: RegistrarEnvio = {
       transportista: TRANSPORTISTA_POR_DEFECTO,
       ruta: rutaTexto,
       costoEnvio: costo,
-      fechaEstimadaLlegada: fechaEstimada ? `${fechaEstimada}T00:00:00` : null,
+      fechaEstimadaLlegada: fechaEstimada ? `${fechaEstimada}T${horaEstimada || '00:00'}:00` : null,
       lineas: transferencia.lineas.map((l) => ({
         transferenciaLineaId: l.id,
         cantidadEnviada: l.cantidadSolicitada,
@@ -178,8 +197,18 @@ export function EnvioForm({
           </div>
 
           <div className="form-row">
-            <label htmlFor="envio-fecha">Fecha estimada de llegada</label>
-            <DatePicker value={fechaEstimada} onChange={setFechaEstimada} min={hoy} className="tr-envio-fecha" />
+            <label htmlFor="envio-fecha">Fecha y hora estimada de llegada</label>
+            <div className="tr-envio-fecha-hora">
+              <DatePicker value={fechaEstimada} onChange={setFechaEstimada} min={hoy} className="tr-envio-fecha" />
+              <input
+                id="envio-hora"
+                type="time"
+                className="tr-envio-hora"
+                value={horaEstimada}
+                min={fechaEstimada === hoy ? horaAhoraHHMM() : undefined}
+                onChange={(e) => setHoraEstimada(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 

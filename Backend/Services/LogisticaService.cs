@@ -15,14 +15,36 @@ public class LogisticaService : ILogisticaService
     }
 
     // T48: tiempos estimados vs. reales de cada transferencia ya enviada.
+    //
+    // Resultado (Pendiente/ATiempo/Retraso/SinDatos) es la ÚNICA fuente de
+    // verdad para el estado/color de cada fila en el frontend, y se decide
+    // aquí a partir del Estado real de la transferencia — nunca inferido a
+    // partir de si un número es null o de su signo:
+    //   - EnTransito (todavía sin FechaRecepcion)      → Pendiente
+    //   - Recibida sin FechaEstimadaLlegada registrada → SinDatos
+    //   - Recibida con FechaRecepcion <= FechaEstimada  → ATiempo
+    //   - Recibida con FechaRecepcion >  FechaEstimada  → Retraso
+    // La comparación de A tiempo/Retraso usa los DateTime completos (no los
+    // días ya redondeados a 2 decimales que se muestran en pantalla), para
+    // que un redondeo nunca cambie el resultado.
     public async Task<List<TiempoEnvioDto>> GetTiemposEnvioAsync()
     {
         var enviadas = await _repository.GetEnviadasAsync();
 
         return enviadas.Select(t =>
         {
-            var diasEstimados = t.FechaEstimadaLlegada is not null
-                ? (t.FechaEstimadaLlegada.Value - t.FechaEnvio!.Value).TotalDays
+            var transferenciaEnTransito = t.Estado == EstadoTransferencia.EnTransito;
+
+            // Dato corrupto histórico (fecha estimada registrada antes del envío,
+            // de antes de que existiera la validación actual): no se calculan
+            // "días estimados" negativos sin sentido — se trata como si no
+            // hubiera fecha estimada, en vez de producir una desviación engañosa.
+            var fechaEstimadaValida = t.FechaEstimadaLlegada is not null && t.FechaEstimadaLlegada.Value >= t.FechaEnvio!.Value
+                ? t.FechaEstimadaLlegada
+                : null;
+
+            var diasEstimados = fechaEstimadaValida is not null
+                ? (fechaEstimadaValida.Value - t.FechaEnvio!.Value).TotalDays
                 : (double?)null;
 
             var diasReales = t.FechaRecepcion is not null
@@ -30,14 +52,24 @@ public class LogisticaService : ILogisticaService
                 : (double?)null;
 
             double? desviacion = diasEstimados is not null && diasReales is not null
-                ? Math.Round(diasReales.Value - diasEstimados.Value, 2)
+                ? diasReales.Value - diasEstimados.Value
                 : null;
 
-            // Compara fechas exactas (no los días ya redondeados) para no perder
-            // atrasos pequeños por el redondeo a 2 decimales.
-            bool? cumplioTiempo = t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null
-                ? t.FechaRecepcion.Value <= t.FechaEstimadaLlegada.Value
-                : null;
+            ResultadoTiempoEnvio resultado;
+            if (transferenciaEnTransito || t.FechaRecepcion is null)
+            {
+                resultado = ResultadoTiempoEnvio.Pendiente;
+            }
+            else if (fechaEstimadaValida is null)
+            {
+                resultado = ResultadoTiempoEnvio.SinDatos;
+            }
+            else
+            {
+                resultado = t.FechaRecepcion.Value <= fechaEstimadaValida.Value
+                    ? ResultadoTiempoEnvio.ATiempo
+                    : ResultadoTiempoEnvio.Retraso;
+            }
 
             return new TiempoEnvioDto
             {
@@ -46,12 +78,13 @@ public class LogisticaService : ILogisticaService
                 SucursalOrigenNombre = t.SucursalOrigen?.Nombre ?? string.Empty,
                 SucursalDestinoNombre = t.SucursalDestino?.Nombre ?? string.Empty,
                 FechaEnvio = t.FechaEnvio!.Value,
-                FechaEstimadaLlegada = t.FechaEstimadaLlegada,
+                FechaEstimadaLlegada = fechaEstimadaValida,
                 FechaRecepcion = t.FechaRecepcion,
                 DiasEstimados = diasEstimados is not null ? Math.Round(diasEstimados.Value, 2) : null,
                 DiasReales = diasReales is not null ? Math.Round(diasReales.Value, 2) : null,
-                DesviacionDias = desviacion,
-                CumplioTiempoEstimado = cumplioTiempo
+                DesviacionDias = desviacion is not null ? Math.Round(desviacion.Value, 2) : null,
+                Resultado = resultado,
+                CumplioTiempoEstimado = resultado == ResultadoTiempoEnvio.Pendiente ? null : resultado == ResultadoTiempoEnvio.ATiempo
             };
         }).ToList();
     }
