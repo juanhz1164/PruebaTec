@@ -1,0 +1,154 @@
+SET NAMES utf8mb4;
+USE inventario;
+
+-- ============================================================
+-- Unidades de medida
+-- ============================================================
+
+INSERT INTO unidades_medida (nombre, abreviatura) VALUES
+    ('Unidad', 'un'),
+    ('Kilogramo', 'kg'),
+    ('Litro', 'lt'),
+    ('Caja', 'caja');
+
+-- ============================================================
+-- Sucursales
+-- ============================================================
+
+INSERT INTO sucursales (nombre, direccion, ciudad, telefono, activa) VALUES
+    ('Sucursal Centro', 'Calle 10 # 5-20', 'Bogotá', '6011234567', TRUE),
+    ('Sucursal Norte', 'Av. 19 # 100-30', 'Bogotá', '6017654321', TRUE),
+    ('Sucursal Medellín', 'Cra 43A # 20-15', 'Medellín', '6042223344', TRUE);
+
+-- ============================================================
+-- Usuarios (uno por rol; gerentes/operadores atados a una sucursal)
+-- NOTA: password_hash es el hash BCrypt de la contraseña de prueba
+-- "Password123!" para TODOS estos usuarios (solo entorno de desarrollo/seed,
+-- nunca reutilizar esta contraseña ni este hash en un entorno real).
+-- ============================================================
+
+INSERT INTO usuarios (sucursal_id, nombre, email, password_hash, rol, activo) VALUES
+    (NULL, 'Admin General', 'admin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'administrador_general', TRUE),
+    (1, 'Gerente Centro', 'gerente.centro@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE),
+    (1, 'Operador Centro', 'operador.centro@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'operador_inventario', TRUE),
+    (2, 'Gerente Norte', 'gerente.norte@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE),
+    (2, 'Operador Norte', 'operador.norte@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'operador_inventario', TRUE),
+    (3, 'Gerente Medellín', 'gerente.medellin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'gerente_sucursal', TRUE),
+    (3, 'Operador Medellín', 'operador.medellin@inventario.com', '$2a$11$HO0dWUpZ4W6aXRlbINi4t.MT2fJKWdAGm7.rKaJgBPrBHUjbomtAC', 'operador_inventario', TRUE);
+
+-- ============================================================
+-- Proveedores (para poder probar el módulo de compras)
+-- Cada uno distribuye una familia de productos: papelería, abarrotes o aseo.
+-- Se insertan antes de productos porque cada producto referencia a su
+-- proveedor principal (proveedor_id).
+-- ============================================================
+
+INSERT INTO proveedores (nombre, contacto, telefono, email, direccion, activo) VALUES
+    ('Distribuidora Papelera S.A.S.', 'Laura Gómez', '6015551111', 'ventas@papelera.com', 'Zona Industrial, Bogotá', TRUE),
+    ('Abarrotes del Valle Ltda.', 'Carlos Ruiz', '6015552222', 'pedidos@abarrotesvalle.com', 'Cra 50 # 10-05, Medellín', TRUE),
+    ('Distribuidora de Aseo y Limpieza S.A.S.', 'Marcela Torres', '6015553333', 'ventas@aseoylimpieza.com', 'Cra 30 # 15-40, Bogotá', TRUE);
+
+-- ============================================================
+-- Productos (catálogo base — tienda / minimercado de barrio)
+-- unidad_medida_id: 1=Unidad, 2=Kilogramo, 3=Litro, 4=Caja
+-- proveedor_id: 1=Papelera, 2=Abarrotes del Valle, 3=Aseo y Limpieza
+-- ============================================================
+
+-- precio_venta / precio_proveedor: ~30% de margen entre el costo del
+-- proveedor y el precio de venta al público en todo el catálogo, igual que
+-- el ejemplo de referencia (Lapicero: venta $1.000, proveedor $700 = 30%).
+INSERT INTO productos (unidad_medida_id, proveedor_id, sku, nombre, descripcion, categoria, activo, precio_venta, precio_proveedor) VALUES
+    (1, 1, 'PROD-001', 'Lapicero', 'Lapicero de tinta azul punta fina', 'Papelería', TRUE, 1000.00, 700.00),
+    (2, 2, 'PROD-002', 'Arroz', 'Arroz blanco, venta a granel por kilo', 'Abarrotes', TRUE, 4600.00, 3200.00),
+    (3, 2, 'PROD-003', 'Aceite vegetal', 'Aceite vegetal comestible, venta por litro', 'Abarrotes', TRUE, 13600.00, 9500.00),
+    (3, 3, 'PROD-004', 'Detergente líquido', 'Detergente líquido para ropa, venta por litro', 'Aseo', TRUE, 11200.00, 7800.00),
+    (1, 3, 'PROD-005', 'Jabón de baño', 'Jabón de tocador en barra', 'Aseo', TRUE, 2600.00, 1800.00),
+    (3, 3, 'PROD-006', 'Detergente líquido 3L', 'Detergente líquido para ropa, presentación de 3 litros', 'Aseo', TRUE, 30000.00, 21000.00),
+    (3, 3, 'PROD-007', 'Detergente líquido 5L', 'Detergente líquido para ropa, presentación de 5 litros', 'Aseo', TRUE, 47000.00, 33000.00),
+    (3, 3, 'PROD-008', 'Detergente líquido 7L', 'Detergente líquido para ropa, presentación de 7 litros', 'Aseo', TRUE, 63000.00, 44000.00),
+    (4, 1, 'PROD-009', 'Caja de lapiceros', 'Caja con 12 lapiceros azules, más económica que comprarlos sueltos', 'Papelería', TRUE, 12000.00, 8400.00),
+    (1, 1, 'PROD-010', 'Cuaderno', 'Cuaderno cuadriculado de 100 hojas', 'Papelería', TRUE, 3600.00, 2500.00);
+
+-- ============================================================
+-- Inventario inicial por sucursal
+-- producto_id: 1..10 en el mismo orden de arriba
+-- sucursal_id: 1=Centro, 2=Norte, 3=Medellín
+-- Costo de los detergentes 3L/5L/7L (productos 6-8): proporcional al litro
+-- del detergente base (~$7.800/L) con descuento por tamaño de envase.
+-- "Caja de lapiceros" (producto 9) es un producto independiente con su propio
+-- stock: no descuenta del stock de "Lapicero" al venderse.
+-- ============================================================
+
+INSERT INTO inventario (producto_id, sucursal_id, cantidad, stock_minimo, costo_promedio) VALUES
+    (1, 1, 85, 50, 800.00),
+    (2, 1, 120, 20, 3200.00),
+    (3, 1, 60, 15, 9500.00),
+    (4, 1, 40, 10, 7800.00),
+    (5, 1, 150, 30, 1800.00),
+    (6, 1, 30, 8, 21000.00),
+    (7, 1, 25, 6, 33000.00),
+    (8, 1, 15, 5, 44000.00),
+    (9, 1, 25, 5, 8400.00),
+    (10, 1, 120, 30, 2500.00),
+
+    (1, 2, 200, 50, 800.00),
+    (2, 2, 80, 20, 3200.00),
+    (4, 2, 25, 10, 7800.00),
+    (6, 2, 20, 8, 21000.00),
+    (7, 2, 15, 6, 33000.00),
+    (8, 2, 10, 5, 44000.00),
+    (9, 2, 15, 5, 8400.00),
+    (10, 2, 90, 30, 2500.00),
+
+    (1, 3, 150, 50, 800.00),
+    (3, 3, 30, 15, 9500.00),
+    (5, 3, 90, 30, 1800.00),
+    (9, 3, 10, 5, 8400.00),
+    (10, 3, 60, 30, 2500.00);
+
+-- ============================================================
+-- Visitas (funcionalidad adicional, §4 del PDF): flujo de personas de
+-- agosto en Centro y Norte, para que el dashboard tenga datos de meses
+-- anteriores desde el primer arranque (no solo del mes en curso).
+-- fecha_hora se guarda en UTC (igual que el resto del sistema); Colombia es
+-- UTC-5 sin horario de verano, así que estas horas equivalen a horario local
+-- de Colombia 5 horas antes de lo escrito aquí (ver ZonaHorariaColombia.cs).
+-- ============================================================
+
+INSERT INTO visitas (sucursal_id, usuario_id, cantidad_personas, fecha_hora) VALUES
+    (1, 3, 2, '2026-08-03 14:15:00'),
+    (1, 3, 1, '2026-08-03 20:40:00'),
+    (1, 2, 3, '2026-08-07 15:20:00'),
+    (1, 3, 1, '2026-08-07 18:50:00'),
+    (1, 3, 2, '2026-08-07 21:10:00'),
+    (1, 2, 1, '2026-08-11 16:00:00'),
+    (1, 3, 4, '2026-08-14 14:45:00'),
+    (1, 3, 2, '2026-08-18 13:50:00'),
+    (1, 2, 1, '2026-08-18 15:30:00'),
+    (1, 3, 3, '2026-08-18 19:15:00'),
+    (1, 3, 1, '2026-08-21 21:00:00'),
+    (1, 2, 2, '2026-08-25 14:30:00'),
+    (1, 3, 1, '2026-08-28 17:10:00'),
+    (2, 6, 2, '2026-08-05 14:00:00'),
+    (2, 4, 1, '2026-08-09 16:30:00'),
+    (2, 6, 3, '2026-08-12 15:15:00'),
+    (2, 6, 1, '2026-08-12 20:20:00'),
+    (2, 4, 2, '2026-08-16 14:40:00'),
+    (2, 6, 1, '2026-08-20 18:00:00'),
+    (2, 6, 2, '2026-08-25 13:55:00'),
+    (2, 4, 1, '2026-08-25 22:00:00'),
+    (2, 6, 3, '2026-08-29 15:00:00');
+
+-- ============================================================
+-- Rutas logísticas: configuración de transportista/costo/tiempo por par de
+-- sucursales. Valores DEMO para que Logística tenga datos reales desde el
+-- primer arranque; ajustar a costos/tiempos reales en un entorno productivo.
+-- ============================================================
+
+INSERT INTO rutas_logisticas (sucursal_origen_id, sucursal_destino_id, transportista, costo_envio, tiempo_estimado_dias) VALUES
+    (1, 2, 'Coordinadora', 20000.00, 1),
+    (2, 1, 'Coordinadora', 20000.00, 1),
+    (1, 3, 'Coordinadora', 35000.00, 2),
+    (3, 1, 'Coordinadora', 35000.00, 2),
+    (2, 3, 'Coordinadora', 40000.00, 2),
+    (3, 2, 'Coordinadora', 40000.00, 2);

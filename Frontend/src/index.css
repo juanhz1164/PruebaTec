@@ -1,0 +1,190 @@
+:root {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+  --accent: #34d399;
+  --accent-bg: rgba(52, 211, 153, 0.15);
+  --accent-border: rgba(52, 211, 153, 0.5);
+  --social-bg: rgba(47, 48, 58, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+  --chart-1: #34d399;
+  --chart-2: #1f9d5c;
+  --chart-3: #2a7fc9;
+  --chart-4: #e0517d;
+  --status-warning: #d4a017;
+  --status-warning-bg: rgba(212, 160, 23, 0.15);
+  --status-critical: #e0517d;
+  --status-critical-bg: rgba(224, 81, 125, 0.15);
+
+  /* Paleta dorada, para gráficas dentro de pantallas exclusivas del
+     Administrador (cuyo color de rol es el dorado --status-warning). */
+  --chart-gold-1: #d4a017;
+  --chart-gold-2: #b8860b;
+  --chart-gold-3: #e8c158;
+  --chart-gold-4: #8c6d1f;
+
+  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+/* Tema claro (botón de modo claro/oscuro): mismos tokens, valores invertidos. */
+:root[data-theme='light'] {
+  --text: #4b5563;
+  --text-h: #111827;
+  --bg: #ffffff;
+  --border: #e2e5eb;
+  --code-bg: #f4f5f7;
+  --accent: #059669;
+  --accent-bg: rgba(5, 150, 105, 0.1);
+  --accent-border: rgba(5, 150, 105, 0.4);
+  --social-bg: rgba(228, 229, 232, 0.6);
+  --shadow:
+    rgba(0, 0, 0, 0.08) 0 10px 15px -3px, rgba(0, 0, 0, 0.04) 0 4px 6px -2px;
+
+  --chart-1: #059669;
+  --chart-2: #0f7a4a;
+  --chart-3: #1d6fb8;
+  --chart-4: #c73866;
+  --status-warning: #b8860b;
+  --status-warning-bg: rgba(184, 134, 11, 0.1);
+  --status-critical: #c73866;
+  --status-critical-bg: rgba(199, 56, 102, 0.1);
+
+  --chart-gold-1: #b8860b;
+  --chart-gold-2: #9a6f09;
+  --chart-gold-3: #d4a017;
+  --chart-gold-4: #7a5807;
+
+  color-scheme: light;
+}
+
+#social .button-icon {
+  filter: invert(1) brightness(2);
+}
+
+:root[data-theme='light'] #social .button-icon {
+  filter: none;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Barra de scroll global: delgada y del color de los bordes del tema (en vez
+   de la barra gris ancha por defecto del sistema/navegador, que no combina
+   con el resto de la UI). Se aplica a CUALQUIER elemento con scroll interno
+   que no tenga ya una regla más específica (tablas, modales, listas, etc.),
+   para no tener que repetir este estilo contenedor por contenedor. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--rol-accent-border, var(--accent-border));
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 32px;
+  letter-spacing: -0.96px;
+  margin: 0 0 8px;
+  @media (max-width: 640px) {
+    font-size: 24px;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+  @media (max-width: 640px) {
+    font-size: 18px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+/* Oculta las flechas de incremento/decremento de los inputs numéricos en
+   toda la app: la entrada debe ser manual (tecleada), no por clic. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
