@@ -424,9 +424,23 @@ public class AppDbContext : DbContext
         // "Z", y el navegador las interpreta como si ya fueran hora local
         // (sin restar el offset) — eso desfasaba varias horas la hora
         // mostrada de ventas, transferencias, etc. en el frontend.
+        //
+        // IMPORTANTE: se necesitan DOS conversores — uno para DateTime y otro
+        // para DateTime? (Nullable<DateTime>) — porque son ClrType distintos.
+        // El filtro original solo cubría DateTime (no nullable), así que
+        // columnas como Transferencia.FechaEnvio/FechaEstimadaLlegada/
+        // FechaRecepcion (todas DateTime?) quedaban SIN el conversor: el JSON
+        // les faltaba el sufijo "Z" y el navegador las mostraba como si ya
+        // fueran hora local de Colombia, restando la conversión UTC→local una
+        // segunda vez (p. ej. 20:46 hora Colombia llegaba al frontend como
+        // "01:46" sin marca de zona, y el navegador lo mostraba tal cual).
         var conversorUtc = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
             v => v,
             v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var conversorUtcNullable = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
+            v => v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -435,6 +449,10 @@ public class AppDbContext : DbContext
                 if (property.ClrType == typeof(DateTime))
                 {
                     property.SetValueConverter(conversorUtc);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(conversorUtcNullable);
                 }
             }
         }

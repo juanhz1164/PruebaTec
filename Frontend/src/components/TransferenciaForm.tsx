@@ -92,21 +92,27 @@ function AgregarProductoModal({
           </select>
         </div>
 
+        {productoId !== null && (
+          <div className="tr-agregar-stock-banner">
+            <span className="tr-agregar-stock-banner-label">Stock disponible</span>
+            <strong className="tr-agregar-stock-banner-valor">
+              {stock !== undefined ? stock : '—'}
+              <span className="tr-agregar-stock-banner-unidad">un.</span>
+            </strong>
+          </div>
+        )}
+
         {productoSeleccionado && cantidadYaEnLista > 0 && (
           <p className="tr-agregar-nota">
             Este producto ya está agregado ({cantidadYaEnLista} un.) — la cantidad que ingreses aquí se sumará.
           </p>
         )}
 
-        <div className="tr-agregar-grid">
-          <div className="tr-agregar-stock">
-            <span>Stock disponible</span>
-            <strong>{productoId !== null ? (stock !== undefined ? stock : '—') : '—'}</strong>
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="tr-agregar-cantidad">Cantidad solicitada</label>
-            <div className="tr-agregar-cantidad-stepper">
+        <div className="tr-agregar-cantidad-bloque">
+          <label htmlFor="tr-agregar-cantidad" className="tr-agregar-cantidad-label">
+            Cantidad a transferir
+          </label>
+          <div className="tr-agregar-cantidad-stepper">
               <button
                 type="button"
                 className="tr-agregar-stepper-btn"
@@ -151,7 +157,6 @@ function AgregarProductoModal({
               >
                 <Plus size={14} strokeWidth={2.4} />
               </button>
-            </div>
           </div>
         </div>
 

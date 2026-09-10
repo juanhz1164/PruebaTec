@@ -153,4 +153,42 @@ public class LogisticaServiceTiemposTests
 
         Assert.Equal(ResultadoTiempoEnvio.SinDatos, dto.Resultado);
     }
+
+    // Caso crítico de zona horaria (el que reportó el usuario): el usuario
+    // elige "10/09/2026" como fecha estimada — el frontend la codifica como
+    // medianoche EN HORA COLOMBIA (2026-09-10T00:00:00-05:00 == 2026-09-10T
+    // 05:00:00 UTC, ver EnvioForm.fechaSoloDiaAIsoColombia), no medianoche
+    // UTC. La recepción ocurre a las 20:47 hora Colombia del MISMO día
+    // 10/09 — que en UTC es 2026-09-11T01:47:00 (ya cruzó a otro día en
+    // UTC). Comparar instantes UTC crudos marcaría esto como Retraso
+    // (11/09 > 10/09 en UTC); comparando por día calendario en hora Colombia
+    // (ZonaHorariaColombia.ALocal) ambos caen el mismo 10/09 → A tiempo.
+    [Fact]
+    public async Task RecepcionMismoDiaColombia_CruzandoMedianocheUtc_EsATiempo()
+    {
+        var envio = new DateTime(2026, 9, 10, 13, 0, 0, DateTimeKind.Utc); // 08:00 Colombia
+        var estimada = new DateTime(2026, 9, 10, 5, 0, 0, DateTimeKind.Utc); // "10/09/2026" medianoche Colombia
+        var recepcionUtc = new DateTime(2026, 9, 11, 1, 47, 0, DateTimeKind.Utc); // 20:47 Colombia del 10/09
+
+        var t = CrearBase(EstadoTransferencia.RecibidaCompleta, envio, estimada, recepcionUtc);
+
+        var dto = await EjecutarConUnaTransferencia(t);
+
+        Assert.Equal(ResultadoTiempoEnvio.ATiempo, dto.Resultado);
+    }
+
+    // Mismo escenario pero un día después (11/09 08:00 Colombia) → sí es Retraso.
+    [Fact]
+    public async Task RecepcionDiaSiguienteColombia_EsRetraso()
+    {
+        var envio = new DateTime(2026, 9, 10, 13, 0, 0, DateTimeKind.Utc); // 08:00 Colombia
+        var estimada = new DateTime(2026, 9, 10, 5, 0, 0, DateTimeKind.Utc); // "10/09/2026" medianoche Colombia
+        var recepcionUtc = new DateTime(2026, 9, 11, 13, 0, 0, DateTimeKind.Utc); // 08:00 Colombia del 11/09
+
+        var t = CrearBase(EstadoTransferencia.RecibidaCompleta, envio, estimada, recepcionUtc);
+
+        var dto = await EjecutarConUnaTransferencia(t);
+
+        Assert.Equal(ResultadoTiempoEnvio.Retraso, dto.Resultado);
+    }
 }

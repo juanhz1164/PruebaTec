@@ -15,6 +15,7 @@ import {
 } from '../types/transferencia'
 import type { Transferencia } from '../types/transferencia'
 import { ApiError } from '../api/client'
+import { formatearFecha } from '../utils/format'
 
 // Preparar y enviar son operaciones físicas de la sucursal ORIGEN — quedan
 // reservadas al Gerente (el Operador no aprueba envíos). Confirmar recepción
@@ -233,7 +234,7 @@ export function TransferenciasPage() {
                             <span className="tr-estado-contextual">{textoEsperaDestino}</span>
                           )}
                         </td>
-                        <td>{new Date(t.fechaSolicitud).toLocaleDateString()}</td>
+                        <td>{formatearFecha(t.fechaSolicitud)}</td>
                         <td>
                           {t.estado === ESTADO_TRANSFERENCIA.RecibidaParcial && (
                             <ul className="faltantes-list">

@@ -12,16 +12,22 @@ function hoyIso(): string {
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
 }
 
-function horaAhoraHHMM(): string {
-  const ahora = new Date()
-  return `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`
-}
-
 function sumarDiasIso(fechaIso: string, dias: number): string {
   const [anio, mes, dia] = fechaIso.split('-').map(Number)
   const fecha = new Date(anio, mes - 1, dia)
   fecha.setDate(fecha.getDate() + dias)
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
+}
+
+// La fecha estimada es "solo fecha" — el día que el usuario eligió es un día
+// de Colombia, no un día UTC. Se codifica explícitamente como medianoche en
+// el offset de Bogotá (-05:00, fijo: Colombia no observa horario de verano)
+// en vez de mandar un string de fecha sin zona horaria — eso dejaba que
+// tanto el navegador como el backend asumieran cada uno una interpretación
+// distinta, corriendo el día real un día hacia atrás/adelante según la
+// diferencia entre la hora del servidor y la de Colombia.
+function fechaSoloDiaAIsoColombia(fechaIso: string): string {
+  return `${fechaIso}T00:00:00-05:00`
 }
 
 // Modal "Enviar transferencia": distinto del modal "Agregar producto" (ese
@@ -54,12 +60,11 @@ export function EnvioForm({
   const [cargandoRuta, setCargandoRuta] = useState(true)
   const [costoEnvio, setCostoEnvio] = useState('')
   const [editarCosto, setEditarCosto] = useState(false)
+  // La fecha estimada de llegada es SOLO fecha (sin hora): la comparación
+  // "a tiempo / retraso" en Logística se hace por día calendario contra la
+  // fecha/hora real de recepción, no por instante exacto — así que no hace
+  // falta (ni conviene) pedir una hora aquí.
   const [fechaEstimada, setFechaEstimada] = useState(() => sumarDiasIso(hoy, 1))
-  // Hora de la llegada estimada — el DatePicker solo captura el día; sin
-  // hora propia, guardar siempre "00:00" podía quedar ANTES del momento
-  // real del envío cuando este ocurre después de medianoche del mismo día
-  // elegido, produciendo un "tiempo estimado" negativo sin sentido.
-  const [horaEstimada, setHoraEstimada] = useState(() => horaAhoraHHMM())
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -99,20 +104,11 @@ export function EnvioForm({
       return
     }
 
-    // Si el día elegido es hoy, la hora tampoco puede haber quedado en el
-    // pasado (comparación de instante completo, no solo de día).
-    const ahora = new Date()
-    const fechaEstimadaCompleta = new Date(`${fechaEstimada}T${horaEstimada || '00:00'}:00`)
-    if (fechaEstimadaCompleta < ahora) {
-      setError('La hora estimada de llegada no puede ser anterior a este momento.')
-      return
-    }
-
     const dto: RegistrarEnvio = {
       transportista: TRANSPORTISTA_POR_DEFECTO,
       ruta: rutaTexto,
       costoEnvio: costo,
-      fechaEstimadaLlegada: fechaEstimada ? `${fechaEstimada}T${horaEstimada || '00:00'}:00` : null,
+      fechaEstimadaLlegada: fechaEstimada ? fechaSoloDiaAIsoColombia(fechaEstimada) : null,
       lineas: transferencia.lineas.map((l) => ({
         transferenciaLineaId: l.id,
         cantidadEnviada: l.cantidadSolicitada,
@@ -197,18 +193,8 @@ export function EnvioForm({
           </div>
 
           <div className="form-row">
-            <label htmlFor="envio-fecha">Fecha y hora estimada de llegada</label>
-            <div className="tr-envio-fecha-hora">
-              <DatePicker value={fechaEstimada} onChange={setFechaEstimada} min={hoy} className="tr-envio-fecha" />
-              <input
-                id="envio-hora"
-                type="time"
-                className="tr-envio-hora"
-                value={horaEstimada}
-                min={fechaEstimada === hoy ? horaAhoraHHMM() : undefined}
-                onChange={(e) => setHoraEstimada(e.target.value)}
-              />
-            </div>
+            <label htmlFor="envio-fecha">Fecha estimada de llegada</label>
+            <DatePicker value={fechaEstimada} onChange={setFechaEstimada} min={hoy} className="tr-envio-fecha" />
           </div>
         </div>
 

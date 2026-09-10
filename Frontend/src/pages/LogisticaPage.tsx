@@ -15,7 +15,7 @@ import type {
 } from '../types/logistica'
 import { ESTADO_TRANSFERENCIA_LABEL, PRIORIDAD_TRANSFERENCIA_LABEL } from '../types/transferencia'
 import { ApiError } from '../api/client'
-import { formatearMoneda, formatearFechaHora } from '../utils/format'
+import { formatearMoneda, formatearFechaHora, formatearFecha } from '../utils/format'
 
 type Tab = 'enCurso' | 'tiempos' | 'rutas' | 'cumplimientoSucursal'
 
@@ -108,9 +108,7 @@ export function LogisticaPage() {
                         </td>
                         <td>{t.transportista ?? '—'}</td>
                         <td>{t.ruta ?? '—'}</td>
-                        <td>
-                          {t.fechaEstimadaLlegada ? new Date(t.fechaEstimadaLlegada).toLocaleDateString() : '—'}
-                        </td>
+                        <td>{formatearFecha(t.fechaEstimadaLlegada) ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -149,7 +147,7 @@ export function LogisticaPage() {
                             ? 'row-ok'
                             : undefined
                       const enviado = formatearFechaHora(t.fechaEnvio)
-                      const estimado = formatearFechaHora(t.fechaEstimadaLlegada)
+                      const estimado = formatearFecha(t.fechaEstimadaLlegada)
                       const recibido = formatearFechaHora(t.fechaRecepcion)
                       const esPendiente = t.resultado === RESULTADO_TIEMPO_ENVIO.Pendiente
                       return (
@@ -159,7 +157,7 @@ export function LogisticaPage() {
                             {t.sucursalOrigenNombre} → {t.sucursalDestinoNombre}
                           </td>
                           <td><CeldaFechaHora valor={enviado} /></td>
-                          <td><CeldaFechaHora valor={estimado} /></td>
+                          <td>{estimado ?? <span className="tr-fecha-vacia">—</span>}</td>
                           <td><CeldaFechaHora valor={recibido} /></td>
                           <td>{t.diasEstimados !== null ? `${t.diasEstimados.toFixed(1)} d` : '—'}</td>
                           <td>{!esPendiente && t.diasReales !== null ? `${t.diasReales.toFixed(1)} d` : '—'}</td>

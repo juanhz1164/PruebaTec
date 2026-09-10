@@ -22,11 +22,12 @@ public class LogisticaService : ILogisticaService
     // partir de si un número es null o de su signo:
     //   - EnTransito (todavía sin FechaRecepcion)      → Pendiente
     //   - Recibida sin FechaEstimadaLlegada registrada → SinDatos
-    //   - Recibida con FechaRecepcion <= FechaEstimada  → ATiempo
-    //   - Recibida con FechaRecepcion >  FechaEstimada  → Retraso
-    // La comparación de A tiempo/Retraso usa los DateTime completos (no los
-    // días ya redondeados a 2 decimales que se muestran en pantalla), para
-    // que un redondeo nunca cambie el resultado.
+    //   - Recibida, día(FechaRecepcion) <= día(FechaEstimada) → ATiempo
+    //   - Recibida, día(FechaRecepcion) >  día(FechaEstimada) → Retraso
+    // FechaEstimadaLlegada es un campo "solo fecha" (sin hora, ver EnvioForm):
+    // por eso la comparación se hace por DÍA CALENDARIO — en hora de
+    // Colombia, no UTC — y no por instante exacto, que marcaría como
+    // "retraso" cualquier recepción del mismo día después de medianoche.
     public async Task<List<TiempoEnvioDto>> GetTiemposEnvioAsync()
     {
         var enviadas = await _repository.GetEnviadasAsync();
@@ -35,11 +36,16 @@ public class LogisticaService : ILogisticaService
         {
             var transferenciaEnTransito = t.Estado == EstadoTransferencia.EnTransito;
 
-            // Dato corrupto histórico (fecha estimada registrada antes del envío,
-            // de antes de que existiera la validación actual): no se calculan
-            // "días estimados" negativos sin sentido — se trata como si no
-            // hubiera fecha estimada, en vez de producir una desviación engañosa.
-            var fechaEstimadaValida = t.FechaEstimadaLlegada is not null && t.FechaEstimadaLlegada.Value >= t.FechaEnvio!.Value
+            // Dato corrupto histórico (fecha estimada registrada antes del DÍA
+            // de envío, de antes de que existiera la validación actual): no se
+            // calculan "días estimados" negativos sin sentido — se trata como
+            // si no hubiera fecha estimada. Se compara por día calendario en
+            // hora Colombia (no instante UTC): FechaEstimadaLlegada es un
+            // campo "solo fecha" (medianoche UTC del día elegido), así que es
+            // normal y válido que quede antes que la hora exacta del envío
+            // del mismo día calendario.
+            var fechaEstimadaValida = t.FechaEstimadaLlegada is not null
+                && ZonaHorariaColombia.ALocal(t.FechaEstimadaLlegada.Value).Date >= ZonaHorariaColombia.ALocal(t.FechaEnvio!.Value).Date
                 ? t.FechaEstimadaLlegada
                 : null;
 
@@ -66,7 +72,9 @@ public class LogisticaService : ILogisticaService
             }
             else
             {
-                resultado = t.FechaRecepcion.Value <= fechaEstimadaValida.Value
+                var diaEstimado = ZonaHorariaColombia.ALocal(fechaEstimadaValida.Value).Date;
+                var diaRecepcion = ZonaHorariaColombia.ALocal(t.FechaRecepcion.Value).Date;
+                resultado = diaRecepcion <= diaEstimado
                     ? ResultadoTiempoEnvio.ATiempo
                     : ResultadoTiempoEnvio.Retraso;
             }
@@ -163,17 +171,20 @@ public class LogisticaService : ILogisticaService
             .ToList();
     }
 
+    // Misma regla de "a tiempo" que GetTiemposEnvioAsync: comparación por día
+    // calendario en hora de Colombia (FechaEstimadaLlegada es solo fecha).
+    private static bool LlegoATiempo(Transferencia t) =>
+        t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null
+        && ZonaHorariaColombia.ALocal(t.FechaRecepcion.Value).Date <= ZonaHorariaColombia.ALocal(t.FechaEstimadaLlegada.Value).Date;
+
     private static CumplimientoDto Agregar(string clave, IEnumerable<Transferencia> transferencias)
     {
         var lista = transferencias.ToList();
 
-        var aTiempo = lista.Count(t =>
-            t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null
-            && t.FechaRecepcion.Value <= t.FechaEstimadaLlegada.Value);
+        var aTiempo = lista.Count(t => t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null && LlegoATiempo(t));
 
         var tarde = lista.Count(t =>
-            t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null
-            && t.FechaRecepcion.Value > t.FechaEstimadaLlegada.Value);
+            t.FechaEstimadaLlegada is not null && t.FechaRecepcion is not null && !LlegoATiempo(t));
 
         return new CumplimientoDto
         {

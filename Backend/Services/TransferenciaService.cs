@@ -110,12 +110,15 @@ public class TransferenciaService : ITransferenciaService
             return ResultadoTransferencia.Falla("Debe indicar la cantidad enviada de al menos una línea.");
         }
 
-        // La fecha/hora estimada de llegada nunca puede quedar en el pasado —
-        // se compara el instante completo (no solo el día) para que tampoco
-        // se pueda elegir una hora ya pasada del día de hoy.
-        if (dto.FechaEstimadaLlegada is not null && dto.FechaEstimadaLlegada.Value < DateTime.UtcNow)
+        // La fecha estimada de llegada es SOLO fecha (sin hora) — no puede ser
+        // un día anterior a hoy. Se compara por día calendario en la zona
+        // horaria de Colombia (no UTC): la "hoy" del usuario, no la del
+        // servidor, evita rechazar "hoy" cerca de medianoche por el desfase
+        // de husos horarios.
+        if (dto.FechaEstimadaLlegada is not null
+            && dto.FechaEstimadaLlegada.Value.Date < ZonaHorariaColombia.ALocal(DateTime.UtcNow).Date)
         {
-            return ResultadoTransferencia.Falla("La fecha y hora estimada de llegada no puede ser anterior al momento actual.");
+            return ResultadoTransferencia.Falla("La fecha estimada de llegada no puede ser anterior a hoy.");
         }
 
         // Valida stock disponible en el origen de TODAS las líneas antes de tocar nada.
@@ -156,20 +159,15 @@ public class TransferenciaService : ITransferenciaService
         transferencia.CostoEnvio = dto.CostoEnvio ?? rutaConfigurada?.CostoEnvio;
         transferencia.FechaEnvio = DateTime.UtcNow;
 
+        // Fallback cuando el frontend no manda fecha estimada explícita: se
+        // calcula sumando el tiempo típico de la ruta a la fecha de HOY en
+        // Colombia (no a la fecha/hora exacta de envío), para que la fecha
+        // estimada resultante quede sin hora, consistente con que este campo
+        // es un evento "solo fecha", no un instante.
         var fechaEstimada = dto.FechaEstimadaLlegada
-            ?? (rutaConfigurada is not null ? transferencia.FechaEnvio.Value.AddDays(rutaConfigurada.TiempoEstimadoDias) : (DateTime?)null);
-
-        // Defensa en profundidad: la validación de arriba ya rechaza cualquier
-        // FechaEstimadaLlegada anterior al momento actual, pero por si algún
-        // llamador directo a la API (no el formulario) la deja pasar de otra
-        // forma, nunca se persiste una fecha estimada anterior al envío mismo
-        // — se lleva al final de ese día en vez de producir un tiempo
-        // estimado negativo sin sentido en Logística.
-        if (fechaEstimada is not null && fechaEstimada.Value.Date == transferencia.FechaEnvio.Value.Date
-            && fechaEstimada.Value < transferencia.FechaEnvio.Value)
-        {
-            fechaEstimada = fechaEstimada.Value.Date.AddDays(1).AddSeconds(-1);
-        }
+            ?? (rutaConfigurada is not null
+                ? ZonaHorariaColombia.AUtc(ZonaHorariaColombia.ALocal(DateTime.UtcNow).Date.AddDays(rutaConfigurada.TiempoEstimadoDias))
+                : (DateTime?)null);
 
         transferencia.FechaEstimadaLlegada = fechaEstimada;
         transferencia.Estado = EstadoTransferencia.EnTransito;

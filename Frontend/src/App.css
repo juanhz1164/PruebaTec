@@ -1692,37 +1692,51 @@
   gap: 12px;
 }
 
-.tr-agregar-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  align-items: end;
+/* Banner de stock disponible: destaca el número (lo más importante para
+   decidir cuánto pedir) en vez de esconderlo en una celda de grid genérica. */
+.tr-agregar-stock-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--rol-accent-border);
+  border-radius: 8px;
+  background: var(--rol-accent-bg);
 }
 
-.tr-agregar-stock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--code-bg);
+.tr-agregar-stock-banner-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text);
-  height: 38px;
-  box-sizing: border-box;
-  justify-content: center;
+  color: var(--rol-accent);
 }
 
-.tr-agregar-stock strong {
-  color: var(--text-h);
-  font-size: 15px;
+.tr-agregar-stock-banner-valor {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--rol-accent);
+}
+
+.tr-agregar-stock-banner-unidad {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.tr-agregar-cantidad-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tr-agregar-cantidad-label {
+  font-size: 12px;
   font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
+  color: var(--text-h);
 }
 
 .tr-agregar-cantidad-stepper {
@@ -1735,13 +1749,16 @@
   border-radius: 0;
   text-align: center;
   min-width: 0;
+  height: 42px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .tr-agregar-stepper-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 42px;
   flex-shrink: 0;
   border: 1px solid var(--border);
   background: var(--code-bg);
@@ -1750,12 +1767,12 @@
 }
 
 .tr-agregar-stepper-btn:first-child {
-  border-radius: 6px 0 0 6px;
+  border-radius: 8px 0 0 8px;
   border-right: none;
 }
 
 .tr-agregar-stepper-btn:last-child {
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 8px 8px 0;
   border-left: none;
 }
 
